@@ -1,0 +1,35 @@
+# Answers file for orc-temp init.sh.
+# Placeholders left as TODO — edit and re-run `init.sh --force` once known.
+
+PROJECT_NAME=zawarudo
+PROJECT_SLUG=zawarudo
+PROJECT_TAGLINE=TODO — one-line description of what zawarudo does
+
+LINEAR_PROJECT=zawarudo
+ISSUE_PREFIX=ZAW
+ISSUE_PREFIX_LOWER=zaw
+COMMAND_CENTER_ISSUE=ZAW-1
+
+BRANCH_PREFIX=sk
+DEFAULT_BRANCH=main
+
+VERIFY_CMD=TODO
+BUILD_CMD=TODO
+INSPECT_CMD=TODO
+
+CODEX_MODEL=gpt-5.3-codex-spark
+CODEX_REVIEW_MODEL=gpt-5.5
+CODEX_REVIEW_EFFORT=xhigh
+
+IMPL_ROLE_NAME=implementer
+
+# blocklist: impl writes EVERYTHING except Claude's exclusive territory
+# (.claude/**, .codex/**, hooks/**, docs/**, **/*.md, root .gitignore).
+SCOPE_MODE=blocklist
+
+# Ignored at runtime when SCOPE_MODE=blocklist, but still required.
+IMPL_SCOPE_GLOBS=src/**
+
+# production-realistic: adds the §1.2 "no staging/prod, no IaC, no feature
+# flags, single-env" doctrine to CLAUDE.md.
+DEPLOYMENT_DOCTRINE=production-realistic
