@@ -138,7 +138,7 @@ Each phase below specifies:
 Mostly Claude-direct (Claude territory). One impl subagent for the `data/models/train/eval/demo/` skeleton with placeholder `__init__.py` files (which is production-code territory and needs codex-written stubs).
 
 **(a) Code/data:**
-- `scripts/check-prereqs.sh` — verifies node ≥18, npm, uv, python ≥3.11, git-lfs, `likec4` on PATH, `/understand` availability. Fails loudly with install instructions for anything missing.
+- `scripts/check-prereqs.sh` — verifies node ≥18, npm, uv, python ≥3.11, git-lfs, `likec4` on PATH, `/understand` availability. Fails loudly with install instructions for anything missing. **Also includes a regression check** (added per user audit request) that no runtime code in `scripts/` or `hooks/` reads from `.template.answers` (which is outside Claude's writable scope and intentionally stale per §6). Audit at project creation: clean — only commentary mentions in `hooks/write-scope-guard.mjs`. See VOI-189 for the exact grep guard.
 - `pyproject.toml` (Python project metadata; `uv`-managed deps).
 - `package.json` (Node deps — just LikeC4).
 - Directory skeleton: `data/`, `models/`, `train/`, `eval/`, `demo/`, `architecture/`, `docs/architecture/`, `.understand-anything/`. Each gets a placeholder `__init__.py` or `.gitkeep` so git tracks them.
@@ -245,12 +245,13 @@ The toy dataset's anomaly signature is designed so **no single modality is suffi
 **(c) /understand:** re-run at end. Run `/understand-diff` before any non-trivial change inside this phase.
 
 **(d) Linear subissues:**
-- 3.1: CWRU download + preprocess (impl)
-- 3.2: Image pairing + technician notes (impl)
-- 3.3: CWRU mode in Dataset + smoke training run (impl)
-- 3.4: LikeC4 + /understand update (Claude)
+- 3.1: CWRU download + preprocess (impl) — VOI-205
+- 3.2: Image pairing + technician notes (impl) — VOI-206
+- 3.3: CWRU mode in Dataset + smoke training run (impl) — VOI-207
+- 3.4: LikeC4 + /understand update (Claude) — VOI-208
+- 3.5: `scripts/budget-check.sh` — 15-run ablation timing extrapolation gate (impl) — VOI-223 [added per user request, blocks Phase 4 launch]
 
-**(e) Exit gate:** CWRU Dataset returns valid `(sensor, image, text, label)` tuples; one short training run on CWRU completes without crashes.
+**(e) Exit gate:** CWRU Dataset returns valid `(sensor, image, text, label)` tuples; one short training run on CWRU completes without crashes; **`scripts/budget-check.sh` outputs GREEN (≤20h) or YELLOW (20–24h, documented in RUNNING_NOTES.md). If RED (>24h projected), Phase 3 is NOT done — redesign (shrink seeds, shrink epochs, simplify encoder, fewer conditions) before Phase 4 begins.**
 
 ### Phase 4 — Full training + headline ablation
 
@@ -348,7 +349,7 @@ If Phases 0–6 land with at least 3 calendar days of budget left, pursue these 
 - **Image pairing fidelity.** v1 uses one representative image per class. If the toy-set smoke test (Phase 1) shows the image modality contributes <expected, Phase 3 may need to diversify per-class images (e.g., crops of the actual CWRU test rig from photos in the dataset documentation).
 - **Synthetic technician note generation.** Phase 3 uses deterministic templates (no metered API). If the text modality contributes ~zero in ablation, consider expanding the template variety in a Phase-3 follow-up packet.
 - **MPS nondeterminism.** Some ops are nondeterministic on MPS regardless of `use_deterministic_algorithms(True)`. The Phase 1 determinism test will surface this; document occurrences in RUNNING_NOTES.md and weaken the determinism claim if needed (don't pretend).
-- **`.template.answers` staleness.** The file is outside Claude's writable scope (the hook treats it as production code). It records the template generation inputs and is unused at runtime. Leave stale unless re-running `init.sh` becomes necessary; if so, update through an impl packet.
+- **`.template.answers` staleness.** The file is outside Claude's writable scope (the hook treats it as production code). It records the template generation inputs and is unused at runtime. Audit at project creation confirmed: only commentary mentions exist in `hooks/write-scope-guard.mjs` (lines 7, 18, 63) — no `fs.readFile`, no shell `source`, no runtime read. Values were baked in by `init.sh` at generation time. Leave stale unless re-running `init.sh` becomes necessary; if so, update through an impl packet. **Regression protection:** `scripts/check-prereqs.sh` (P0.2 / VOI-189) includes a grep guard that fails if any non-comment runtime reference to `.template.answers` is introduced, so the staleness cannot silently become a footgun.
 
 ---
 
