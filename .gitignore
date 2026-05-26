@@ -16,3 +16,19 @@ docs/architecture/likec4-views.js
 docs/architecture/assets/
 # Auto-generated alias of the first named view; landscape.mmd is the real source.
 docs/architecture/index.mmd
+
+# Python — uv-managed venv + interpreter caches + tooling caches.
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.ruff_cache/
+
+# Node — installed deps. The lockfile (package-lock.json) IS tracked.
+node_modules/
+
+# ML caches — local-only model weights / tokenizer caches that don't belong in git.
+# (HuggingFace caches default to ~/.cache/huggingface; uncomment a project-local
+# entry here if any future packet redirects them under the repo.)
+.cache/
