@@ -105,12 +105,30 @@ MERGED_TOKENS=" $(git log "$MAIN_REF" --pretty=format:'%s' 2>/dev/null \
                   | grep -oE 'VOI-[0-9]+' | sort -u | tr '\n' ' ') "
 
 # Dispatched: `sk/voi-<n>-...` branches that exist locally OR on origin.
+# Anchored regex: `^sk/voi-N` (CLAUDE.md branch convention) — stray refs
+# like `docs/voi-193-notes` no longer false-positive as dispatched
+# (VOI-229 PR #10 [P1] fix).
+_extract_dispatch_tokens() {
+  # stdin: refnames (one per line). stdout: VOI-N tokens of `sk/voi-N-*` refs.
+  grep -oE '^sk/voi-[0-9]+' | sed 's|^sk/||' | tr '[:lower:]' '[:upper:]' | sort -u
+}
+
 DISPATCHED_LOCAL=$(git for-each-ref --format='%(refname:short)' refs/heads \
-                   | grep -oE 'voi-[0-9]+' | tr '[:lower:]' '[:upper:]' | sort -u)
+                   | _extract_dispatch_tokens)
 DISPATCHED_REMOTE=$(git for-each-ref --format='%(refname:short)' refs/remotes/origin \
-                    | grep -oE 'voi-[0-9]+' | tr '[:lower:]' '[:upper:]' | sort -u)
+                    | sed 's|^origin/||' | _extract_dispatch_tokens)
+
+# Combined: any `sk/voi-N-*` branch (local OR remote) marks the packet as
+# "dispatched" — avoids re-dispatching what's already in flight in this
+# checkout, even before push.
 DISPATCHED_TOKENS=" $(printf '%s\n%s\n' "$DISPATCHED_LOCAL" "$DISPATCHED_REMOTE" \
                       | sort -u | tr '\n' ' ') "
+
+# Deps-met readiness uses ORIGIN-ONLY refs (VOI-229 PR #10 [P2] fix). A
+# downstream impl provisions its worktree from `origin/sk/<dep>` — a
+# stale, unpushed local dep branch is NOT actually content-available to
+# the downstream packet, so it must not count as satisfying the dep.
+REMOTE_DISPATCHED_TOKENS=" $DISPATCHED_REMOTE "
 
 contains() {
   local hay="$1" needle="$2"
@@ -150,11 +168,12 @@ for pair in "${PACKETS[@]}"; do
     continue
   fi
 
-  # Not merged, not dispatched. Check deps.
+  # Not merged, not dispatched. Check deps — origin-only for the stacked-PR
+  # readiness check (per [P2] fix; unpushed local refs cannot satisfy a dep).
   pkt_deps=$(deps_of "$pkt")
   unmet=()
   for dep in $pkt_deps; do
-    if contains "$MERGED_TOKENS" "$dep" || contains "$DISPATCHED_TOKENS" "$dep"; then
+    if contains "$MERGED_TOKENS" "$dep" || contains "$REMOTE_DISPATCHED_TOKENS" "$dep"; then
       continue
     fi
     unmet+=("$dep")
