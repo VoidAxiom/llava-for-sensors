@@ -24,7 +24,12 @@ def run_headline_from_csv(
 ) -> dict:
     results = _read_results_csv(Path(csv_path))
     n_seeds = results.shape[1]
-    headline = compute_headline(results, n_resamples=10000, rng_seed=0, strict=n_seeds == 5)
+    if n_seeds != 5:
+        raise ValueError(
+            f"Headline gate requires exactly 5 seeds per condition; got {n_seeds}. "
+            "Run the full ablation (n_seeds=5) before applying the gate."
+        )
+    headline = compute_headline(results, n_resamples=10000, rng_seed=0, strict=True)
     render_svg(headline, out_svg)
 
     all_three_mean = float(headline["means"][2])

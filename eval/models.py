@@ -103,6 +103,13 @@ class AllThreeModel(nn.Module):
         if attention_mask is not None and not isinstance(attention_mask, Tensor):
             raise ValueError("processor attention_mask must be a tensor when provided")
 
+        # With inputs_embeds we own the full token space; do not let Qwen scatter
+        # visual features into positions from the already-combined embeddings.
+        inputs.pop("pixel_values", None)
+        inputs.pop("image_grid_thw", None)
+        inputs.pop("pixel_values_videos", None)
+        inputs.pop("video_grid_thw", None)
+
         sensor_tokens = self.fusion(self.encoder(sensor))
         text_image_embeds = self.vlm.get_input_embeddings()(input_ids)
         sensor_tokens = sensor_tokens.to(device=device, dtype=text_image_embeds.dtype)
@@ -172,6 +179,16 @@ def _load_qwen_processor(model_id: str) -> object:
         return _TextOnlyProcessor(model_id)
 
 
+def _build_qwen_chat_prompt(text: str) -> str:
+    """Wrap a text description in a minimal Qwen2-VL single-image chat prompt."""
+    return (
+        "<|im_start|>user\n"
+        "<|vision_start|><|image_pad|><|vision_end|>"
+        f"{text}<|im_end|>\n"
+        "<|im_start|>assistant\n"
+    )
+
+
 def _prepare_processor_inputs(
     processor: Any,
     image: Tensor,
@@ -179,6 +196,8 @@ def _prepare_processor_inputs(
     device: torch.device,
 ) -> dict[str, Any]:
     pil_images = _tensor_batch_to_pil(image)
+    if not isinstance(processor, _TextOnlyProcessor):
+        text = [_build_qwen_chat_prompt(item) for item in text]
     raw_inputs = processor(text=text, images=pil_images, return_tensors="pt", padding=True)
     return _move_batch_to_device(raw_inputs, device)
 

@@ -150,6 +150,14 @@ def test_headline_gate_rejects_failing_results(tmp_path: pathlib.Path) -> None:
         run_headline_from_csv(csv_path=str(csv_path), out_svg=str(tmp_path / "out.svg"))
 
 
+def test_headline_gate_rejects_wrong_seed_count(tmp_path: pathlib.Path) -> None:
+    one_seed = np.array([[0.90], [0.50], [0.70]])
+    csv_path = _write_fake_csv(tmp_path, one_seed)
+
+    with pytest.raises(ValueError, match="5 seeds"):
+        run_headline_from_csv(csv_path=str(csv_path), out_svg=str(tmp_path / "out.svg"))
+
+
 def test_headline_gate_accepts_passing_results(tmp_path: pathlib.Path) -> None:
     passing = np.array(
         [
