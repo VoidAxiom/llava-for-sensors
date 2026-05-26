@@ -137,3 +137,16 @@ def test_svg_output(tmp_path) -> None:
     assert "sensors-only" in svg_text, "Condition 'sensors-only' not in SVG"
     assert "vision+text" in svg_text, "Condition 'vision+text' not in SVG"
     assert "all-three" in svg_text, "Condition 'all-three' not in SVG"
+
+
+def test_non_finite_input_rejected() -> None:
+    """Non-finite values (NaN/Inf) must be rejected before producing a verdict."""
+    arr = np.array(
+        [
+            [0.65, 0.65, 0.65, 0.65, 0.65],  # sensors-only
+            [0.78, 0.78, 0.78, 0.78, 0.78],  # vision+text
+            [np.nan, 0.88, 0.88, 0.88, 0.88],  # all-three: one NaN entry
+        ]
+    )
+    with pytest.raises(ValueError, match="non-finite values"):
+        compute_headline(arr, strict=True)
