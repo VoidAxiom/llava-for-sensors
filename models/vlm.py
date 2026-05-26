@@ -17,9 +17,19 @@ def load_frozen_vlm_with_lora(
     lora_dropout: float = 0.05,
 ) -> "PeftModel":
     """Load Qwen2-VL frozen on all base parameters with LoRA trainable adapters."""
+    if torch.backends.mps.is_available():
+        device = torch.device("mps")
+        torch_dtype = torch.float16
+    else:
+        import warnings
+
+        warnings.warn("MPS not available; using CPU. Expect very slow training.")
+        device = torch.device("cpu")
+        torch_dtype = torch.float32
+
     model = Qwen2VLForConditionalGeneration.from_pretrained(
         model_id,
-        torch_dtype=torch.float16,
+        torch_dtype=torch_dtype,
     )
 
     for parameter in model.parameters():
@@ -34,14 +44,6 @@ def load_frozen_vlm_with_lora(
         target_modules=["q_proj", "v_proj"],
     )
     model = get_peft_model(model, lora_config)
-
-    if torch.backends.mps.is_available():
-        device = torch.device("mps")
-    else:
-        import warnings
-
-        warnings.warn("MPS not available; using CPU. Expect very slow training.")
-        device = torch.device("cpu")
 
     model = model.to(device)
     return model
