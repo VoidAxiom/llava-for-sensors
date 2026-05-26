@@ -62,7 +62,7 @@ class VisionTextModel(nn.Module):
         del sensor
         device = _module_device(self.vlm, image.device)
         inputs = _prepare_processor_inputs(self.processor, image, text, device)
-        output = self.vlm(**inputs, output_hidden_states=True)
+        output = self.vlm(**inputs, output_hidden_states=True, logits_to_keep=1)
         mask = inputs.get("attention_mask")
         pooled = _pool_vlm_output(output, mask if isinstance(mask, Tensor) else None)
         return self.head(pooled)
@@ -161,6 +161,7 @@ class AllThreeModel(nn.Module):
         output = self.vlm(
             inputs_embeds=combined_embeds,
             output_hidden_states=True,
+            logits_to_keep=1,
             **inputs,
         )
         mask = inputs.get("attention_mask")
