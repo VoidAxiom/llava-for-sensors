@@ -61,13 +61,13 @@ version_ge() {
 
 # -- checks -----------------------------------------------------------------
 
-# node ≥ 18
+# node ≥ 22.22.3 (required by likec4@1.57 per its engines field; bumped per VOI-225 PR #7 Codex P1)
 if command -v node >/dev/null 2>&1; then
   v="$(node --version | sed 's/^v//')"
-  if version_ge "$v" "18.0.0"; then
-    pass "node $v (≥ 18 required)"
+  if version_ge "$v" "22.22.3"; then
+    pass "node $v (≥ 22.22.3 required)"
   else
-    fail "node $v (need ≥ 18)" "https://nodejs.org/ — or 'brew install node'"
+    fail "node $v (need ≥ 22.22.3)" "https://nodejs.org/ — or 'brew install node'"
   fi
 else
   fail "node not on PATH" "https://nodejs.org/ — or 'brew install node'"
