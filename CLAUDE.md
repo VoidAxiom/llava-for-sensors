@@ -382,6 +382,10 @@ writes:
 - `.claude/**`, `.codex/**`, `.codex-runs/**`, `hooks/**` (agent
   behaviour surface + per-packet orchestration artifacts)
 - `docs/**`, `**/*.md` (documentation; this CLAUDE.md, AGENTS.md, etc.)
+- `architecture/**` (LikeC4 source — architecture-as-code, a docs
+  deliverable rendered to `docs/architecture/*.svg`)
+- `.understand-anything/**` (committed Understand-Anything knowledge graph,
+  regenerated end-of-phase per PLAN.md — a docs deliverable, not source)
 - `.gitignore` (root only — anchored exact-file rule, not `*.gitignore`)
 - `~/.claude/projects/<encoded-key>/memory/**` (Claude Code project memory
   — outside the project root by design)
@@ -390,6 +394,12 @@ Anything else (production code, config, infra, fixtures — anything
 outside the allowlist above) is denied. To change production code,
 dispatch the implementer subagent. The hook explains in its deny
 message which subagent_type to spawn.
+
+The `architecture/**` and `.understand-anything/**` prefixes are also
+Claude-exclusive in the impl's blocklist mode — the impl cannot write
+LikeC4 source or knowledge-graph JSON via codex exec, mirroring how
+`docs/**` is handled. Architecture-as-code and the committed graph are
+authoring decisions, not transcription tasks.
 
 The implementer subagent's tools list strips `Edit`/`Write`/`MultiEdit`
 entirely (defense-in-depth — even if the hook were bypassed, the impl has

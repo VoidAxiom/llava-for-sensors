@@ -22,18 +22,22 @@
 // each prefix means "this dir at the active write root, or anything under it"):
 //   Claude (no agent_id):    scripts/** · **/*.test.* · .claude/** · .codex/** ·
 //                            .codex-runs/** · hooks/** · docs/** · **/*.md ·
-//                            .gitignore
+//                            .gitignore · architecture/** · .understand-anything/**
 //                            PLUS: ~/.claude/projects/<key>/memory/**
 //                            (project memory lives outside the project root)
 //                            (.codex-runs/** is per-packet orchestration:
 //                            Claude authors spec.md + scope.txt there; impl
 //                            writes git_diff.patch + events.jsonl via Bash.)
+//                            (architecture/** holds LikeC4 source; .understand-anything/**
+//                            holds the committed knowledge-graph.json — both are
+//                            documentation deliverables, not production code.)
 //   implementer (allowlist mode):
 //                            scripts/** · **/*.test.* · src/**
 //   implementer (blocklist mode):
 //                            EVERYTHING inside the active write root EXCEPT
 //                            Claude's exclusive territory: .claude/** ·
-//                            .codex/** · hooks/** · docs/** · **/*.md ·
+//                            .codex/** · hooks/** · docs/** · architecture/** ·
+//                            .understand-anything/** · **/*.md ·
 //                            root .gitignore.
 //                            (Either way, the impl subagent's tools strip
 //                            Edit/Write/MultiEdit, so this branch is
@@ -85,7 +89,7 @@ for (const entry of _scopeEntries) {
 // anywhere inside the active write root EXCEPT these. Strict-prefix dir
 // match + exact-file match + anchored basename match (no substring-anywhere).
 // Used only when SCOPE_MODE === 'blocklist'.
-const CLAUDE_ONLY_DIRS = ['.claude', '.codex', 'hooks', 'docs']
+const CLAUDE_ONLY_DIRS = ['.claude', '.codex', 'hooks', 'docs', 'architecture', '.understand-anything']
 const CLAUDE_ONLY_FILES = ['.gitignore']
 const CLAUDE_ONLY_BASENAME_RE = /\.md$/i
 
@@ -417,11 +421,13 @@ process.stdin.on('end', () => {
         startsWithDir('.codex') ||
         startsWithDir('.codex-runs') ||
         startsWithDir('hooks') ||
-        startsWithDir('docs')
+        startsWithDir('docs') ||
+        startsWithDir('architecture') ||
+        startsWithDir('.understand-anything')
       ) return allow()
       return deny(
         'Claude',
-        'scripts/**, **/*.test.*, .claude/**, .codex/**, .codex-runs/**, hooks/**, docs/**, **/*.md, or .gitignore (root only)',
+        'scripts/**, **/*.test.*, .claude/**, .codex/**, .codex-runs/**, hooks/**, docs/**, architecture/**, .understand-anything/**, **/*.md, or .gitignore (root only)',
         rawFp,
         resolved,
       )
@@ -440,9 +446,10 @@ process.stdin.on('end', () => {
         return deny(
           who,
           'anywhere in the active write root EXCEPT Claude\'s exclusive ' +
-            'territory: .claude/**, .codex/**, hooks/**, docs/**, **/*.md, ' +
-            'or root .gitignore (those are Claude-authored; ask Claude to ' +
-            'make the change)',
+            'territory: .claude/**, .codex/**, hooks/**, docs/**, ' +
+            'architecture/**, .understand-anything/**, **/*.md, or root ' +
+            '.gitignore (those are Claude-authored; ask Claude to make ' +
+            'the change)',
           rawFp,
           resolved,
         )
