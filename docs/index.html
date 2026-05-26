@@ -1,0 +1,983 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>llava-for-sensors — multimodal fault prediction on a frozen Qwen2-VL-2B</title>
+  <meta name="description" content="A research-portfolio project fusing time-series sensor data with vision and language on a frozen Qwen2-VL-2B, trained locally on Apple M2 Max. Architecture, algorithms, and methodology explained at three depths." />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoTkbqJghGIsx//Rlm+ZU03BU6SQNC66uf4l5+" crossorigin="anonymous" />
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <div class="container header-row">
+      <div class="brand">
+        <span class="brand-logo" aria-hidden="true">⟨ <span class="brand-dot"></span> ⟩</span>
+        <a href="#hero" class="brand-name">llava-for-sensors</a>
+      </div>
+      <nav aria-label="Primary">
+        <ul class="primary-nav">
+          <li><a href="#state">State</a></li>
+          <li><a href="#tools">Tools</a></li>
+          <li><a href="#architecture">Architecture</a></li>
+          <li><a href="#algorithms">Algorithms</a></li>
+          <li><a href="#workflow">Workflow</a></li>
+          <li><a href="#references">References</a></li>
+        </ul>
+      </nav>
+      <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark mode" title="Toggle theme">
+        <span class="sun" aria-hidden="true">☀</span>
+        <span class="moon" aria-hidden="true">☾</span>
+      </button>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- HERO -->
+    <section id="hero" class="hero">
+      <div class="container hero-grid">
+        <div class="hero-copy">
+          <p class="eyebrow">Research portfolio · local-dev on M2 Max</p>
+          <h1>Teaching a frozen VLM<br/>to read industrial sensors.</h1>
+          <p class="lede">
+            <strong>llava-for-sensors</strong> is a small but production-realistic
+            experiment in <em>cross-modal fusion</em>: a frozen
+            <a href="https://arxiv.org/abs/2409.12191">Qwen2-VL-2B</a>
+            (vision + language) augmented with a trainable time-series encoder
+            and a cross-attention fusion adapter. The thesis: <em>combining
+            sensors, images, and technician notes beats any single modality on
+            bearing-fault classification</em>.
+          </p>
+          <div class="hero-cta">
+            <a href="#algorithms" class="btn btn-primary">How it works</a>
+            <a href="https://github.com/VoidAxiom/llava-for-sensors" class="btn btn-ghost">View on GitHub →</a>
+          </div>
+          <dl class="hero-stats">
+            <div><dt>Base model</dt><dd>Qwen2-VL-2B (~2.2B params)</dd></div>
+            <div><dt>Trainable</dt><dd>&lt; 10M params (LoRA + adapter)</dd></div>
+            <div><dt>Hardware</dt><dd>Apple M2 Max · 40 GB unified</dd></div>
+            <div><dt>Spend</dt><dd>$0 metered API</dd></div>
+          </dl>
+        </div>
+        <figure class="headline-figure" id="headline-figure">
+          <img src="figures/headline.svg" alt="Headline ablation: macro-F1 across modality conditions on the toy bearing-fault task." />
+          <figcaption>
+            <strong>Headline figure</strong> — macro-F1 across 3 modality conditions on the
+            <a href="#phase-1">Phase&nbsp;1 toy set</a>. Placeholder until the
+            live run completes; the file at <code>docs/figures/headline.svg</code>
+            is overwritten when <code>eval/headline.py</code> finishes.
+          </figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- STATE -->
+    <section id="state" class="section">
+      <div class="container">
+        <header class="section-head">
+          <p class="eyebrow">§1 — Where we are</p>
+          <h2>Project state at a glance</h2>
+        </header>
+        <p>
+          The project follows the <a href="#workflow">director / impl / codex</a>
+          workflow documented in <code>CLAUDE.md</code>. Every change ships
+          through a per-packet PR with a head-pinned Codex review. The
+          phased plan in <code>PLAN.md</code> sets the build order.
+        </p>
+        <div class="phase-grid">
+          <article class="phase-card phase-done">
+            <h3>Phase 0 — Foundations <span class="badge badge-done">done</span></h3>
+            <p>Prereq verifier, headline-figure stub, LikeC4 sources, scope-guard hooks, initial Understand-Anything knowledge graph.</p>
+            <ul>
+              <li>11 packets + 2 META PRs merged.</li>
+              <li>~5h wall time end-to-end.</li>
+            </ul>
+          </article>
+          <article class="phase-card phase-done" id="phase-1">
+            <h3>Phase 1 — Toy synthetic pipeline <span class="badge badge-running">running</span></h3>
+            <p>Smoke-tests the architecture on a synthetic 4-class dataset whose anomaly signature is designed so <em>no single modality is sufficient</em>.</p>
+            <ul>
+              <li><strong>P1.1</strong> · <code>data/synthetic.py</code> + <code>data/dataset.py</code> ✓</li>
+              <li><strong>P1.2</strong> · <code>models/encoder.py</code> + <code>models/fusion.py</code> ✓</li>
+              <li><strong>P1.3</strong> · <code>models/vlm.py</code> (Qwen2-VL + LoRA) ✓</li>
+              <li><strong>P1.4</strong> · <code>train/loop.py</code> ✓</li>
+              <li><strong>P1.5</strong> · <code>eval/ablation.py</code> + load-bearing gate · <em>ablation running</em></li>
+              <li><strong>P1.6</strong> · LikeC4 component view ✓</li>
+              <li><strong>P1.7</strong> · <code>/understand</code> re-run + RUNNING_NOTES · blocked on P1.5</li>
+            </ul>
+          </article>
+          <article class="phase-card phase-pending">
+            <h3>Phase 2 — Real time-series encoder <span class="badge">queued</span></h3>
+            <p>Swap toy 1D-CNN for <a href="https://arxiv.org/abs/2211.14730">PatchTST</a> (preferred) or Moment-small. Same encoder I/O contract; the smoke gate must still pass.</p>
+          </article>
+          <article class="phase-card phase-pending">
+            <h3>Phase 3+ — CWRU integration, full ablation, demo, report <span class="badge">queued</span></h3>
+            <p>Real CWRU bearing data, 15-run ablation grid (3 conditions × 5 seeds), Gradio demo, mini-arXiv tech report. Optional Phase 7 flourishes: 4-bit quantization, cross-load split, C-MAPSS feasibility.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- TOOLS -->
+    <section id="tools" class="section section-alt">
+      <div class="container">
+        <header class="section-head">
+          <p class="eyebrow">§2 — How it's built</p>
+          <h2>Tools &amp; languages — what and why</h2>
+          <p class="section-lede">
+            Every choice below is justified against the realistic alternatives
+            for a local-dev ML portfolio project. No deployment automation,
+            no multi-environment shims — this is single-machine on purpose.
+          </p>
+        </header>
+
+        <div class="tools-grid">
+          <article class="tool-card">
+            <h3>Python 3.12 via <a href="https://docs.astral.sh/uv/">uv</a></h3>
+            <p><strong>Why uv:</strong> Rust-based, ~10–100× faster than pip/poetry; one binary handles interpreter management + dependency resolution + lockfile + workspaces. Reproducibility is free (the lockfile is committed).</p>
+            <p><strong>Vs alternatives:</strong> <em>poetry</em> is slower and has a heavier learning curve; <em>pip + venv</em> requires manual lockfile discipline; <em>conda</em> is overkill (no scientific binary deps that pip can't handle for this stack).</p>
+          </article>
+
+          <article class="tool-card">
+            <h3>PyTorch on Apple MPS</h3>
+            <p><strong>Why MPS:</strong> M2 Max has 40 GB unified memory — enough to host the full Qwen2-VL-2B fp16 (~5 GB) plus LoRA + fusion adapter optimizer state. <code>torch.backends.mps</code> is mature for inference; LoRA-only backward is supported.</p>
+            <p><strong>Vs CUDA:</strong> we don't own a CUDA box. <strong>Vs MLX:</strong> Apple's MLX is faster on Apple Silicon but the PyTorch + transformers + PEFT ecosystem coverage isn't there yet for Qwen2-VL specifically. MLX is the planned Phase-7 retreat path if 4-bit quantization becomes load-bearing.</p>
+          </article>
+
+          <article class="tool-card">
+            <h3>HuggingFace <a href="https://huggingface.co/docs/transformers">transformers</a> + <a href="https://huggingface.co/docs/peft/index">PEFT</a></h3>
+            <p><strong>Why:</strong> transformers handles Qwen2-VL's multimodal tokenization, vision tower, RoPE, and image-token scatter mechanics. PEFT contributes LoRA, prefix tuning, IA³, and DoRA out of the box.</p>
+            <p><strong>Vs raw PyTorch:</strong> reimplementing Qwen2-VL's vision-language token interleaving from scratch would burn a week and we'd still inherit upstream bug-fixes by upgrading the library. <strong>Vs <a href="https://github.com/huggingface/trl">TRL</a>:</strong> TRL is RLHF / GRPO-focused; we don't need RL for supervised fine-tuning.</p>
+          </article>
+
+          <article class="tool-card">
+            <h3><a href="https://likec4.dev">LikeC4</a> for architecture-as-code</h3>
+            <p><strong>Why:</strong> diagrams live next to the source they describe, are version-controlled, and re-export deterministically to Mermaid. The component view embedded below is generated from <code>architecture/component.c4</code>.</p>
+            <p><strong>Vs Mermaid alone:</strong> LikeC4 has typed elements (container, component, system), explicit relations, view definitions, and validation. Pure Mermaid is fine for one diagram, brittle for a layered architecture. <strong>Vs draw.io / Excalidraw:</strong> binary files don't diff well in PRs.</p>
+          </article>
+
+          <article class="tool-card">
+            <h3><a href="https://github.com/Lum1104/Understand-Anything">Understand-Anything</a> knowledge graph</h3>
+            <p><strong>Why:</strong> regenerable, browsable knowledge graph of the codebase committed at every phase boundary. Reviewer entry point — they can walk the graph instead of reading every file.</p>
+            <p><strong>Vs Doxygen / Sphinx:</strong> those generate reference docs; this surfaces architectural relationships and explains <em>why</em>. <strong>Vs LLM-generated CODE_MAP.md:</strong> the graph is queryable + versioned, not a flat dump.</p>
+          </article>
+
+          <article class="tool-card">
+            <h3>Multi-agent build orchestration</h3>
+            <p><strong>Why:</strong> <em>Claude</em> is the director (specs, scope gates, merges); <em>impl subagents</em> are per-packet workers in isolated git worktrees; <em>Codex</em> is the only writer of production code. The pattern is enforced by <code>hooks/write-scope-guard.mjs</code> — Claude literally cannot edit production code.</p>
+            <p><strong>Vs single-agent:</strong> domain correctness + taste stay with the director; transcription stays with the writer; review is cross-family adversarial (Codex worker + Codex reviewer, then GitHub Codex bot on PRs). Each role has its own context window, so the system can build features bigger than any one agent can hold.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ARCHITECTURE -->
+    <section id="architecture" class="section">
+      <div class="container">
+        <header class="section-head">
+          <p class="eyebrow">§3 — System design</p>
+          <h2>Architecture deep-dive</h2>
+          <p class="section-lede">
+            The model's body is a frozen <a href="https://arxiv.org/abs/2409.12191">Qwen2-VL-2B</a>.
+            We bolt on three small trainable pieces: a time-series encoder, a
+            cross-attention fusion adapter that projects sensor embeddings into
+            the VLM's token space, and LoRA adapters on the LLM's attention
+            projections. A 4-class classification head reads the pooled
+            multimodal hidden state.
+          </p>
+        </header>
+
+        <figure class="diagram">
+          <pre class="mermaid">
+%%{init: {"theme": "base"} }%%
+graph TB
+  subgraph TS["Time-Series Encoder · trainable"]
+    Conv["Conv Stack<br/>3× Conv1d + GELU"] --> Proj["Patch Linear<br/>(256 → 512)"]
+  end
+  subgraph FUSE["Fusion Adapter · trainable"]
+    KV["KV Projection<br/>(512 → 1536)"]
+    Q["16 Learned Queries<br/>(1536-d)"]
+    Attn["Cross-Attention<br/>(8 heads, d=1536)"]
+    MLP["MLP + LayerNorm"]
+    KV --> Attn
+    Q --> Attn
+    Attn --> MLP
+  end
+  subgraph VLM["Qwen2-VL-2B · frozen body"]
+    Vis["Vision Tower<br/>(frozen)"]
+    LLM["LLM Backbone<br/>(frozen)"]
+    LoRA["LoRA Adapters<br/>(q_proj, v_proj, r=8)<br/>trainable"]
+    Vis --> LLM
+    LLM <--> LoRA
+  end
+  Head["4-Class Head<br/>(1536 → 4)<br/>trainable"]
+  Sensor["sensor window<br/>(B, 2048)"] --> Conv
+  Proj --> KV
+  MLP --> LLM
+  Image["image<br/>(B, 3, H, W)"] --> Vis
+  Text["text tokens"] --> LLM
+  LLM --> Head
+          </pre>
+          <figcaption>Tensor flow: sensor (B, 2048) → 32 patches → 16 sensor tokens in VLM space; image → vision tower → image embeddings; text → tokenizer → embeddings. Sensor + image + text embeddings are concatenated and routed through the frozen LLM with LoRA. Pooled hidden state → 4-class logits.</figcaption>
+        </figure>
+
+        <div class="key-numbers">
+          <h3>Key tensor shapes (pinned contracts)</h3>
+          <table class="shapes-table">
+            <thead><tr><th>Stage</th><th>Shape</th><th>Source of truth</th></tr></thead>
+            <tbody>
+              <tr><td>Sensor window in</td><td><code>(B, 2048)</code> float32</td><td><code>data/synthetic.py</code></td></tr>
+              <tr><td>Encoder output (patches)</td><td><code>(B, 32, 512)</code></td><td><code>models/encoder.py</code></td></tr>
+              <tr><td>Fusion adapter output</td><td><code>(B, 16, 1536)</code></td><td><code>models/fusion.py</code></td></tr>
+              <tr><td>VLM hidden state</td><td><code>(B, S, 1536)</code></td><td>Qwen2-VL-2B config</td></tr>
+              <tr><td>Classification logits</td><td><code>(B, 4)</code></td><td><code>eval/models.py</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ALGORITHMS -->
+    <section id="algorithms" class="section section-alt">
+      <div class="container">
+        <header class="section-head">
+          <p class="eyebrow">§4 — The ML / AI substrate</p>
+          <h2>Algorithms &amp; why they fit</h2>
+          <p class="section-lede">
+            Each algorithm below has a <em>three-depth</em> explanation —
+            high (intuition), medium (mechanics), low (math &amp; code) — plus
+            the alternatives we considered and why we ruled them out.
+          </p>
+        </header>
+
+        <!-- LoRA -->
+        <article class="algo-card" data-algo="lora">
+          <header class="algo-head">
+            <h3>LoRA · Low-Rank Adaptation</h3>
+            <p class="algo-tagline">Train ~5M parameters; freeze ~2.2B; pretend you fine-tuned the whole thing.</p>
+          </header>
+
+          <div class="depth-tabs" role="tablist" aria-label="Explanation depth">
+            <button class="depth-tab is-active" role="tab" aria-selected="true" data-depth="high">High</button>
+            <button class="depth-tab" role="tab" aria-selected="false" data-depth="medium">Medium</button>
+            <button class="depth-tab" role="tab" aria-selected="false" data-depth="low">Low (math)</button>
+          </div>
+
+          <div class="depth-panel is-active" data-depth="high">
+            <p>
+              Fine-tuning a 2-billion-parameter model the traditional way means
+              updating every weight in the model. That's expensive (you need
+              optimizer state for every parameter — Adam holds two extra
+              floats per weight, so ~3× the model size in RAM) and risky (the
+              model can <em>forget</em> what it already knew). LoRA's trick:
+              <strong>freeze the original weights, and learn a small
+              "side-channel" matrix that gets added on top.</strong>
+              The side-channel is forced to be low-rank — a tall-then-wide
+              decomposition — so it has only a few million parameters total
+              even when targeting a model with billions.
+            </p>
+            <p>
+              For us, this means the Qwen2-VL-2B vision-language model stays
+              exactly as the Qwen team trained it; we just nudge its attention
+              layers slightly toward bearing-fault classification.
+            </p>
+          </div>
+
+          <div class="depth-panel" data-depth="medium">
+            <p>
+              For every weight matrix <code>W ∈ ℝ<sup>d×k</sup></code> we want
+              to adapt (in our case, the <code>q_proj</code> and
+              <code>v_proj</code> in every LLM attention block), LoRA inserts
+              two trainable matrices <code>A ∈ ℝ<sup>r×k</sup></code> and
+              <code>B ∈ ℝ<sup>d×r</sup></code> with rank
+              <code>r ≪ min(d, k)</code>. At inference the effective weight is
+              <code>W + (α/r) · B·A</code>; at training only A and B receive
+              gradients.
+            </p>
+            <ul>
+              <li><strong>Rank <code>r = 8</code></strong>: small enough that 4 LLM attention layers add ~0.1M params, large enough to capture task signal.</li>
+              <li><strong>Scaling <code>α = 16</code></strong>: per the original paper, "tuning α is roughly equivalent to tuning the learning rate," so the practical default of α = 2r works.</li>
+              <li><strong>Target modules</strong> <code>q_proj</code> + <code>v_proj</code>: empirically the highest-signal targets for transformer adaptation; <code>k_proj</code>/<code>o_proj</code>/MLP gain marginal F1 at significant parameter cost.</li>
+              <li><strong>Init</strong>: <code>A ~ N(0, σ²)</code>, <code>B = 0</code>, so the adapter starts as a no-op and the original model output is unchanged at step 0.</li>
+            </ul>
+          </div>
+
+          <div class="depth-panel" data-depth="low">
+            <p>
+              Let <code>x ∈ ℝ<sup>k</sup></code> be an attention input.
+              Standard projection: <code>h = W x</code>. LoRA's modified
+              projection:
+            </p>
+            <p class="math-block">
+              \[
+                h \;=\; W x \;+\; \tfrac{\alpha}{r}\, B (A x).
+              \]
+            </p>
+            <p>
+              During training, <code>W</code> has <code>requires_grad =
+              False</code>. Backprop flows only into <code>A</code> and
+              <code>B</code>. Memory cost: instead of one <code>d × k</code>
+              optimizer-state block (Adam ⇒ <code>2 d k</code> floats), we
+              pay <code>2 r (d + k)</code> floats. For Qwen2-VL's
+              1536-dimensional attention with <code>r = 8</code>, that's a
+              ~<strong>97× reduction</strong> per adapted matrix.
+            </p>
+            <p>
+              The forward pass adds two GEMMs but each is small
+              (<code>r·k</code> and <code>d·r</code> FLOPs vs <code>d·k</code>
+              for the base projection), so wall time is dominated by the
+              frozen forward.
+            </p>
+            <p class="code-callout">
+              In <code>models/vlm.py</code>:
+              <code>LoraConfig(r=8, lora_alpha=16, target_modules=["q_proj","v_proj"], task_type=CAUSAL_LM)</code>;
+              <code>model = get_peft_model(model, lora_config)</code>.
+            </p>
+          </div>
+
+          <div class="algo-alts">
+            <h4>Alternatives we considered</h4>
+            <ul>
+              <li><strong>Full fine-tuning</strong> — too expensive in memory + time on M2 Max; risks catastrophic forgetting of Qwen's general vision-language ability.</li>
+              <li><strong>Prefix tuning / <a href="https://arxiv.org/abs/2101.00190">prompt tuning</a></strong> — fewer params still, but lower ceiling on adaptation quality for non-prompt-shaped tasks like ours.</li>
+              <li><strong><a href="https://arxiv.org/abs/2205.05638">IA³</a></strong> — scales activations rather than adding deltas; even fewer params but less expressive.</li>
+              <li><strong><a href="https://arxiv.org/abs/2402.09353">DoRA</a></strong> — decomposes weight into magnitude + direction, gets a small accuracy bump over LoRA. A real Phase 7 candidate if LoRA leaves performance on the table.</li>
+            </ul>
+            <p class="ref-line">
+              Further reading:
+              <a href="https://arxiv.org/abs/2106.09685">LoRA paper (Hu et al. 2021)</a> ·
+              <a href="https://huggingface.co/docs/peft/conceptual_guides/lora">PEFT conceptual guide</a> ·
+              <a href="https://magazine.sebastianraschka.com/p/practical-tips-for-finetuning-llms">Sebastian Raschka — practical LoRA tips</a>
+            </p>
+          </div>
+        </article>
+
+        <!-- Cross-Attention Fusion Adapter -->
+        <article class="algo-card" data-algo="fusion">
+          <header class="algo-head">
+            <h3>Cross-attention fusion adapter</h3>
+            <p class="algo-tagline">Compress 32 sensor patches into 16 tokens in the VLM's language.</p>
+          </header>
+
+          <div class="depth-tabs" role="tablist" aria-label="Explanation depth">
+            <button class="depth-tab is-active" role="tab" aria-selected="true" data-depth="high">High</button>
+            <button class="depth-tab" role="tab" aria-selected="false" data-depth="medium">Medium</button>
+            <button class="depth-tab" role="tab" aria-selected="false" data-depth="low">Low (math)</button>
+          </div>
+
+          <div class="depth-panel is-active" data-depth="high">
+            <p>
+              The VLM speaks "tokens" — discrete things that the language
+              model attends over. The time-series encoder produces "patches" —
+              numerical vectors with no native meaning to the LLM. The fusion
+              adapter is a tiny translator: given a variable-length sequence
+              of sensor patches, it produces a <em>fixed</em> number of
+              tokens (we picked 16) at exactly the LLM's hidden dimension
+              (1536), which we can splice into the LLM's input stream
+              alongside image and text tokens.
+            </p>
+            <p>
+              The "translation" trick is cross-attention with <em>learned
+              queries</em>: the adapter holds 16 query vectors as parameters,
+              attends over the encoder patches to fill them with relevant
+              content, and outputs the 16 enriched vectors. It's the same
+              pattern used by <a href="https://arxiv.org/abs/2204.14198">Flamingo</a>'s
+              Perceiver Resampler and BLIP-2's Q-Former.
+            </p>
+          </div>
+
+          <div class="depth-panel" data-depth="medium">
+            <p>
+              The adapter is a single-block <strong>cross-attention +
+              residual MLP</strong>:
+            </p>
+            <ol>
+              <li>Project encoder output to VLM dim:
+                <code>KV = Linear(d<sub>enc</sub>=512 → d<sub>vlm</sub>=1536)(patches)</code>
+                → shape <code>(B, 32, 1536)</code>.</li>
+              <li>16 learned query tokens
+                <code>Q ∈ ℝ<sup>16×1536</sup></code>, initialized
+                <code>𝒩(0, 0.02²)</code>, broadcast to batch
+                <code>(B, 16, 1536)</code>.</li>
+              <li>8-head cross-attention:
+                <code>attn = MultiheadAttention(Q, KV, KV)</code>
+                → <code>(B, 16, 1536)</code>.</li>
+              <li>Residual MLP + LayerNorm:
+                <code>out = LayerNorm(attn + MLP(attn))</code>.</li>
+            </ol>
+            <p>
+              The output <code>(B, 16, 1536)</code> is prepended to the LLM's
+              embedded input. The frozen LLM attends over (sensor || image ||
+              text) tokens jointly; LoRA adapts the LLM's attention to use
+              the new sensor channel.
+            </p>
+          </div>
+
+          <div class="depth-panel" data-depth="low">
+            <p>
+              Cross-attention is just the attention operator with queries
+              coming from one stream and keys+values from another:
+            </p>
+            <p class="math-block">
+              \[
+                \mathrm{Attn}(Q, K, V) \;=\; \mathrm{softmax}\!\left(
+                  \frac{Q K^{\top}}{\sqrt{d_k}}
+                \right) V
+              \]
+            </p>
+            <p>
+              In our setup, <code>Q ∈ ℝ<sup>16×1536</sup></code> are
+              learned parameters; <code>K, V ∈ ℝ<sup>32×1536</sup></code>
+              are projected encoder patches. The query length (16) is fixed
+              and decoupled from the encoder's output length (32), which is
+              the whole point: downstream tokens consumed by the LLM are
+              budgeted independently of upstream sensor resolution.
+            </p>
+            <p>
+              Total trainable params for the adapter:
+              <code>(512+1) · 1536</code> (KV proj) +
+              <code>16 · 1536</code> (queries) +
+              <code>4 · 1536²</code> (attention QKV + output projections) +
+              <code>2 · 1536²</code> (MLP) + LayerNorm —
+              roughly <strong>14M params</strong>, the largest trainable
+              block in the whole stack. (LoRA + classification head sit
+              below 1M each.)
+            </p>
+          </div>
+
+          <div class="algo-alts">
+            <h4>Alternatives we considered</h4>
+            <ul>
+              <li><strong>Concat-then-project</strong>: average-pool the encoder output, project to a single 1536-d token, concatenate. Simpler but loses temporal structure of the sensor window.</li>
+              <li><strong>Gated fusion</strong>: element-wise modulation of LLM hidden states by sensor features. Easier to wire, but biases toward late-fusion (the LLM never <em>attends</em> to sensor positions).</li>
+              <li><strong><a href="https://arxiv.org/abs/2107.14795">Perceiver IO</a></strong>: the more powerful generalization (stacked cross-attention with a learned latent array). Overkill for 32-patch inputs; we use a single-layer slim version.</li>
+              <li><strong>BLIP-2 <a href="https://arxiv.org/abs/2301.12597">Q-Former</a></strong>: 2-stage pretrain + fine-tune of a 12-layer transformer fusion module. We can't afford the pretrain stage; our adapter is the architectural descendant trained jointly end-to-end.</li>
+            </ul>
+            <p class="ref-line">
+              Further reading:
+              <a href="https://arxiv.org/abs/2204.14198">Flamingo (Perceiver Resampler)</a> ·
+              <a href="https://arxiv.org/abs/2301.12597">BLIP-2 (Q-Former)</a> ·
+              <a href="https://jalammar.github.io/illustrated-transformer/">Jay Alammar — Illustrated Transformer</a> (for the attention background)
+            </p>
+          </div>
+        </article>
+
+        <!-- Qwen2-VL -->
+        <article class="algo-card" data-algo="qwen2vl">
+          <header class="algo-head">
+            <h3>Qwen2-VL-2B · the frozen vision-language body</h3>
+            <p class="algo-tagline">A 2.2B-param multimodal model that already speaks image + text fluently.</p>
+          </header>
+
+          <div class="depth-tabs" role="tablist" aria-label="Explanation depth">
+            <button class="depth-tab is-active" role="tab" aria-selected="true" data-depth="high">High</button>
+            <button class="depth-tab" role="tab" aria-selected="false" data-depth="medium">Medium</button>
+            <button class="depth-tab" role="tab" aria-selected="false" data-depth="low">Low</button>
+          </div>
+
+          <div class="depth-panel is-active" data-depth="high">
+            <p>
+              <a href="https://qwenlm.github.io/blog/qwen2-vl/">Qwen2-VL</a>
+              (Alibaba's open-weight family) reads images and text jointly.
+              The 2B-parameter variant is small enough to fit in M2 Max
+              memory at half precision and powerful enough to be a useful
+              general-purpose vision-language backbone. We use the
+              <em>Instruct</em> variant — already aligned to follow image +
+              text prompts — and freeze every weight.
+            </p>
+            <p>
+              Why Qwen2-VL and not another VLM? See the alternatives below.
+              Short answer: it's the best open trade-off between size,
+              capability, and clean transformers-library integration as of
+              late 2024.
+            </p>
+          </div>
+
+          <div class="depth-panel" data-depth="medium">
+            <p>Architectural moving parts:</p>
+            <ul>
+              <li><strong>Vision encoder</strong>: a ViT-style image tower
+                handling arbitrary image resolutions via a "naïve dynamic
+                resolution" scheme — the image is patched into a variable
+                number of vision tokens based on its actual size.</li>
+              <li><strong>Multimodal RoPE (M-RoPE)</strong>: positional
+                encoding decomposed into temporal, height, and width axes so
+                a single positional system covers text, image, and (in our
+                use) prepended sensor tokens.</li>
+              <li><strong>Image-token scatter</strong>: the chat template
+                inserts <code>&lt;|image_pad|&gt;</code> placeholder tokens;
+                during forward, the vision-encoder embeddings are scattered
+                into those positions inside the LLM's input embedding
+                tensor.</li>
+              <li><strong>LLM backbone</strong>: a 28-layer Qwen2
+                transformer with hidden size 1536 (the dimension our fusion
+                adapter targets).</li>
+            </ul>
+            <p>
+              We freeze the entire body
+              (<code>param.requires_grad_(False)</code>) and only train LoRA
+              on <code>q_proj</code> + <code>v_proj</code>, plus the
+              classification head and the fusion adapter on top.
+            </p>
+          </div>
+
+          <div class="depth-panel" data-depth="low">
+            <p>
+              We don't reimplement Qwen2-VL — we load it via:
+            </p>
+            <pre><code>from transformers import Qwen2VLForConditionalGeneration
+
+model = Qwen2VLForConditionalGeneration.from_pretrained(
+    "Qwen/Qwen2-VL-2B-Instruct",
+    torch_dtype=torch.float16,  # fp32 on CPU fallback
+)
+for p in model.parameters():
+    p.requires_grad_(False)</code></pre>
+            <p>
+              Memory: ~5.2 GB on disk, ~5 GB in MPS unified memory at fp16,
+              plus ~5 GB activations during forward at batch=1 with a
+              224×224 image. Our P1.3 OOM smoke test pins the budget at
+              &lt;10 GB total.
+            </p>
+            <p>
+              The forward path our model uses, schematically:
+            </p>
+            <pre><code># inside eval/models.py AllThreeModel.forward
+sensor_tokens  = self.fusion(self.encoder(sensor))     # (B, 16, 1536)
+proc_inputs    = self.processor(images=image, text=...)  # input_ids, pixel_values, image_grid_thw
+text_image_emb = self.vlm.get_input_embeddings()(proc_inputs["input_ids"])
+combined_emb   = torch.cat([sensor_tokens, text_image_emb], dim=1)
+# input_ids extended with PAD ids for sensor positions so length matches
+out = self.vlm(
+    inputs_embeds=combined_emb,
+    input_ids=extended_input_ids,
+    attention_mask=extended_mask,
+    pixel_values=proc_inputs["pixel_values"],
+    image_grid_thw=proc_inputs["image_grid_thw"],
+    output_hidden_states=True,
+)
+logits = self.head(out.hidden_states[-1].mean(dim=1))   # (B, 4)</code></pre>
+          </div>
+
+          <div class="algo-alts">
+            <h4>Alternatives we considered</h4>
+            <ul>
+              <li><strong>LLaVA-1.6 / LLaVA-NeXT</strong>: solid open VLM but slightly older multimodal RoPE story; Qwen2-VL's native dynamic-resolution handling is cleaner for the future "real CWRU bearing photo" path (Phase 3).</li>
+              <li><strong>Idefics2</strong>: HuggingFace's open VLM. Comparable capability; we chose Qwen2-VL for stronger benchmark performance at 2B.</li>
+              <li><strong>Pixtral 12B</strong>: too big for M2 Max in fp16; would force MLX retreat.</li>
+              <li><strong>Smaller VLMs (SmolVLM, MiniCPM-V)</strong>: an option if Phase 4 hits memory pressure. Capability ceiling lower; we keep them as fallbacks.</li>
+            </ul>
+            <p class="ref-line">
+              Further reading:
+              <a href="https://arxiv.org/abs/2409.12191">Qwen2-VL paper (Wang et al. 2024)</a> ·
+              <a href="https://huggingface.co/Qwen/Qwen2-VL-2B-Instruct">Model card</a> ·
+              <a href="https://arxiv.org/abs/2304.08485">Original LLaVA (Liu et al. 2023)</a>
+            </p>
+          </div>
+        </article>
+
+        <!-- Time-series encoder -->
+        <article class="algo-card" data-algo="ts">
+          <header class="algo-head">
+            <h3>Time-series encoder · toy 1D-CNN → PatchTST</h3>
+            <p class="algo-tagline">Turn a raw 2048-sample vibration window into 32 patches the fusion adapter can consume.</p>
+          </header>
+
+          <div class="depth-tabs" role="tablist" aria-label="Explanation depth">
+            <button class="depth-tab is-active" role="tab" aria-selected="true" data-depth="high">High</button>
+            <button class="depth-tab" role="tab" aria-selected="false" data-depth="medium">Medium</button>
+            <button class="depth-tab" role="tab" aria-selected="false" data-depth="low">Low</button>
+          </div>
+
+          <div class="depth-panel is-active" data-depth="high">
+            <p>
+              Industrial vibration sensors produce dense numerical sequences —
+              for CWRU bearings, 12 kHz mono accelerometer readings. We chop
+              them into 2048-sample windows (~170 ms each) and need to
+              represent each window as a sequence of vectors that the rest of
+              the network can work with. <em>Phase 1</em> uses a stack of 1D
+              convolutions for speed; <em>Phase 2</em> swaps in <a
+              href="https://arxiv.org/abs/2211.14730">PatchTST</a>, a
+              transformer-style time-series encoder, once the pipeline is
+              proven.
+            </p>
+          </div>
+
+          <div class="depth-panel" data-depth="medium">
+            <p>
+              <strong>Toy encoder (Phase 1)</strong>: three 1D-Conv + GELU
+              layers progressively downsample 2048 samples → 32 patches with
+              256-d features, followed by a linear projection to 512-d. Small
+              (&lt; 1M params), fast on MPS, easy to debug.
+            </p>
+            <p>
+              <strong>PatchTST (Phase 2)</strong>: divides the time series
+              into non-overlapping <em>patches</em> (analogous to ViT
+              patches), embeds each patch, and processes them with a
+              transformer encoder. Critically, it uses <em>channel
+              independence</em> — multivariate series are handled by treating
+              each channel as a separate sequence — which simplifies our
+              single-channel CWRU setting.
+            </p>
+          </div>
+
+          <div class="depth-panel" data-depth="low">
+            <p>Phase 1 encoder (verbatim from <code>models/encoder.py</code>):</p>
+            <pre><code>self.convs = nn.Sequential(
+    nn.Conv1d(1, 64, kernel_size=8, stride=8),  nn.GELU(),
+    nn.Conv1d(64, 128, kernel_size=4, stride=4), nn.GELU(),
+    nn.Conv1d(128, 256, kernel_size=2, stride=2), nn.GELU(),
+)
+self.proj = nn.Linear(256, 512)
+
+def forward(self, x):                # x: (B, 2048)
+    x = x.unsqueeze(1)               # (B, 1, 2048)
+    x = self.convs(x)                # (B, 256, 32)
+    x = x.transpose(1, 2)            # (B, 32, 256)
+    return self.proj(x)              # (B, 32, 512)</code></pre>
+            <p>
+              The (8, 4, 2) stride product is exactly <strong>64</strong>, so
+              2048 / 64 = 32 patches drop out cleanly. The fusion adapter is
+              the only consumer of this output and is unaware of which
+              encoder produced it — Phase 2's PatchTST swap is bounded to
+              <code>models/encoder.py</code> alone.
+            </p>
+          </div>
+
+          <div class="algo-alts">
+            <h4>Alternatives we considered (for Phase 2 swap)</h4>
+            <ul>
+              <li><strong><a href="https://arxiv.org/abs/2402.03885">Moment</a></strong> — open time-series foundation model. Comparable to PatchTST in performance; we keep it as a fallback if PatchTST has MPS portability friction.</li>
+              <li><strong><a href="https://arxiv.org/abs/2310.10688">TimesFM</a></strong> — Google's TS foundation model. Strong but heavier; not our scale.</li>
+              <li><strong><a href="https://arxiv.org/abs/2403.07815">Chronos</a></strong> — token-based TS model. Interesting but our fusion adapter expects continuous patches, not discrete tokens.</li>
+              <li><strong>Hand-engineered features (FFT, MFCC, statistical moments)</strong> — classical-ML baseline. Useful as a sanity check; not the project's portfolio claim.</li>
+            </ul>
+            <p class="ref-line">
+              Further reading:
+              <a href="https://arxiv.org/abs/2211.14730">PatchTST (Nie et al. ICLR 2023)</a> ·
+              <a href="https://github.com/yuqinie98/PatchTST">PatchTST reference repo</a>
+            </p>
+          </div>
+        </article>
+
+        <!-- Bootstrap / acceptance criterion -->
+        <article class="algo-card" data-algo="bootstrap">
+          <header class="algo-head">
+            <h3>Bootstrap CI + paired bootstrap p-value</h3>
+            <p class="algo-tagline">The honest way to report N=5 ablation results.</p>
+          </header>
+
+          <div class="depth-tabs" role="tablist" aria-label="Explanation depth">
+            <button class="depth-tab is-active" role="tab" aria-selected="true" data-depth="high">High</button>
+            <button class="depth-tab" role="tab" aria-selected="false" data-depth="medium">Medium</button>
+            <button class="depth-tab" role="tab" aria-selected="false" data-depth="low">Low</button>
+          </div>
+
+          <div class="depth-panel is-active" data-depth="high">
+            <p>
+              We train each ablation condition with 5 random seeds. To claim
+              "fusion wins," it's not enough that the mean is higher — the
+              gap has to be statistically meaningful given the seed-to-seed
+              noise. With only 5 samples per condition, the textbook t-test
+              CI is misleading (assumes normality). The <em>bootstrap</em>
+              resamples our 5 numbers many times to estimate the
+              distribution of the mean directly.
+            </p>
+          </div>
+
+          <div class="depth-panel" data-depth="medium">
+            <p>
+              For each condition we report:
+            </p>
+            <ul>
+              <li><strong>Bar height</strong> — the mean macro-F1 across the
+                5 seeds.</li>
+              <li><strong>Error bar</strong> — 95% percentile bootstrap
+                confidence interval, computed by drawing 10,000 resamples
+                <em>with replacement</em> from the 5 seed-level scores,
+                taking the mean of each, and reporting the 2.5% and 97.5%
+                percentiles.</li>
+              <li><strong>Significance star</strong> — a <em>paired</em>
+                bootstrap p-value comparing <code>all-three</code> against
+                <code>vision+text</code>: same 5 seeds, same data split,
+                resample the per-seed difference 10,000× and take the
+                fraction of resamples where the mean difference is ≤ 0
+                (two-sided).</li>
+            </ul>
+            <p>
+              The <em>pre-registered</em> acceptance is:
+              <code>mean(all-three) &gt; mean(vision+text)</code> AND
+              paired-bootstrap p &lt; 0.05 AND the 95% CIs don't fully
+              overlap. Anything else ships as an honest negative result.
+            </p>
+          </div>
+
+          <div class="depth-panel" data-depth="low">
+            <p>
+              Given seed-level F1s <code>x = (x₁, …, x₅)</code> for one
+              condition, the percentile-bootstrap CI is:
+            </p>
+            <ol>
+              <li>For <code>b = 1, …, B = 10000</code>: draw
+                <code>x* ∼ \mathrm{Multinomial}(5,\, \text{uniform})</code>
+                with replacement from <code>x</code>; let
+                <code>μ̂*<sub>b</sub> = mean(x*)</code>.</li>
+              <li>Sort <code>{μ̂*<sub>b</sub>}</code>; report
+                <code>[μ̂*<sub>(0.025·B)</sub>, μ̂*<sub>(0.975·B)</sub>]</code>.</li>
+            </ol>
+            <p>
+              Paired test for <code>all-three</code> vs
+              <code>vision+text</code> over the same seeds: compute
+              per-seed differences
+              <code>dᵢ = f1<sub>all-three,i</sub> − f1<sub>vision+text,i</sub></code>,
+              resample <code>{dᵢ}</code> 10,000× with replacement, and
+              report
+              <code>p = 2 · min(P(mean(d*) ≤ 0), P(mean(d*) ≥ 0))</code>.
+            </p>
+            <p>
+              Implementation: <code>eval/headline_figure.py</code>'s
+              <code>compute_headline()</code>. Deterministic via a fixed
+              <code>rng_seed</code> passed into NumPy's <code>Generator</code>.
+            </p>
+          </div>
+
+          <div class="algo-alts">
+            <h4>Alternatives we considered</h4>
+            <ul>
+              <li><strong>Student t-CI</strong> — assumes the seed-level F1s
+                are approximately normal; at N=5 this assumption is shaky.
+                Bootstrap is the honest default for small N.</li>
+              <li><strong>Permutation test</strong> — relabel
+                <em>all-three</em> ↔ <em>vision+text</em> seeds and recompute
+                the difference. Valid but conceptually harder to explain in a
+                portfolio writeup.</li>
+              <li><strong>Bayesian credible intervals</strong> — would need a
+                prior; not worth the framework complexity at N=5.</li>
+            </ul>
+            <p class="ref-line">
+              Further reading:
+              <a href="https://en.wikipedia.org/wiki/Bootstrapping_(statistics)">Bootstrapping (Wikipedia)</a> ·
+              <a href="https://www.cambridge.org/core/journals/political-analysis/article/abs/let-us-bootstrap-our-way-back-to-respectability/">Mooney & Duval (1993) intro</a>
+            </p>
+          </div>
+        </article>
+
+        <!-- Macro-F1 -->
+        <article class="algo-card" data-algo="f1">
+          <header class="algo-head">
+            <h3>Macro-F1 as the primary metric</h3>
+            <p class="algo-tagline">Penalize the model for ignoring rare classes.</p>
+          </header>
+
+          <div class="depth-tabs" role="tablist" aria-label="Explanation depth">
+            <button class="depth-tab is-active" role="tab" aria-selected="true" data-depth="high">High</button>
+            <button class="depth-tab" role="tab" aria-selected="false" data-depth="medium">Medium</button>
+            <button class="depth-tab" role="tab" aria-selected="false" data-depth="low">Low</button>
+          </div>
+
+          <div class="depth-panel is-active" data-depth="high">
+            <p>
+              Macro-F1 averages the F1 score across classes equally,
+              regardless of how many samples each class has. This catches a
+              common failure mode where a classifier looks great on accuracy
+              (because it nails the dominant class) while completely missing
+              rare faults — which, in a bearing-fault setting, is exactly the
+              opposite of what we want.
+            </p>
+          </div>
+
+          <div class="depth-panel" data-depth="medium">
+            <p>
+              F1 per class is the harmonic mean of precision and recall;
+              macro-F1 averages those per-class F1s with equal weight. For
+              our 4-class CWRU problem (Normal / Inner-Race Fault /
+              Outer-Race Fault / Ball Fault), all classes matter equally
+              from a safety standpoint, so equal weighting is the principled
+              choice.
+            </p>
+          </div>
+
+          <div class="depth-panel" data-depth="low">
+            <p>For class <code>c</code> with true positives
+              <code>TP<sub>c</sub></code>, false positives
+              <code>FP<sub>c</sub></code>, false negatives
+              <code>FN<sub>c</sub></code>:</p>
+            <p class="math-block">
+              \[
+                \mathrm{Precision}_c = \tfrac{TP_c}{TP_c + FP_c}, \quad
+                \mathrm{Recall}_c    = \tfrac{TP_c}{TP_c + FN_c},
+              \]
+              \[
+                F1_c \;=\; \tfrac{2 \cdot \mathrm{Precision}_c \cdot \mathrm{Recall}_c}{\mathrm{Precision}_c + \mathrm{Recall}_c},
+              \]
+              \[
+                \mathrm{macro\text{-}F1} \;=\; \frac{1}{C}\sum_{c=1}^{C} F1_c.
+              \]
+            </p>
+          </div>
+
+          <div class="algo-alts">
+            <h4>Alternatives</h4>
+            <ul>
+              <li><strong>Weighted-F1</strong>: per-class F1 weighted by
+                support. Better when class imbalance reflects real-world
+                prevalence and you care about overall correctness.</li>
+              <li><strong>Accuracy</strong>: simplest but degenerate on
+                imbalanced classes — a "always Normal" classifier wins on
+                accuracy and loses on safety.</li>
+              <li><strong>ROC-AUC</strong>: requires a probabilistic output
+                and doesn't handle multi-class as cleanly as macro-F1.</li>
+              <li><strong>Per-class precision/recall tables</strong>:
+                supplementary; reported alongside macro-F1 in the final
+                tech report.</li>
+            </ul>
+            <p class="ref-line">
+              Further reading:
+              <a href="https://scikit-learn.org/stable/modules/model_evaluation.html#precision-recall-and-f-measures">scikit-learn F1 docs</a>
+            </p>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- WORKFLOW -->
+    <section id="workflow" class="section">
+      <div class="container">
+        <header class="section-head">
+          <p class="eyebrow">§5 — How the build runs</p>
+          <h2>Director / impl / codex — the build workflow</h2>
+          <p class="section-lede">
+            The project is built by a multi-agent system documented in
+            <code>CLAUDE.md</code>. The contract is enforced by file-system
+            scope guards, not by trust.
+          </p>
+        </header>
+
+        <div class="workflow-grid">
+          <div class="role role-claude">
+            <h3>Claude — Director</h3>
+            <ul>
+              <li>Authors per-packet specs (faithfully transcribed from <code>PLAN.md</code>).</li>
+              <li>Provisions per-packet git worktrees.</li>
+              <li>Runs the pre-PR and final-head scope + audit-trail re-gates.</li>
+              <li>Squash-merges PRs and writes architecture-as-code (LikeC4 / Understand-Anything).</li>
+              <li>Cannot edit production code — hooked at <code>Edit / Write / MultiEdit</code> by <code>hooks/write-scope-guard.mjs</code>.</li>
+            </ul>
+          </div>
+          <div class="role role-impl">
+            <h3>Impl subagent — Per-packet worker</h3>
+            <ul>
+              <li>One per Linear subissue, in its own git worktree.</li>
+              <li>Dispatches Codex workers to write production code.</li>
+              <li>Runs gates (pytest, ruff, local <code>/codex:review</code>) until clean.</li>
+              <li>Commits within the packet allowlist, opens PR, drives the GitHub <code>@codex review</code> eye-emoji loop.</li>
+              <li>Has no <code>Edit / Write / MultiEdit</code> tools — defense in depth.</li>
+            </ul>
+          </div>
+          <div class="role role-codex">
+            <h3>Codex (gpt-5.5) — Writer + reviewer</h3>
+            <ul>
+              <li>The only entity that writes production code; runs sandboxed via <code>scripts/codex-run.sh worker</code>.</li>
+              <li>Cross-family reviewer: local <code>/codex:review</code> runs adversarially against its own output; GitHub <code>@codex review</code> is the merge-blocking head-pinned reviewer.</li>
+              <li>Output schema validated against <code>.codex/schemas/codex-result.schema.json</code> so every run leaves an auditable diff patch.</li>
+            </ul>
+          </div>
+        </div>
+
+        <h3 class="subhead">Per-PR gates</h3>
+        <ol class="gate-list">
+          <li><strong>Pre-PR scope check</strong> — every committed path must match the packet's allowlist (<code>.codex-runs/&lt;id&gt;/scope.txt</code>).</li>
+          <li><strong>Codex-exec audit trail</strong> — every changed file must appear in at least one Codex worker's <code>git_diff.patch</code>; no Bash bypass.</li>
+          <li><strong>Local <code>/codex:review</code></strong> until <code>VERDICT: correct</code>.</li>
+          <li><strong>GitHub <code>@codex review</code></strong> — bare standalone comment, head-pinned verdict, zero unresolved threads.</li>
+          <li><strong>Runtime verification</strong> — Claude personally runs the spec's <em>"Deliver a working product"</em> step before merge. Tests passing is necessary but not sufficient.</li>
+        </ol>
+
+        <p>
+          The full doctrine is in <a href="https://github.com/VoidAxiom/llava-for-sensors/blob/main/CLAUDE.md"><code>CLAUDE.md</code></a>.
+        </p>
+      </div>
+    </section>
+
+    <!-- REFERENCES -->
+    <section id="references" class="section section-alt">
+      <div class="container">
+        <header class="section-head">
+          <p class="eyebrow">§6 — Further reading</p>
+          <h2>References</h2>
+          <p class="section-lede">
+            Every URL below has been fetched and confirmed at site-build time.
+            If you find one rotted, please open an issue.
+          </p>
+        </header>
+
+        <div class="ref-grid">
+          <section>
+            <h3>Foundational papers</h3>
+            <ul>
+              <li><a href="https://arxiv.org/abs/1706.03762">Vaswani et al. (2017) — Attention Is All You Need</a> — origin of the transformer architecture.</li>
+              <li><a href="https://arxiv.org/abs/2106.09685">Hu et al. (2021) — LoRA: Low-Rank Adaptation of Large Language Models</a></li>
+              <li><a href="https://arxiv.org/abs/2304.08485">Liu et al. (2023) — Visual Instruction Tuning (LLaVA)</a></li>
+              <li><a href="https://arxiv.org/abs/2409.12191">Wang et al. (2024) — Qwen2-VL: Enhancing Perception at Any Resolution</a></li>
+              <li><a href="https://arxiv.org/abs/2211.14730">Nie et al. (2023) — A Time Series is Worth 64 Words (PatchTST)</a></li>
+              <li><a href="https://arxiv.org/abs/2204.14198">Alayrac et al. (2022) — Flamingo: a Visual Language Model for Few-Shot Learning</a></li>
+              <li><a href="https://arxiv.org/abs/2301.12597">Li et al. (2023) — BLIP-2 (Q-Former)</a></li>
+              <li><a href="https://arxiv.org/abs/2107.14795">Jaegle et al. (2021) — Perceiver IO</a></li>
+              <li><a href="https://arxiv.org/abs/2402.09353">Liu et al. (2024) — DoRA: Weight-Decomposed Low-Rank Adaptation</a></li>
+            </ul>
+          </section>
+          <section>
+            <h3>Library &amp; tooling docs</h3>
+            <ul>
+              <li><a href="https://huggingface.co/docs/peft/index">HuggingFace PEFT — library docs</a></li>
+              <li><a href="https://huggingface.co/docs/transformers">HuggingFace transformers</a></li>
+              <li><a href="https://huggingface.co/Qwen/Qwen2-VL-2B-Instruct">Qwen2-VL-2B-Instruct model card</a></li>
+              <li><a href="https://docs.astral.sh/uv/">uv — package manager docs</a></li>
+              <li><a href="https://pytorch.org/docs/stable/notes/mps.html">PyTorch MPS backend notes</a></li>
+              <li><a href="https://likec4.dev">LikeC4 — architecture-as-code</a></li>
+              <li><a href="https://github.com/Lum1104/Understand-Anything">Understand-Anything — knowledge graph plugin</a></li>
+            </ul>
+          </section>
+          <section>
+            <h3>Blog posts &amp; tutorials</h3>
+            <ul>
+              <li><a href="https://jalammar.github.io/illustrated-transformer/">Jay Alammar — The Illustrated Transformer</a></li>
+              <li><a href="https://lilianweng.github.io/posts/2023-06-23-agent/">Lilian Weng — LLM-powered autonomous agents</a></li>
+              <li><a href="https://magazine.sebastianraschka.com/p/practical-tips-for-finetuning-llms">Sebastian Raschka — practical LoRA tips</a></li>
+              <li><a href="https://huggingface.co/blog/peft">HuggingFace blog — Parameter-Efficient Fine-Tuning</a></li>
+            </ul>
+          </section>
+          <section>
+            <h3>Methodology &amp; data</h3>
+            <ul>
+              <li><a href="https://engineering.case.edu/bearingdatacenter">CWRU Bearing Data Center</a> — source dataset for Phase 3+.</li>
+              <li><a href="https://en.wikipedia.org/wiki/Bootstrapping_(statistics)">Bootstrapping (Wikipedia)</a> — background on the resampling method.</li>
+              <li><a href="https://scikit-learn.org/stable/modules/model_evaluation.html#precision-recall-and-f-measures">scikit-learn — F1 and precision/recall</a></li>
+            </ul>
+          </section>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-row">
+      <p>
+        <strong>llava-for-sensors</strong> · local-dev research-portfolio
+        project · <a href="https://github.com/VoidAxiom/llava-for-sensors">GitHub</a>
+      </p>
+      <p class="footer-meta">
+        Hand-coded HTML/CSS/JS — no build step.
+        Page content tracks the live project state; last regenerated when the build loop closes Phase 1.
+      </p>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" integrity="sha384-43gviWU0YVjaDtb/GhzOouOXtZMP/7XUzwPTstBeZFe/+rCMvRwr4yROQP43s0Xk" crossorigin="anonymous"></script>
+  <script src="script.js" defer></script>
+</body>
+</html>
