@@ -149,21 +149,9 @@ class _StubVLMWithPixelValues(nn.Module):
     def __init__(self) -> None:
         super().__init__()
         self.embed = _StubEmbedding()
-        self.config = SimpleNamespace(image_token_id=151655)
 
     def get_input_embeddings(self) -> nn.Module:
         return self.embed
-
-    def get_image_features(
-        self,
-        pixel_values: torch.Tensor,
-        image_grid_thw: object = None,
-        **kwargs: object,
-    ) -> SimpleNamespace:
-        del pixel_values, image_grid_thw, kwargs
-        # Stub: no image tokens in stub input_ids (all ones, not image_token_id=151655)
-        # so scatter is a no-op; return empty list to signal no features.
-        return SimpleNamespace(pooler_output=[])
 
     def forward(
         self,
@@ -196,8 +184,8 @@ class _StubVLMWithPixelValues(nn.Module):
         )
 
 
-def test_all_three_calls_get_image_features() -> None:
-    """AllThreeModel must call get_image_features when pixel_values are present."""
+def test_all_three_pixel_values_forwarded() -> None:
+    """AllThreeModel must forward pixel_values to the VLM so it can scatter them."""
     torch.manual_seed(0)
     stub_vlm = _StubVLMWithPixelValues()
     stub_processor = _StubProcessorWithPixelValues()
@@ -208,24 +196,36 @@ def test_all_three_calls_get_image_features() -> None:
     text = ["describe sensor data"]
     image_a = torch.zeros(1, 224, 224, 3, dtype=torch.uint8)
 
-    called_with: list[bool] = []
-    original_get_image_features = stub_vlm.get_image_features
+    received_pixel_values: list[torch.Tensor] = []
+    original_forward = stub_vlm.forward
 
-    def spy_get_image_features(
-        pixel_values: torch.Tensor,
-        image_grid_thw: object = None,
+    def spy_forward(
+        inputs_embeds: torch.Tensor | None = None,
+        attention_mask: torch.Tensor | None = None,
+        input_ids: torch.Tensor | None = None,
+        output_hidden_states: bool = False,
+        pixel_values: torch.Tensor | None = None,
         **kwargs: object,
     ) -> SimpleNamespace:
-        called_with.append(True)
-        return original_get_image_features(pixel_values, image_grid_thw, **kwargs)
+        if pixel_values is not None:
+            received_pixel_values.append(pixel_values)
+        return original_forward(
+            inputs_embeds=inputs_embeds,
+            attention_mask=attention_mask,
+            input_ids=input_ids,
+            output_hidden_states=output_hidden_states,
+            pixel_values=pixel_values,
+            **kwargs,
+        )
 
-    stub_vlm.get_image_features = spy_get_image_features
+    stub_vlm.forward = spy_forward
 
     with torch.no_grad():
         model.forward(sensor, image_a, text)
 
-    assert called_with, (
-        "AllThreeModel must call get_image_features when pixel_values are present"
+    assert received_pixel_values, (
+        "AllThreeModel must forward pixel_values to the VLM "
+        "(so Qwen2VLModel can scatter visual embeddings into inputs_embeds)"
     )
 
 

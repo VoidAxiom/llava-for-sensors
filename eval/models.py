@@ -103,12 +103,12 @@ class AllThreeModel(nn.Module):
         device = _module_device(self.vlm, sensor.device)
         sensor = sensor.to(device)
         inputs = _prepare_processor_inputs(self.processor, image, text, device)
-        # Explicitly scatter visual features into text embeddings before
-        # prepending sensor tokens -- makes image inclusion self-evident and
-        # avoids relying on Qwen2VL's internal scatter mechanism.
-        pixel_values = inputs.pop("pixel_values", None)
-        image_grid_thw = inputs.get("image_grid_thw", None)
 
+        # pixel_values, image_grid_thw, and mm_token_type_ids remain in `inputs`
+        # and are forwarded to self.vlm(..., **inputs). Qwen2VLModel.forward
+        # internally scatters visual embeddings from pixel_values into inputs_embeds
+        # at image-pad token positions when both are provided, and uses image_grid_thw
+        # + mm_token_type_ids to compute multimodal RoPE (M-RoPE) position IDs.
         input_ids = inputs.pop("input_ids", None)
         if not isinstance(input_ids, Tensor):
             raise ValueError("processor output must include tensor input_ids")
@@ -120,28 +120,6 @@ class AllThreeModel(nn.Module):
 
         sensor_tokens = self.fusion(self.encoder(sensor))
         text_image_embeds = self.vlm.get_input_embeddings()(input_ids)
-        if pixel_values is not None:
-            image_features_output = self.vlm.get_image_features(
-                pixel_values.to(device=device),
-                image_grid_thw,
-            )
-            pooler_output = list(image_features_output.pooler_output)
-            if pooler_output:
-                image_embeds = torch.cat(pooler_output, dim=0).to(
-                    dtype=text_image_embeds.dtype,
-                    device=device,
-                )
-                image_token_id: int | None = getattr(
-                    getattr(self.vlm, "config", None), "image_token_id", None
-                )
-                if image_token_id is not None and image_embeds.numel() > 0:
-                    image_mask = (input_ids == image_token_id).unsqueeze(-1).expand_as(
-                        text_image_embeds
-                    )
-                    text_image_embeds = text_image_embeds.masked_scatter(
-                        image_mask,
-                        image_embeds,
-                    )
         sensor_tokens = sensor_tokens.to(device=device, dtype=text_image_embeds.dtype)
         combined_embeds = torch.cat([sensor_tokens, text_image_embeds], dim=1)
 
