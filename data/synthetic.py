@@ -25,24 +25,24 @@ class SyntheticSample(TypedDict):
 
 TEXT_TEMPLATES: dict[int, tuple[str, ...]] = {
     0: (
-        "Vibration low-band. Temperature normal.",
-        "Low-frequency vibration observed. Thermal reading nominal.",
-        "Sensor reading: low-band. Temperature within limits.",
+        "Vibration envelope smooth. Temperature normal.",
+        "Sensor note: rounded vibration trace with nominal thermal reading.",
+        "Technician note: steady vibration envelope. Temperature within limits.",
     ),
     1: (
-        "Vibration low-band. Temperature normal.",
-        "Low-frequency vibration observed. Thermal reading nominal.",
-        "Sensor reading: low-band. Temperature within limits.",
+        "Vibration envelope abrupt. Temperature elevated.",
+        "Sensor note: squared vibration trace with thermal reading above limits.",
+        "Technician note: sharp vibration envelope. Temperature warning.",
     ),
     2: (
-        "Vibration high-band. Temperature normal.",
-        "High-frequency vibration detected. Thermal reading nominal.",
-        "Sensor reading: high-band. Temperature within limits.",
+        "Vibration envelope smooth. Temperature normal.",
+        "Sensor note: rounded vibration trace with nominal thermal reading.",
+        "Technician note: steady vibration envelope. Temperature within limits.",
     ),
     3: (
-        "Vibration high-band. Temperature elevated.",
-        "High-frequency vibration detected. Thermal reading above threshold.",
-        "Sensor reading: high-band. Temperature warning.",
+        "Vibration envelope abrupt. Temperature elevated.",
+        "Sensor note: squared vibration trace with thermal reading above limits.",
+        "Technician note: sharp vibration envelope. Temperature warning.",
     ),
 }
 

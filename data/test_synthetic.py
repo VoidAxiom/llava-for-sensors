@@ -76,9 +76,9 @@ def test_modal_ambiguity_patterns() -> None:
     assert np.array_equal(_sample_image(1), _sample_image(3))
     assert not np.array_equal(_sample_image(0), _sample_image(1))
 
-    assert TEXT_TEMPLATES[0] == TEXT_TEMPLATES[1]
-    assert TEXT_TEMPLATES[2] != TEXT_TEMPLATES[3]
-    assert set(TEXT_TEMPLATES[0]).isdisjoint(TEXT_TEMPLATES[3])
+    assert TEXT_TEMPLATES[0] == TEXT_TEMPLATES[2]
+    assert TEXT_TEMPLATES[1] == TEXT_TEMPLATES[3]
+    assert set(TEXT_TEMPLATES[0]).isdisjoint(TEXT_TEMPLATES[1])
 
 
 def test_toy_dataset_wraps_samples() -> None:
@@ -125,6 +125,43 @@ def test_cross_modal_required_property() -> None:
     f1_text = _fit_score(text_feats, y, train_idx, test_idx)
 
     assert max(f1_sensor, f1_image, f1_text) < 0.90
+
+
+def test_vision_text_pair_remains_ambiguous() -> None:
+    samples = generate(n=1000, seed=0)
+    y = _labels(samples)
+    train_idx, test_idx = _stratified_split(samples, test_size=200, seed=0)
+
+    circle_image = _sample_image(0)
+    square_image = _sample_image(1)
+    smooth_texts = set(TEXT_TEMPLATES[0])
+    abrupt_texts = set(TEXT_TEMPLATES[1])
+    assert TEXT_TEMPLATES[0] == TEXT_TEMPLATES[2]
+    assert TEXT_TEMPLATES[1] == TEXT_TEMPLATES[3]
+    assert smooth_texts.isdisjoint(abrupt_texts)
+
+    rows: list[list[float]] = []
+    for sample in samples:
+        if np.array_equal(sample["image"], circle_image):
+            image_bucket = 0.0
+        elif np.array_equal(sample["image"], square_image):
+            image_bucket = 1.0
+        else:
+            raise AssertionError("sample image does not match a known bucket")
+
+        if sample["text"] in smooth_texts:
+            text_bucket = 0.0
+        elif sample["text"] in abrupt_texts:
+            text_bucket = 1.0
+        else:
+            raise AssertionError("sample text does not match a known bucket")
+
+        rows.append([image_bucket, text_bucket])
+
+    vision_text_features = np.array(rows, dtype=np.float32)
+    f1_vision_text = _fit_score(vision_text_features, y, train_idx, test_idx)
+
+    assert f1_vision_text < 0.70
 
 
 def _labels(samples: Sequence[SyntheticSample]) -> np.ndarray:
