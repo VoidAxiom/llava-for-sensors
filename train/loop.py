@@ -205,10 +205,11 @@ def _evaluate_macro_f1(
     preds: list[int] = []
     targets: list[int] = []
     with torch.no_grad():
-        for sensor, _image, _text, label in val_loader:
+        for sensor, image, text, label in val_loader:
             sensor = sensor.to(device)
+            image = image.to(device)
             label = label.to(device)
-            logits = model.forward(sensor, image=None, text=None)
+            logits = model.forward(sensor, image, text)
             batch_preds = torch.argmax(logits, dim=1).detach().cpu().tolist()
             batch_targets = label.detach().cpu().tolist()
             preds.extend(int(pred) for pred in batch_preds)
