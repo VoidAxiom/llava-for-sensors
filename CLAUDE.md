@@ -304,6 +304,71 @@ Linear is the planning ledger. GitHub is the delivery ledger. Per packet:
 `🤖`, "Generated with Claude Code", or any Claude/Anthropic credit
 footer.** Overrides any harness/tooling default.
 
+## Deliver a working product (load-bearing — overrides "tests pass = done")
+
+The deliverable is a **LIVE WORKING SYSTEM**, not a code drop. Every
+packet's acceptance MUST include a **runtime verification step** that
+exercises the user-visible behavior on the dev box — not just CI-style
+mechanical gates (pytest, ruff, build). "Tests pass" / "ruff clean" /
+"typecheck OK" are NECESSARY but never SUFFICIENT.
+
+**The mantra (verbatim from the 2026-05-26 user directive):**
+
+> "You are not delivering code, you are delivering a working project.
+> That involves running things, bringing systems live, ensure they
+> work. You deliver a live product that you ensure works, not code."
+
+**How every packet spec.md MUST be written.**
+
+The `## Acceptance` section MUST include a `### Runtime verification`
+subsection listing:
+
+1. The **EXACT command(s)** Claude (or the impl) runs on the dev box
+   to exercise the user-visible behavior. Generic phrasing ("runs
+   without errors") is INSUFFICIENT — be specific enough to detect
+   regressions.
+2. The **EXACT observable output** that confirms the system works.
+   For executable scripts: actual stdout content + an exit code +
+   a side-effect (file created, port listening, browser-renderable
+   artifact present). For UI/visual deliverables: Claude opens the
+   artifact in the intended viewer and visually confirms the
+   spec-promised behavior.
+3. For docs/architecture/knowledge-graph deliverables: the artifact
+   loads + renders correctly in its intended viewer (browser, IDE,
+   markdown preview, `/understand-dashboard`, etc.).
+
+**Pull-quote for spec headers (use verbatim):**
+
+> **Runtime verification (per CLAUDE.md §"Deliver a working product"):**
+> This packet is not done when code merges. It's done when
+> `[exact command(s)]` runs cleanly AND `[exact observable behavior]`.
+
+**Pre-merge gate adds the runtime check.**
+
+At final-head re-gate (the squash-merge step), Claude additionally
+runs the live-verification step from the spec. If the live-run fails
+or the output doesn't match what the spec promised, REJECT the PR
+with the failure trace — even if all the mechanical gates passed.
+
+**Phase exit gates (§"Build loop" + PLAN.md §2.3) get a new step:**
+
+> 7. Claude has personally run the integrated phase deliverable
+>    end-to-end and confirmed it works as advertised. Per-packet
+>    mechanical gates do NOT substitute for this — the integrated
+>    system, end-user-visible, must be alive.
+
+For Phase 0 specifically: the prereq verifier prints actual
+prerequisites, the headline-figure stub emits a visually-correct
+mock SVG, the LikeC4 diagrams render in markdown viewers, and the
+`/understand-dashboard` knowledge graph opens + browses cleanly. A
+Phase doesn't close just because each packet's PR squash-merged.
+
+**Anti-pattern this rule names.** Declaring a packet done because
+`uv run pytest` returned 0 while never opening the SVG it produces;
+merging a `/understand` packet without actually running the dashboard;
+shipping a Gradio demo packet without uploading a sample sensor CSV
+through it.
+
 ## Evidence (no change merges without it)
 
 Any number/claim a change asserts (computed outputs, metrics, behaviours)
@@ -317,6 +382,10 @@ Per change:
 - `TODO` clean.
 - If a visual/runtime inspection harness exists, `TODO` — say
   what you observed and judged.
+- **Runtime verification step from the spec's `## Acceptance` §
+  "Runtime verification" — Claude runs it and confirms the output
+  matches what was promised. Mandatory per the "Deliver a working
+  product" doctrine above.**
 
 ## Internal review loop
 
