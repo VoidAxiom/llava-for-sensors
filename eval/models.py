@@ -66,7 +66,8 @@ class VisionTextModel(nn.Module):
         device = _module_device(self.vlm, image.device)
         inputs = _prepare_processor_inputs(self.processor, image, text, device)
         output = self.vlm(**inputs, output_hidden_states=True)
-        pooled = _pool_vlm_output(output)
+        mask = inputs.get("attention_mask")
+        pooled = _pool_vlm_output(output, mask if isinstance(mask, Tensor) else None)
         return self.head(pooled)
 
 
@@ -98,17 +99,11 @@ class AllThreeModel(nn.Module):
         input_ids = inputs.pop("input_ids", None)
         if not isinstance(input_ids, Tensor):
             raise ValueError("processor output must include tensor input_ids")
+        inputs["input_ids"] = input_ids
 
         attention_mask = inputs.pop("attention_mask", None)
         if attention_mask is not None and not isinstance(attention_mask, Tensor):
             raise ValueError("processor attention_mask must be a tensor when provided")
-
-        # With inputs_embeds we own the full token space; do not let Qwen scatter
-        # visual features into positions from the already-combined embeddings.
-        inputs.pop("pixel_values", None)
-        inputs.pop("image_grid_thw", None)
-        inputs.pop("pixel_values_videos", None)
-        inputs.pop("video_grid_thw", None)
 
         sensor_tokens = self.fusion(self.encoder(sensor))
         text_image_embeds = self.vlm.get_input_embeddings()(input_ids)
@@ -130,7 +125,8 @@ class AllThreeModel(nn.Module):
             output_hidden_states=True,
             **inputs,
         )
-        pooled = _pool_vlm_output(output)
+        mask = inputs.get("attention_mask")
+        pooled = _pool_vlm_output(output, mask if isinstance(mask, Tensor) else None)
         return self.head(pooled)
 
 
@@ -233,19 +229,31 @@ def _module_device(module: nn.Module, fallback: torch.device) -> torch.device:
     return parameter.device
 
 
-def _pool_vlm_output(output: Any) -> Tensor:
+def _pool_vlm_output(output: Any, attention_mask: Tensor | None = None) -> Tensor:
     hidden_states = getattr(output, "hidden_states", None)
     if hidden_states is not None and len(hidden_states) > 0:
         hidden_state = hidden_states[-1]
         if isinstance(hidden_state, Tensor):
-            return hidden_state.mean(dim=1)
+            return _masked_mean(hidden_state, attention_mask)
 
     last_hidden_state = getattr(output, "last_hidden_state", None)
     if isinstance(last_hidden_state, Tensor):
-        return last_hidden_state.mean(dim=1)
+        return _masked_mean(last_hidden_state, attention_mask)
 
     logits = getattr(output, "logits", None)
     if isinstance(logits, Tensor):
         return logits[:, -1, :D_VLM]
 
     raise ValueError("VLM output must include hidden states, last_hidden_state, or logits")
+
+
+def _masked_mean(hidden_state: Tensor, attention_mask: Tensor | None) -> Tensor:
+    """Mean-pool hidden states over real (non-pad) token positions."""
+    if attention_mask is None:
+        return hidden_state.mean(dim=1)
+
+    mask = attention_mask.to(dtype=hidden_state.dtype, device=hidden_state.device)
+    mask_expanded = mask.unsqueeze(-1)
+    sum_hidden = (hidden_state * mask_expanded).sum(dim=1)
+    count = mask_expanded.sum(dim=1).clamp(min=1.0)
+    return sum_hidden / count
