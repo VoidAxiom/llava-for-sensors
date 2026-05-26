@@ -4,17 +4,15 @@ title: "Container View — llava-for-sensors"
 graph TB
   subgraph Llava["`llava-for-sensors`"]
     Llava.Train_loop@{ shape: rectangle, label: "Training Loop" }
-    Llava.Eval_harness@{ shape: rectangle, label: "Eval Harness" }
     Llava.Demo_app@{ shape: rectangle, label: "Gradio Demo" }
+    Llava.Eval_harness@{ shape: rectangle, label: "Eval Harness" }
     Llava.Data_pipeline@{ shape: rectangle, label: "Data Pipeline" }
     Llava.Ts_encoder@{ shape: rectangle, label: "Time-Series Encoder" }
     Llava.Fusion@{ shape: rectangle, label: "Fusion Adapter" }
     Llava.Vlm@{ shape: rectangle, label: "Qwen2-VL-2B (frozen) + LoRA + Head" }
   end
-  Llava.Data_pipeline -. "`sensor windows`" .-> Llava.Ts_encoder
-  Llava.Train_loop -. "`iterates training split`" .-> Llava.Data_pipeline
-  Llava.Eval_harness -. "`loads held-out test split`" .-> Llava.Data_pipeline
   Llava.Ts_encoder -. "`time-series tokens`" .-> Llava.Fusion
+  Llava.Data_pipeline -. "`sensor windows`" .-> Llava.Ts_encoder
   Llava.Train_loop -. "`optimizes encoder weights`" .-> Llava.Ts_encoder
   Llava.Demo_app -. "`encode the uploaded sensor CSV`" .-> Llava.Ts_encoder
   Llava.Fusion -. "`projected tokens (in VLM token space)`" .-> Llava.Vlm
@@ -23,3 +21,5 @@ graph TB
   Llava.Eval_harness -. "`inference across 5 seeds × 3 conditions`" .-> Llava.Vlm
   Llava.Demo_app -. "`predict + rationale for the uploaded 
 image`" .-> Llava.Vlm
+  Llava.Train_loop -. "`iterates training split`" .-> Llava.Data_pipeline
+  Llava.Eval_harness -. "`loads held-out test split`" .-> Llava.Data_pipeline

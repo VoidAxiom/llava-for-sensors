@@ -1,0 +1,18 @@
+---
+title: "Component View — Fusion Adapter (cross-attention)"
+---
+graph LR
+  LlavaTs_encoder@{ shape: rectangle, label: "Time-Series Encoder" }
+  subgraph LlavaFusion["`Fusion Adapter`"]
+    LlavaFusion.Kv_proj_layer@{ shape: rectangle, label: "KV Projection" }
+    LlavaFusion.Learned_queries@{ shape: rectangle, label: "Learned Query Tokens" }
+    LlavaFusion.Cross_attn_block@{ shape: rectangle, label: "Cross-Attention (8 heads)" }
+    LlavaFusion.Fusion_mlp@{ shape: rectangle, label: "MLP + LayerNorm" }
+  end
+  LlavaVlm@{ shape: rectangle, label: "Qwen2-VL-2B (frozen) + LoRA + Head" }
+  LlavaTs_encoder -. "`encoder patches (B, 32, 512)`" .-> LlavaFusion.Kv_proj_layer
+  LlavaFusion.Kv_proj_layer -. "`K, V (B, 32, 1536)`" .-> LlavaFusion.Cross_attn_block
+  LlavaFusion.Learned_queries -. "`Q (B, 16, 1536)`" .-> LlavaFusion.Cross_attn_block
+  LlavaFusion.Cross_attn_block -. "`attn_out (B, 16, 1536)`" .-> LlavaFusion.Fusion_mlp
+  LlavaFusion.Fusion_mlp -. "`sensor tokens (B, 16, 1536) prepended to 
+inputs_embeds`" .-> LlavaVlm

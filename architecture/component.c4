@@ -1,0 +1,167 @@
+// architecture/component.c4 — llava-for-sensors model-internals decomposition.
+//
+// Extends the containers from container.c4. Each model-bearing container
+// (`ts_encoder`, `fusion`, `vlm`) is decomposed into its trainable
+// vs frozen subcomponents and the exact tensor shapes that flow between
+// them. The classification head lives inside `vlm` because it's the only
+// container that emits class logits.
+//
+// Source of truth alignment:
+//   - models/encoder.py::ToyTSEncoder    (Phase 1 toy 1D-CNN)
+//   - models/fusion.py::FusionAdapter    (cross-attention adapter)
+//   - models/vlm.py::load_frozen_vlm_with_lora  (Qwen2-VL-2B + LoRA)
+//
+// Phase 2 swaps the toy encoder for PatchTST/Moment-small; the *interface
+// contract* (sensor window → (B, 32, 512) patches) stays the same so the
+// fusion adapter is unaffected.
+
+model {
+  extend llava.ts_encoder {
+    conv_stack = component 'Conv Stack' {
+      description '
+        Three Conv1d layers with GELU activations downsample the
+        2048-sample mono window to 32 patches of d=256:
+        Conv1d(1→64, k=8, s=8) → GELU → Conv1d(64→128, k=4, s=4)
+        → GELU → Conv1d(128→256, k=2, s=2) → GELU. All trainable.
+        Phase 2 replaces this with PatchTST or Moment-small while
+        preserving the (B, 32, 256) intermediate shape.
+      '
+    }
+
+    patch_proj = component 'Patch Linear Projection' {
+      description '
+        Linear(256 → 512) projection mapping conv-stack patches into the
+        encoder output dim. Output: (B, 32, 512) — 32 sensor patches at
+        d_enc=512. Pinned interface contract consumed by the fusion
+        adapter. Trainable.
+      '
+    }
+
+    conv_stack -> patch_proj '(B, 32, 256)'
+  }
+
+  extend llava.fusion {
+    kv_proj_layer = component 'KV Projection' {
+      description '
+        Linear(512 → 1536) projection from encoder patch dim to VLM token
+        dim. The encoder output is reused as both key and value in the
+        cross-attention block. Trainable.
+      '
+    }
+
+    learned_queries = component 'Learned Query Tokens' {
+      description '
+        16 learnable parameter vectors of size d_vlm=1536, initialised
+        N(0, 0.02²). These act as the fixed-cardinality query slots
+        that the cross-attention compresses the 32 sensor patches into.
+        Trainable; defines the fusion bottleneck.
+      '
+    }
+
+    cross_attn_block = component 'Cross-Attention (8 heads)' {
+      description '
+        MultiheadAttention(embed_dim=1536, num_heads=8, batch_first=True).
+        Q = expanded learned query tokens; K, V = KV-projected encoder
+        patches. Output: (B, 16, 1536). Trainable; uses
+        need_weights=False to avoid the deprecated attention-weights path.
+      '
+    }
+
+    fusion_mlp = component 'MLP + LayerNorm' {
+      description '
+        Linear(1536 → 1536) → GELU → Linear(1536 → 1536), followed by
+        LayerNorm(1536) over (attn_out + mlp(attn_out)). Output:
+        (B, 16, 1536) — the 16 sensor tokens in VLM token space, ready
+        to be prepended to the VLM input embedding sequence. Trainable.
+      '
+    }
+
+    kv_proj_layer -> cross_attn_block 'K, V (B, 32, 1536)'
+    learned_queries -> cross_attn_block 'Q (B, 16, 1536)'
+    cross_attn_block -> fusion_mlp 'attn_out (B, 16, 1536)'
+  }
+
+  extend llava.vlm {
+    vision_tower = component 'Vision Tower (frozen)' {
+      description '
+        Qwen2-VL-2B vision encoder loaded from
+        Qwen/Qwen2-VL-2B-Instruct in fp16 (MPS) or fp32 (CPU fallback).
+        Processes the equipment image into patch embeddings. All
+        parameters have requires_grad=False — no LoRA, no fine-tuning.
+        Pure feature extractor across every modality condition.
+      '
+    }
+
+    llm_backbone = component 'LLM Backbone (frozen)' {
+      description '
+        Qwen2-VL-2B language model. Self-attention layers + FFN blocks
+        + tokenizer/embedding layer. All base parameters frozen
+        (requires_grad=False). The LoRA adapters intercept q_proj /
+        v_proj at every layer; the rest of the backbone — k_proj,
+        o_proj, FFN, norms, embeddings — passes through unchanged.
+      '
+    }
+
+    lora_adapters = component 'LoRA Adapters (trainable)' {
+      description '
+        Low-rank adapters injected at every q_proj and v_proj in the
+        LLM attention layers. Hyperparameters: r=8, lora_alpha=16,
+        lora_dropout=0.05, bias="none", task_type=CAUSAL_LM. Trainable
+        slice ~< 10M params on Qwen2-VL-2B; the rest of the ~2.2B
+        parameter model stays frozen. This is the only place the
+        backbone learns task-specific behaviour.
+      '
+    }
+
+    classification_head = component '4-Class Head' {
+      description '
+        Linear(hidden_size=1536 → 4) over the pooled VLM token sequence.
+        Emits unnormalised class logits. Cross-entropy loss is computed
+        in train/loop.py against the integer label. Trainable;
+        ablation-condition variants ship in eval/models.py (P1.5).
+      '
+    }
+
+    // Internal tensor flow (training time).
+    vision_tower -> llm_backbone 'image patch embeddings'
+    llm_backbone -> lora_adapters 'q_proj/v_proj activations'
+    lora_adapters -> llm_backbone 'low-rank deltas added back in'
+    llm_backbone -> classification_head 'pooled hidden state (B, 1536)'
+  }
+
+  // Cross-container relations from container.c4 already wire
+  //   ts_encoder -> fusion -> vlm
+  // at the container granularity. The component-level edges below trace
+  // the same flow at finer resolution.
+  patch_proj -> kv_proj_layer 'encoder patches (B, 32, 512)'
+  fusion_mlp -> llm_backbone 'sensor tokens (B, 16, 1536) prepended to inputs_embeds'
+}
+
+views {
+  view component_models of llava {
+    title 'Component View — Model Internals'
+    include
+      llava.ts_encoder, llava.ts_encoder.*,
+      llava.fusion, llava.fusion.*,
+      llava.vlm, llava.vlm.*
+    autoLayout TopBottom
+  }
+
+  view component_ts_encoder of llava.ts_encoder {
+    title 'Component View — Time-Series Encoder'
+    include *
+    autoLayout LeftRight
+  }
+
+  view component_fusion of llava.fusion {
+    title 'Component View — Fusion Adapter (cross-attention)'
+    include *
+    autoLayout LeftRight
+  }
+
+  view component_vlm of llava.vlm {
+    title 'Component View — Qwen2-VL-2B (frozen) + LoRA + Head'
+    include *
+    autoLayout TopBottom
+  }
+}

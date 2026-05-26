@@ -1,0 +1,17 @@
+---
+title: "Component View — Qwen2-VL-2B (frozen) + LoRA + Head"
+---
+graph TB
+  LlavaFusion@{ shape: rectangle, label: "Fusion Adapter" }
+  subgraph LlavaVlm["`Qwen2-VL-2B (frozen) + LoRA + Head`"]
+    LlavaVlm.Vision_tower@{ shape: rectangle, label: "Vision Tower (frozen)" }
+    LlavaVlm.Llm_backbone@{ shape: rectangle, label: "LLM Backbone (frozen)" }
+    LlavaVlm.Lora_adapters@{ shape: rectangle, label: "LoRA Adapters (trainable)" }
+    LlavaVlm.Classification_head@{ shape: rectangle, label: "4-Class Head" }
+  end
+  LlavaFusion -. "`sensor tokens (B, 16, 1536) prepended to 
+inputs_embeds`" .-> LlavaVlm.Llm_backbone
+  LlavaVlm.Vision_tower -. "`image patch embeddings`" .-> LlavaVlm.Llm_backbone
+  LlavaVlm.Llm_backbone -. "`q_proj/v_proj activations`" .-> LlavaVlm.Lora_adapters
+  LlavaVlm.Llm_backbone -. "`pooled hidden state (B, 1536)`" .-> LlavaVlm.Classification_head
+  LlavaVlm.Lora_adapters -. "`low-rank deltas added back in`" .-> LlavaVlm.Llm_backbone
