@@ -63,7 +63,7 @@ One existing worktree (the impl's VOI-225 pyproject worktree) still lives at the
 
 Nothing material to log until the toy training loop lights up in Phase 1.
 
-### Phase 0 — DONE (2026-05-26, 11 packets + 1 meta + 1 doctrine)
+### Phase 0 — DONE (2026-05-26, 10 packets + 2 META PRs)
 
 All Phase 0 packets merged to `main`. Final ledger:
 
