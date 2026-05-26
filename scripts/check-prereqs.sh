@@ -37,11 +37,26 @@ fail() {
 
 info() { printf "ℹ %s\n" "$1"; }
 
-# version_ge X Y → 0 if X ≥ Y, 1 otherwise. POSIX-ish via `sort -V -C` which
-# returns 0 only when its input is already in ascending order. Feeding "Y\nX"
-# means: already sorted iff Y ≤ X iff X ≥ Y.
+# version_ge X Y → 0 if X ≥ Y, 1 otherwise. Splits each on '.', compares
+# components numerically. Tolerates non-numeric suffixes (e.g. "3.11.0rc1")
+# by stripping the first non-digit and everything after it within each
+# component. Uses POSIX awk so it works on default macOS/BSD/Linux without
+# requiring GNU coreutils (which `sort -V -C` would).
 version_ge() {
-  printf "%s\n%s\n" "$2" "$1" | sort -V -C
+  awk -v a="$1" -v b="$2" 'BEGIN {
+    n = split(a, ax, ".")
+    m = split(b, bx, ".")
+    max = (n > m) ? n : m
+    for (i = 1; i <= max; i++) {
+      av = (i <= n) ? ax[i] : 0
+      bv = (i <= m) ? bx[i] : 0
+      sub(/[^0-9].*/, "", av); sub(/[^0-9].*/, "", bv)
+      av += 0; bv += 0
+      if (av > bv) exit 0
+      if (av < bv) exit 1
+    }
+    exit 0  # equal
+  }'
 }
 
 # -- checks -----------------------------------------------------------------
