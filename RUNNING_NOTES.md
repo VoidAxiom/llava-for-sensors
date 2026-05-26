@@ -106,11 +106,59 @@ Per PLAN.md §2.3 step 6: phase boundaries cross only when Claude explicitly tel
 
 ---
 
-## Phase 1 — _(scheduled — toy synthetic pipeline)_
+## Phase 1 — toy synthetic pipeline (smoke-tests fusion-actually-helps)
 
-_To be filled in as Phase 1 progresses._
+**Status:** Done — the load-bearing acceptance gate passed by 45 pp.
 
-## Phase 2 — _(scheduled — real time-series encoder swap)_
+### What landed
+
+| Packet | PR | Summary |
+|---|---|---|
+| P1.1 | #17 | `data/synthetic.py` + `data/dataset.py` — 4-class toy dataset with cross-modal-required signature (sensor splits `{0,1}\|{2,3}`; image+text both split `{0,2}\|{1,3}`) plus the oracle logistic-regression test that asserts no single modality reaches F1 ≥ 0.90. |
+| P1.2 | #18 | `models/encoder.py` (toy 1D-CNN, `(B, 2048) → (B, 32, 512)`) + `models/fusion.py` (16-query cross-attention adapter, `(B, 32, 512) → (B, 16, 1536)`). |
+| P1.3 | #16 | `models/vlm.py` — `Qwen/Qwen2-VL-2B-Instruct` loaded fp16 on MPS, every param frozen, LoRA r=8/α=16 applied on every LLM `q_proj`/`v_proj`. CPU fallback uses fp32. <10 GB OOM smoke verified. |
+| P1.4 | #19 | `train/loop.py` — `train_one_run` with AdamW + CosineAnnealingLR, gradient accumulation, JSONL logging, best-by-val-F1 checkpointing. |
+| P1.5 | #21 | `eval/models.py` (3 ablation factories), `eval/ablation.py` (3 × 5 driver), `eval/headline.py` (acceptance gate). |
+| P1.6 | #20 | `architecture/component.c4` (model-internals view) + 4 new Mermaid renders under `docs/architecture/`. META: `checkpoints/`, `logs/`, `.claude/scheduled_tasks.lock`, root `/index.mmd`, `/likec4.json` added to `.gitignore`. |
+| P1.7 | _this entry_ | RUNNING_NOTES + `/understand` regen (this file + a follow-up commit). |
+
+### Phase 1 (e) acceptance — the load-bearing gate
+
+5 seeds × 3 modality conditions, on the 1000-sample toy dataset, n_epochs=5:
+
+| Condition | mean macro-F1 | 95% CI | notes |
+|---|---|---|---|
+| `sensors-only` | 0.436 | [0.41, 0.45] | sensor partition alone — bounded by within-pair ambiguity |
+| `vision+text` | 0.416 | [0.37, 0.45] | redundant axes; bounded by within-pair ambiguity |
+| `all-three` | **0.867** | **[0.60, 1.00]** | 4/5 seeds at 1.000; seed 4 stuck at 0.333 (dead init) |
+
+Paired bootstrap `all-three` vs `vision+text`: `p = 0.0002`. Gap_vt = **45.1 pp**, gap_so = **43.1 pp**. Both above the >15 pp PLAN.md §Phase 1 (e) gate. `verdict = fusion_wins`, `acceptance = passed`.
+
+Headline figure rendered to `docs/figures/headline.svg` (referenced from the project explainer site at `docs/index.html`).
+
+### Phase 1 timing
+
+- Session start: 2026-05-26 ~10:19 UTC (P1.1/1.2/1.3 dispatched in parallel).
+- Phase 1 close (P1.5 merge): 2026-05-26 ~23:48 UTC.
+- ~13 h wall time. Parallel fan-out at Phase entry (P1.1/1.2/1.3 disjoint surfaces — `data/`, `models/encoder+fusion`, `models/vlm`); serial fan-in through P1.4 → P1.5 → P1.6 → P1.7.
+- The 5-seed × 5-epoch toy ablation itself took ~3 h on M2 Max (10:07 → 13:07 EDT).
+
+### Decisions & near-misses (worth remembering)
+
+- **r17 false-positive revert.** A GitHub `@codex review` flagged a [P1] that passing both `input_ids` and `inputs_embeds` to Qwen2-VL would XOR-raise. The "fix" (r17) did the image-token scatter manually in `AllThreeModel.forward` and dropped `input_ids` / `pixel_values` from the VLM call. A 15-min sanity on r17 showed `all-three` at 0.100 (below chance) — the manual-scatter approach broke the working path. Auditing `transformers==5.9.0` source: the outer `Qwen2VLModel.forward` accepts both arguments cleanly (uses `input_ids` to find image-pad mask, scatters into `inputs_embeds`, then calls the inner LLM with `input_ids=None`). The XOR check at `modeling_qwen2_vl.py:809` is in the inner `Qwen2VLTextModel.forward` and never fires because the outer model strips `input_ids` before the inner call. Reverted r17 (`21837c0`). **Lesson:** verify external review claims against canonical source before dispatching a fix. Codified in CLAUDE.md and the `@codex review` 👍-skip rule (PR #23).
+- **Seed-4 dead initialization.** One of five `all-three` seeds stayed at val_f1 = 0.333 across all 5 epochs (zero learning). Real noise, not a code bug. The mean still clears the gate by 28 pp.
+- **Toy dataset's deliberately-redundant axes.** Image and text both partition `{0,2}|{1,3}`. So `vision+text` alone caps at ~0.50 by construction — its low F1 doesn't mean vision is broken; it means the synthetic dataset is designed so only sensor + (vision or text) gives the orthogonal second axis. The real vision-pathway stress test is Phase 3 (CWRU bearing photos where each fault class has a distinct equipment image).
+- **GitHub repo flipped private.** Mid-Phase 1. Workflow continues; codex bot needs a fresh environment for PRs opened after the flip (PR #23 is currently blocked on this).
+
+### Phase 1 → Phase 2 — ready to dispatch
+
+Phase 2 packets:
+- **VOI-203 (P2.1)** — swap toy `models/encoder.py` for [PatchTST](https://arxiv.org/abs/2211.14730) (preferred) or Moment-small fallback. Preserve the `(B, 2048) → (B, 32, 512)` interface so `models/fusion.py` is unaffected. Re-run the Phase 1 ablation gate with the real encoder.
+- **VOI-204 (P2.2)** — `architecture/component.c4` re-labels the encoder; `/understand` re-run; Phase 2 RUNNING_NOTES entry.
+
+Specs drafted in `.codex-runs/voi-203/spec.md` and `.codex-runs/voi-204/spec.md`.
+
+## Phase 2 — _(queued — real time-series encoder swap)_
 
 ## Phase 3 — _(scheduled — CWRU integration)_
 
