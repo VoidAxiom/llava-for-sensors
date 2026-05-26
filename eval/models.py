@@ -70,6 +70,17 @@ class VisionTextModel(nn.Module):
         pooled = _pool_vlm_output(output, mask if isinstance(mask, Tensor) else None)
         return self.head(pooled)
 
+    def save_pretrained(self, save_path: str) -> None:
+        """Save only the trainable classification head (VLM LoRA is inside self.vlm)."""
+        import pathlib
+
+        save_dir = pathlib.Path(save_path)
+        save_dir.mkdir(parents=True, exist_ok=True)
+        torch.save(self.head.state_dict(), save_dir / "head.pt")
+        vlm_save = getattr(self.vlm, "save_pretrained", None)
+        if callable(vlm_save):
+            vlm_save(str(save_dir / "vlm_lora"))
+
 
 class AllThreeModel(nn.Module):
     """Sensor-token fusion with the frozen VLM for the all-three ablation."""
@@ -110,8 +121,17 @@ class AllThreeModel(nn.Module):
         sensor_tokens = sensor_tokens.to(device=device, dtype=text_image_embeds.dtype)
         combined_embeds = torch.cat([sensor_tokens, text_image_embeds], dim=1)
 
+        batch_size = combined_embeds.shape[0]
+        pad_id = getattr(getattr(self.vlm, "config", None), "pad_token_id", None) or 0
+        sensor_input_ids = torch.full(
+            (batch_size, T_SENSOR_TOKENS),
+            fill_value=pad_id,
+            dtype=input_ids.dtype,
+            device=input_ids.device,
+        )
+        inputs["input_ids"] = torch.cat([sensor_input_ids, input_ids], dim=1)
+
         if attention_mask is not None:
-            batch_size = combined_embeds.shape[0]
             sensor_mask = torch.ones(
                 batch_size,
                 T_SENSOR_TOKENS,
@@ -119,6 +139,22 @@ class AllThreeModel(nn.Module):
                 device=attention_mask.device,
             )
             inputs["attention_mask"] = torch.cat([sensor_mask, attention_mask], dim=1)
+
+        # Extend mm_token_type_ids if present (real Qwen2-VL processor may include it).
+        # Sensor tokens are typed as 0 (text type) since they are not image/video tokens.
+        mm_token_type_ids = inputs.pop("mm_token_type_ids", None)
+        if mm_token_type_ids is not None and isinstance(mm_token_type_ids, Tensor):
+            batch_size = combined_embeds.shape[0]
+            sensor_type_ids = torch.zeros(
+                batch_size,
+                T_SENSOR_TOKENS,
+                dtype=mm_token_type_ids.dtype,
+                device=mm_token_type_ids.device,
+            )
+            inputs["mm_token_type_ids"] = torch.cat(
+                [sensor_type_ids, mm_token_type_ids],
+                dim=1,
+            )
 
         output = self.vlm(
             inputs_embeds=combined_embeds,
@@ -129,12 +165,22 @@ class AllThreeModel(nn.Module):
         pooled = _pool_vlm_output(output, mask if isinstance(mask, Tensor) else None)
         return self.head(pooled)
 
+    def save_pretrained(self, save_path: str) -> None:
+        """Save only trainable params: encoder, fusion, head (VLM LoRA in self.vlm)."""
+        import pathlib
+
+        save_dir = pathlib.Path(save_path)
+        save_dir.mkdir(parents=True, exist_ok=True)
+        torch.save(self.encoder.state_dict(), save_dir / "encoder.pt")
+        torch.save(self.fusion.state_dict(), save_dir / "fusion.pt")
+        torch.save(self.head.state_dict(), save_dir / "head.pt")
+        vlm_save = getattr(self.vlm, "save_pretrained", None)
+        if callable(vlm_save):
+            vlm_save(str(save_dir / "vlm_lora"))
+
 
 class _TextOnlyProcessor:
-    """Fallback processor that tokenizes text only (no image/video pipeline).
-
-    Used when torchvision is not available.
-    """
+    """Testing-only processor that tokenizes text without image/video inputs."""
 
     def __init__(self, model_id: str) -> None:
         from transformers import AutoTokenizer
