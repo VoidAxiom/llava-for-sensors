@@ -73,6 +73,68 @@
       </div>
     </section>
 
+    <!-- READING THE HEADLINE -->
+    <section id="reading-the-headline" class="reading-callout">
+      <div class="container">
+        <div class="callout">
+          <header class="callout-head">
+            <span class="callout-tag">How to read the headline figure</span>
+            <h2>What the numbers mean, in plain English</h2>
+          </header>
+
+          <div class="callout-grid">
+            <dl class="glossary">
+              <div>
+                <dt>ablation</dt>
+                <dd>Swap one piece of the model, retrain from scratch, see what changes. The standard way to measure "what is each modality actually contributing?"</dd>
+              </div>
+              <div>
+                <dt>seed</dt>
+                <dd>One full training run with a particular random initialization. We run <strong>5 seeds per condition</strong> so a single lucky or unlucky run can't decide the result.</dd>
+              </div>
+              <div>
+                <dt>3 × 5 = 15 runs</dt>
+                <dd>Three modality conditions (<em>sensors-only</em>, <em>vision+text</em>, <em>all-three</em>) × five seeds each. Each run is ~9 min on M2 Max → the whole experiment takes ~2–3 hours wall time.</dd>
+              </div>
+              <div>
+                <dt>macro-F1</dt>
+                <dd>The metric we report. Range <strong>0 → 1</strong>, where <strong>1.0 = perfect</strong> and <strong>~0.25 = chance</strong> on a 4-class task (random guessing). 0.50 means "better than chance, well below useful"; 0.90+ is "actually solving the task."</dd>
+              </div>
+              <div>
+                <dt>plateau</dt>
+                <dd>The model stopped improving — extra training won't help. When <em>sensors-only</em> "plateaus at 0.45," it means the architecture has extracted everything the sensor signal alone can give and is now bouncing around noise.</dd>
+              </div>
+              <div>
+                <dt>&gt;15 pp gap</dt>
+                <dd>The pre-registered acceptance criterion from <a href="https://github.com/VoidAxiom/llava-for-sensors/blob/main/PLAN.md">PLAN.md §Phase 1 (e)</a>: <strong>all-three</strong> macro-F1 must beat <strong>vision+text</strong> macro-F1 by &gt;15 percentage points on the toy set. If it doesn't, the fusion architecture is broken and Phase 1 halts.</dd>
+              </div>
+            </dl>
+
+            <aside class="live-status">
+              <p class="live-status-eyebrow">Worked example</p>
+              <p>
+                A snapshot from the live ablation might read:
+              </p>
+              <blockquote>
+                <p><em>"all-three is 1.000 across both completed seeds while vision+text plateaus around 0.33–0.45 and sensors-only around 0.39–0.45. 8/15 runs done."</em></p>
+              </blockquote>
+              <p>Translation:</p>
+              <ul>
+                <li>The 2 completed <strong>all-three</strong> seeds both scored a perfect <strong>1.000</strong> — fusion is solving the toy task.</li>
+                <li><strong>vision+text</strong> alone is bouncing between <strong>0.33 and 0.45</strong> — well above chance (0.25) but nowhere near solved. Adding sensors changes the picture.</li>
+                <li><strong>sensors-only</strong> is similarly stuck at <strong>0.39–0.45</strong> — sensors carry information but not enough on their own.</li>
+                <li><strong>8/15</strong> = eight of the fifteen training runs (3 conditions × 5 seeds) have finished. We commit to the 15-run grid before looking at any results so we can't tune the experiment to a story.</li>
+              </ul>
+              <p class="live-status-foot">
+                The headline figure above will refresh automatically when
+                <code>eval/headline.py</code> writes the final SVG.
+              </p>
+            </aside>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- STATE -->
     <section id="state" class="section">
       <div class="container">
