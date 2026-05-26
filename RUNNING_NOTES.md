@@ -28,23 +28,36 @@ Decisions, dead ends, memory/timing measurements, environmental quirks. The raw 
 | node 26.0.0 | ✓ ≥18 | |
 | npm 11.12.1 | ✓ | |
 | uv 0.10.9 | ✓ | |
-| python3 3.10.9 | ✗ — need ≥ 3.11 | `brew install python@3.12` pending |
-| git-lfs | ✗ missing | `brew install git-lfs && git lfs install` pending |
-| likec4 | ✗ missing | Will install via P0.4 (global or via `package.json` once P0.3 lands) |
+| python3 3.10.9 | ✗ — system; need ≥ 3.11 | uv-managed Python instead — see "P0.4 verification" below |
+| git-lfs 3.7.1 | ✓ | Installed via `brew install git-lfs && git lfs install` |
+| likec4 1.57.0 | ✓ (global) | Installed via `npm install -g likec4` — see "P0.4 verification" |
 | `/understand` | ℹ skill-side | Loaded via the understand-anything plugin in the Claude Code session |
 
-Python upgrade + git-lfs install are user-actionable; will be resolved before Phase 1 (toy training pipeline) lights up.
+System `python3` remains 3.10.9; per the 2026-05-26 user directive ("use uv for custom python version and reqs"), uv owns the Python toolchain. `pyproject.toml` declares `requires-python >= 3.11` and `[tool.uv] python-preference = "managed"`; the P0.3 impl ran `uv python install 3.12` so all Python work goes through uv, not the system interpreter.
+
+### P0.4 verification — LikeC4 + Understand-Anything live
+
+Done 2026-05-26 as a Claude-direct packet (VOI-190); no production-code artifact, so this lab-journal entry IS the deliverable.
+
+- **LikeC4** — `npm install -g likec4` → `/opt/homebrew/bin/likec4` v1.57.0. `likec4 validate architecture` is green on the P0.6 model; `likec4 gen mermaid` produced the renders in `docs/architecture/`. Project-local install will follow when P0.3's `package.json` lands (it pins `likec4 ^1.57`); `scripts/check-prereqs.sh` prefers `node_modules/.bin/likec4` over the global once available.
+- **Understand-Anything** — the `/understand` family of skills is loaded in this Claude Code session (`understand-anything:understand`, `understand-anything:understand-diff`, `understand-anything:understand-dashboard`, `understand-anything:understand-knowledge`, `understand-anything:understand-onboard`, etc. all visible in the available-skills list at session start). End-to-end smoke run is deferred to P0.9, which commits the first `.understand-anything/knowledge-graph.json` on the real repo. No environmental blockers detected.
+- **PNG / SVG export** — LikeC4 1.57 has no native SVG export, and `likec4 export png` requires a Playwright dep (`@tanstack/ai`) not on this env; graphviz `dot` is not installed. Mermaid is what we ship for embedding (GitHub renders inline). Documented in detail in PR #5 (VOI-192) description.
+
+No escalation per PLAN.md §6 — the tooling is reachable and functional.
 
 ### Blockers
 
-- **2026-05-26 — codex worker quota exhausted.** First dispatched impl subagent (VOI-224 P0.1 scaffold) hit the `GPT-5.3-Codex-Spark` subscription quota immediately: _"You've hit your usage limit for GPT-5.3-Codex-Spark. Switch to another model now, or try again at May 31st, 2026 2:53 AM."_ Worktree provisioned, branch clean at the merged P0.5 base, nothing committed. **All impl packets (P0.1, P0.3, P0.7) blocked until the quota resets or an alternative `CODEX_MODEL` is authorized.** Continuing autonomously on Claude-direct packets (P0.4 LikeC4 install, P0.6 architecture skeleton, P0.8 doc skeletons — this file —, P0.9 first `/understand` run) in the meantime.
+- **~~2026-05-26 — codex worker quota exhausted.~~** _Resolved 2026-05-26._ The default `gpt-5.3-codex-spark` hit its subscription quota on the first impl dispatch (VOI-224); user authorized switching to `gpt-5.5` (same model `/codex:review` uses; both subscription-covered). The codex-run.sh default was flipped in VOI-227 (P0.10 cleanup). Impl path unblocked; VOI-224 (P0.1 scaffold), VOI-225 (P0.3 pyproject) shipped on gpt-5.5; VOI-193 (P0.7 headline figure) next.
 
-### Template defects (queued for cleanup)
+### Template defects (resolved 2026-05-26 in VOI-227)
 
-Non-functional cosmetic leaks from the `zawarudo` template that didn't get renamed at instantiation. None blocks delivery; will be batched into a Claude-direct cleanup commit at the next phase boundary:
+The `zawarudo` template-name leaks identified during Phase 0 landed as a single cleanup PR (VOI-227 / P0.10):
 
-- `scripts/worktree-new.sh` uses `.zawarudo-worktrees` instead of `.llava-for-sensors-worktrees` per [`CLAUDE.md`](./CLAUDE.md) doctrine.
-- `scripts/codex-review.sh` reviewer-prompt header still names "zawarudo (TODO — one-line description …)".
+- `scripts/worktree-new.sh` — `.zawarudo-worktrees` → `.llava-for-sensors-worktrees`.
+- `scripts/codex-review.sh` — reviewer-prompt header rewritten with a real llava-for-sensors one-liner.
+- `scripts/codex-run.sh` — `CODEX_MODEL` default flipped from `gpt-5.3-codex-spark` to `gpt-5.5` (operational, not template-related; bundled because the edit is one-line and review-cycle batching saves a PR).
+
+One existing worktree (the impl's VOI-225 pyproject worktree) still lives at the legacy `.zawarudo-worktrees/` path — torn down after VOI-225 merges. New worktrees provisioned after VOI-227 will land under `.llava-for-sensors-worktrees/`.
 
 ### Memory / timing — not yet measured
 
