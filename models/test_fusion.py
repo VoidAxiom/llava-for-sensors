@@ -38,13 +38,14 @@ def test_fusion_backward(fus: FusionAdapter, enc_out: torch.Tensor) -> None:
 
 
 @pytest.mark.slow
-def test_fusion_gradcheck(fus: FusionAdapter) -> None:
+def test_fusion_gradcheck() -> None:
     """Numerical gradient check on a tiny double-precision instance."""
     torch.manual_seed(42)
-    fus_double = FusionAdapter().double()
-    x = torch.randn(1, 32, 512, dtype=torch.float64, requires_grad=True)
+    # Use a tiny adapter to keep gradcheck fast (full 1536-dim is too slow)
+    fus_tiny = FusionAdapter(d_enc=4, d_vlm=8, t_sensor=2, n_heads=2).double()
+    x = torch.randn(1, 32, 4, dtype=torch.float64, requires_grad=True)
     result = torch.autograd.gradcheck(
-        fus_double,
+        fus_tiny,
         (x,),
         eps=1e-4,
         atol=1e-3,
