@@ -1,0 +1,11 @@
+---
+title: "System Landscape — llava-for-sensors"
+---
+graph TB
+  User@{ icon: "fa:user", shape: rounded, label: "Researcher / Reviewer" }
+  Llava@{ shape: rectangle, label: "llava-for-sensors" }
+  Cwru@{ shape: disk, label: "CWRU Bearing Dataset" }
+  Llava -. "`reads bearing windows for training and 
+eval`" .-> Cwru
+  User -. "`uses Gradio demo + reads headline figure 
+/ tech report`" .-> Llava
