@@ -24,6 +24,11 @@ def _validate_results(results: np.ndarray) -> np.ndarray:
         raise ValueError("results must have shape (3, N)")
     if values.shape[1] == 0:
         raise ValueError("results must contain at least one seed per condition")
+    if not np.isfinite(values).all():
+        raise ValueError(
+            "compute_headline: results contains non-finite values (NaN/Inf); "
+            "reject corrupt input before producing a verdict. Filter or re-run failed seeds."
+        )
     return values
 
 
@@ -88,17 +93,10 @@ def compute_headline(
     if strict and values.shape != (3, 5):
         raise ValueError(
             "Headline figure protocol locked to 3 conditions × 5 seeds; "
-            f"got shape {results.shape}. Pass strict=False for exploratory use only."
+            f"got shape {values.shape}. Pass strict=False for exploratory use only."
         )
     _validate_n_resamples(n_resamples)
-    # Guard against NaN/Inf: non-finite seeds silently corrupt means, CIs, and
-    # comparisons (both `means[2] < means[1]` and `means[2] > means[1]` evaluate
-    # False when NaN is present, producing a false "no_significant_difference").
-    if not np.isfinite(values).all():
-        raise ValueError(
-            "compute_headline: results contains non-finite values (NaN/Inf); "
-            "reject corrupt input before producing a verdict. Filter or re-run failed seeds."
-        )
+    # Non-finite guard lives in _validate_results; values is clean from here.
 
     means = [float(values[i].mean()) for i in range(3)]
 
