@@ -15,6 +15,7 @@ specification {
   }
   element system
   element container
+  element component
 
   tag external
 }

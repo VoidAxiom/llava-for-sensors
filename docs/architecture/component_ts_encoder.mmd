@@ -1,0 +1,11 @@
+---
+title: "Component View — Time-Series Encoder"
+---
+graph LR
+  subgraph LlavaTs_encoder["`Time-Series Encoder`"]
+    LlavaTs_encoder.Conv_stack@{ shape: rectangle, label: "Conv Stack" }
+    LlavaTs_encoder.Patch_proj@{ shape: rectangle, label: "Patch Linear Projection" }
+  end
+  LlavaFusion@{ shape: rectangle, label: "Fusion Adapter" }
+  LlavaTs_encoder.Conv_stack -. "`(B, 32, 256)`" .-> LlavaTs_encoder.Patch_proj
+  LlavaTs_encoder.Patch_proj -. "`encoder patches (B, 32, 512)`" .-> LlavaFusion

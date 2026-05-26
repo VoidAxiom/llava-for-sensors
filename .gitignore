@@ -42,3 +42,17 @@ node_modules/
 .understand-anything/diff-overlay.json
 # Dashboard runtime-verification screenshots — gitignored evidence, not deliverables.
 .understand-anything/*-verification.png
+
+# Training runtime artifacts (per train/loop.py): checkpoints + JSONL logs.
+# Local-only; never committed (data lives in eval/results_*.csv after summarization).
+checkpoints/
+logs/
+
+# Claude Code autonomous-loop runtime locks (ScheduleWakeup state).
+.claude/scheduled_tasks.lock
+
+# LikeC4 codegen byproducts emitted at repo root when running `likec4 gen` /
+# `likec4 export` outside docs/architecture/. The canonical exports live under
+# docs/architecture/*.mmd via the documented workflow.
+/index.mmd
+/likec4.json
