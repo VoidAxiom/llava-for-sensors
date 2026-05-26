@@ -53,6 +53,11 @@ def run_headline_from_csv(
         failures.append(f"all-three minus vision+text gap {gap_vt:.6f} is not > 0.15")
     if not gap_so > 0.15:
         failures.append(f"all-three minus sensors-only gap {gap_so:.6f} is not > 0.15")
+    if headline.get("verdict") != "fusion_wins":
+        failures.append(
+            f"all-three vs vision+text verdict is '{headline.get('verdict')}' "
+            "not 'fusion_wins' (paired p-value not significant or CIs overlap)"
+        )
     if failures:
         raise PhaseAcceptanceError("Headline acceptance failed: " + "; ".join(failures))
 
@@ -77,16 +82,16 @@ def _read_results_csv(csv_path: Path) -> np.ndarray:
         cond: sorted(seed for seed, _ in values_by_condition[cond]) for cond in _CONDITIONS
     }
     seeds_canonical = seeds_per_condition[_CONDITIONS[0]]
-    if len(set(seeds_canonical)) != len(seeds_canonical):
-        raise PhaseAcceptanceError(
-            f"Duplicate seed IDs detected in condition {_CONDITIONS[0]}: "
-            f"seeds {seeds_canonical} are not all distinct"
-        )
     for cond in _CONDITIONS[1:]:
         if seeds_per_condition[cond] != seeds_canonical:
             raise PhaseAcceptanceError(
                 f"Seed mismatch: {cond} has seeds {seeds_per_condition[cond]} "
                 f"vs canonical {seeds_canonical}"
+            )
+    for cond in _CONDITIONS:
+        if len(seeds_per_condition[cond]) != len(set(seeds_per_condition[cond])):
+            raise PhaseAcceptanceError(
+                f"Duplicate seed IDs in condition '{cond}': {seeds_per_condition[cond]}"
             )
 
     rows: list[list[float]] = []

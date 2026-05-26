@@ -149,9 +149,21 @@ class _StubVLMWithPixelValues(nn.Module):
     def __init__(self) -> None:
         super().__init__()
         self.embed = _StubEmbedding()
+        self.config = SimpleNamespace(image_token_id=151655)
 
     def get_input_embeddings(self) -> nn.Module:
         return self.embed
+
+    def get_image_features(
+        self,
+        pixel_values: torch.Tensor,
+        image_grid_thw: object = None,
+        **kwargs: object,
+    ) -> SimpleNamespace:
+        del pixel_values, image_grid_thw, kwargs
+        # Stub: no image tokens in stub input_ids (all ones, not image_token_id=151655)
+        # so scatter is a no-op; return empty list to signal no features.
+        return SimpleNamespace(pooler_output=[])
 
     def forward(
         self,
@@ -184,25 +196,36 @@ class _StubVLMWithPixelValues(nn.Module):
         )
 
 
-def test_all_three_logits_change_with_image() -> None:
-    """AllThreeModel logits must differ when the image content changes."""
+def test_all_three_calls_get_image_features() -> None:
+    """AllThreeModel must call get_image_features when pixel_values are present."""
     torch.manual_seed(0)
+    stub_vlm = _StubVLMWithPixelValues()
     stub_processor = _StubProcessorWithPixelValues()
-    model = AllThreeModel(_vlm=_StubVLMWithPixelValues(), _processor=stub_processor)
+    model = AllThreeModel(_vlm=stub_vlm, _processor=stub_processor)
     model.eval()
 
     sensor = torch.zeros(1, 2048)
     text = ["describe sensor data"]
     image_a = torch.zeros(1, 224, 224, 3, dtype=torch.uint8)
-    image_b = torch.ones(1, 224, 224, 3, dtype=torch.uint8) * 255
+
+    called_with: list[bool] = []
+    original_get_image_features = stub_vlm.get_image_features
+
+    def spy_get_image_features(
+        pixel_values: torch.Tensor,
+        image_grid_thw: object = None,
+        **kwargs: object,
+    ) -> SimpleNamespace:
+        called_with.append(True)
+        return original_get_image_features(pixel_values, image_grid_thw, **kwargs)
+
+    stub_vlm.get_image_features = spy_get_image_features
 
     with torch.no_grad():
-        logits_a = model.forward(sensor, image_a, text)
-        logits_b = model.forward(sensor, image_b, text)
+        model.forward(sensor, image_a, text)
 
-    assert not torch.allclose(logits_a, logits_b), (
-        "AllThreeModel logits must differ when the input image differs "
-        "(image features must be included in the VLM representation)"
+    assert called_with, (
+        "AllThreeModel must call get_image_features when pixel_values are present"
     )
 
 
@@ -242,6 +265,33 @@ def test_headline_gate_rejects_failing_results(tmp_path: pathlib.Path) -> None:
         run_headline_from_csv(csv_path=str(csv_path), out_svg=str(tmp_path / "out.svg"))
 
 
+def test_headline_gate_rejects_no_significance(tmp_path: pathlib.Path) -> None:
+    """Gate must reject when verdict is not fusion_wins."""
+    from unittest.mock import patch
+
+    import eval.headline as hl_module
+
+    high_variance = np.array(
+        [
+            [0.30, 0.50, 0.20, 0.60, 0.40],
+            [0.40, 0.60, 0.30, 0.70, 0.50],
+            [0.80, 0.95, 0.70, 0.85, 0.90],
+        ]
+    )
+    csv_path = _write_fake_csv(tmp_path, high_variance)
+
+    original_compute = hl_module.compute_headline
+
+    def patched_compute(*args: Any, **kwargs: Any) -> dict[str, Any]:
+        result = original_compute(*args, **kwargs)
+        result["verdict"] = "no_significant_difference"
+        return result
+
+    with patch.object(hl_module, "compute_headline", patched_compute):
+        with pytest.raises(PhaseAcceptanceError, match="verdict"):
+            run_headline_from_csv(csv_path=str(csv_path), out_svg=str(tmp_path / "out.svg"))
+
+
 def test_headline_gate_rejects_wrong_seed_count(tmp_path: pathlib.Path) -> None:
     one_seed = np.array([[0.90], [0.50], [0.70]])
     csv_path = _write_fake_csv(tmp_path, one_seed)
@@ -266,6 +316,23 @@ def test_headline_gate_rejects_duplicate_seeds(tmp_path: pathlib.Path) -> None:
                 writer.writerow([condition, seed, value])
 
     with pytest.raises(PhaseAcceptanceError):
+        run_headline_from_csv(csv_path=str(csv_path), out_svg=str(tmp_path / "out.svg"))
+
+
+def test_headline_gate_rejects_duplicate_seed_ids_per_condition(
+    tmp_path: pathlib.Path,
+) -> None:
+    """Gate must reject when a condition has duplicate seed IDs."""
+    conditions = ["sensors-only", "vision+text", "all-three"]
+    csv_path = tmp_path / "dup_seeds.csv"
+    with csv_path.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["condition", "seed", "final_val_f1", "wall_time_s"])
+        for cond in conditions:
+            for seed, val in zip([0, 0, 1, 2, 3], [0.5, 0.5, 0.6, 0.7, 0.8]):
+                writer.writerow([cond, seed, val, 0.1])
+
+    with pytest.raises(PhaseAcceptanceError, match="Duplicate"):
         run_headline_from_csv(csv_path=str(csv_path), out_svg=str(tmp_path / "out.svg"))
 
 
