@@ -73,6 +73,17 @@ def _read_results_csv(csv_path: Path) -> np.ndarray:
                 (int(row["seed"]), float(row["final_val_f1"]))
             )
 
+    seeds_per_condition: dict[str, list[int]] = {
+        cond: sorted(seed for seed, _ in values_by_condition[cond]) for cond in _CONDITIONS
+    }
+    seeds_canonical = seeds_per_condition[_CONDITIONS[0]]
+    for cond in _CONDITIONS[1:]:
+        if seeds_per_condition[cond] != seeds_canonical:
+            raise PhaseAcceptanceError(
+                f"Seed mismatch: {cond} has seeds {seeds_per_condition[cond]} "
+                f"vs canonical {seeds_canonical}"
+            )
+
     rows: list[list[float]] = []
     expected_len: int | None = None
     for condition in _CONDITIONS:

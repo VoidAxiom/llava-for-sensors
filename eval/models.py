@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import logging
 from collections.abc import Mapping
 from typing import Any
 
@@ -14,8 +13,6 @@ from torch import Tensor
 from models.encoder import ToyTSEncoder
 from models.fusion import D_VLM, T_SENSOR_TOKENS, FusionAdapter
 from models.vlm import VLMProcessor, load_frozen_vlm_with_lora
-
-_LOGGER = logging.getLogger(__name__)
 
 
 class ClassificationHead(nn.Module):
@@ -179,46 +176,8 @@ class AllThreeModel(nn.Module):
             vlm_save(str(save_dir / "vlm_lora"))
 
 
-class _TextOnlyProcessor:
-    """Testing-only processor that tokenizes text without image/video inputs."""
-
-    def __init__(self, model_id: str) -> None:
-        from transformers import AutoTokenizer
-
-        self._tokenizer = AutoTokenizer.from_pretrained(model_id, padding_side="left")
-
-    def __call__(
-        self,
-        text: list[str] | None = None,
-        images: list[object] | None = None,
-        return_tensors: str | None = None,
-        padding: bool = True,
-        **kw: object,
-    ) -> dict[str, Tensor]:
-        del images, return_tensors, kw
-        if text is None:
-            text = [""]
-        encoded = self._tokenizer(
-            text,
-            return_tensors="pt",
-            padding=padding,
-            truncation=True,
-            max_length=64,
-        )
-        return {
-            "input_ids": encoded["input_ids"],
-            "attention_mask": encoded["attention_mask"],
-        }
-
-
 def _load_qwen_processor(model_id: str) -> object:
-    try:
-        return VLMProcessor.from_pretrained(model_id)
-    except ImportError:
-        _LOGGER.warning(
-            "AutoProcessor unavailable (torchvision missing); using text-only fallback"
-        )
-        return _TextOnlyProcessor(model_id)
+    return VLMProcessor.from_pretrained(model_id)
 
 
 def _build_qwen_chat_prompt(text: str) -> str:
@@ -238,8 +197,7 @@ def _prepare_processor_inputs(
     device: torch.device,
 ) -> dict[str, Any]:
     pil_images = _tensor_batch_to_pil(image)
-    if not isinstance(processor, _TextOnlyProcessor):
-        text = [_build_qwen_chat_prompt(item) for item in text]
+    text = [_build_qwen_chat_prompt(item) for item in text]
     raw_inputs = processor(text=text, images=pil_images, return_tensors="pt", padding=True)
     return _move_batch_to_device(raw_inputs, device)
 
