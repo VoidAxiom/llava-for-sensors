@@ -34,8 +34,6 @@ _register_local_markers()
 SKIP_SLOW: bool = os.environ.get("RUN_SLOW_TESTS", "").lower() not in ("1", "true", "yes")
 skip_unless_slow = pytest.mark.skipif(SKIP_SLOW, reason="Slow test: set RUN_SLOW_TESTS=1 to enable")
 
-IMAGE_PAD_TOKEN_ID = 151655
-
 
 class _StubEmbedding(nn.Module):
     def __init__(self) -> None:
@@ -137,18 +135,13 @@ class _StubProcessorWithPixelValues:
                 mean_val = float(arr.mean())
                 pv = torch.full((3, 16, 16), mean_val, dtype=torch.float32)
                 pixel_values_list.append(pv)
-                pixel_values_list.append(pv.clone())
         else:
             for _ in range(batch_size):
                 pixel_values_list.append(torch.zeros(3, 16, 16, dtype=torch.float32))
-                pixel_values_list.append(torch.zeros(3, 16, 16, dtype=torch.float32))
-        input_ids = torch.ones(batch_size, 8, dtype=torch.long)
-        input_ids[:, :2] = IMAGE_PAD_TOKEN_ID
         return {
-            "input_ids": input_ids,
+            "input_ids": torch.ones(batch_size, 8, dtype=torch.long),
             "attention_mask": torch.ones(batch_size, 8, dtype=torch.long),
             "pixel_values": torch.stack(pixel_values_list),
-            "image_grid_thw": torch.tensor([[1, 1, 2]] * batch_size, dtype=torch.long),
         }
 
 
@@ -191,107 +184,49 @@ class _StubVLMWithPixelValues(nn.Module):
         )
 
 
-class _StubVisualOutput:
-    def __init__(self, pooler_output: list[torch.Tensor]) -> None:
-        self.pooler_output = pooler_output
-
-
-class _StubVisual(nn.Module):
-    dtype = torch.float32
-
-    def forward(
-        self,
-        pixel_values: torch.Tensor,
-        grid_thw: torch.Tensor | None = None,
-    ) -> _StubVisualOutput:
-        patch_means = pixel_values.float().mean(dim=(1, 2, 3))
-        image_embeds = patch_means.unsqueeze(-1).expand(-1, 1536)
-        if grid_thw is not None:
-            n_images = int(grid_thw.shape[0])
-        else:
-            n_images = 1
-        patches_per_image = image_embeds.shape[0] // n_images
-        pooler_output = [
-            image_embeds[index * patches_per_image : (index + 1) * patches_per_image]
-            for index in range(n_images)
-        ]
-        return _StubVisualOutput(pooler_output=pooler_output)
-
-
-class _StubConfig:
-    image_token_id = IMAGE_PAD_TOKEN_ID
-
-
-class _StubModelWithVisual(nn.Module):
-    def __init__(self) -> None:
-        super().__init__()
-        self.visual = _StubVisual()
-        self.config = _StubConfig()
-
-
-class _StubVLMWithVisual(nn.Module):
-    def __init__(self) -> None:
-        super().__init__()
-        self.embed = _StubEmbedding()
-        self.model = _StubModelWithVisual()
-        self.received_inputs_embeds: list[torch.Tensor] = []
-        self.forward_calls: list[dict[str, object]] = []
-
-    def get_input_embeddings(self) -> nn.Module:
-        return self.embed
-
-    def forward(
-        self,
-        inputs_embeds: torch.Tensor,
-        attention_mask: torch.Tensor | None = None,
-        output_hidden_states: bool = False,
-        logits_to_keep: int | None = None,
-        position_ids: torch.Tensor | None = None,
-    ) -> SimpleNamespace:
-        self.received_inputs_embeds.append(inputs_embeds.detach().clone())
-        self.forward_calls.append(
-            {
-                "inputs_embeds": inputs_embeds,
-                "attention_mask": attention_mask,
-                "output_hidden_states": output_hidden_states,
-                "logits_to_keep": logits_to_keep,
-                "position_ids": position_ids,
-            }
-        )
-        hidden = inputs_embeds.to(dtype=torch.float32)
-        batch_size, seq_len = hidden.shape[:2]
-        return SimpleNamespace(
-            hidden_states=(hidden,) * 4,
-            last_hidden_state=hidden,
-            logits=torch.zeros(batch_size, seq_len, 152000, dtype=torch.float32),
-        )
-
-
-def test_all_three_vision_scatter_applied() -> None:
-    """AllThreeModel must scatter visual embeddings before calling the VLM."""
+def test_all_three_pixel_values_forwarded() -> None:
+    """AllThreeModel must forward pixel_values to the VLM so it can scatter them."""
     torch.manual_seed(0)
-    stub_vlm = _StubVLMWithVisual()
+    stub_vlm = _StubVLMWithPixelValues()
     stub_processor = _StubProcessorWithPixelValues()
     model = AllThreeModel(_vlm=stub_vlm, _processor=stub_processor)
     model.eval()
 
     sensor = torch.zeros(1, 2048)
     text = ["describe sensor data"]
-    black_image = torch.zeros(1, 224, 224, 3, dtype=torch.uint8)
-    white_image = torch.full((1, 224, 224, 3), 255, dtype=torch.uint8)
+    image_a = torch.zeros(1, 224, 224, 3, dtype=torch.uint8)
+
+    received_pixel_values: list[torch.Tensor] = []
+    original_forward = stub_vlm.forward
+
+    def spy_forward(
+        inputs_embeds: torch.Tensor | None = None,
+        attention_mask: torch.Tensor | None = None,
+        input_ids: torch.Tensor | None = None,
+        output_hidden_states: bool = False,
+        pixel_values: torch.Tensor | None = None,
+        **kwargs: object,
+    ) -> SimpleNamespace:
+        if pixel_values is not None:
+            received_pixel_values.append(pixel_values)
+        return original_forward(
+            inputs_embeds=inputs_embeds,
+            attention_mask=attention_mask,
+            input_ids=input_ids,
+            output_hidden_states=output_hidden_states,
+            pixel_values=pixel_values,
+            **kwargs,
+        )
+
+    stub_vlm.forward = spy_forward
 
     with torch.no_grad():
-        model.forward(sensor, black_image, text)
-        model.forward(sensor, white_image, text)
+        model.forward(sensor, image_a, text)
 
-    assert len(stub_vlm.received_inputs_embeds) == 2
-    assert not torch.equal(
-        stub_vlm.received_inputs_embeds[0],
-        stub_vlm.received_inputs_embeds[1],
+    assert received_pixel_values, (
+        "AllThreeModel must forward pixel_values to the VLM "
+        "(so Qwen2VLModel can scatter visual embeddings into inputs_embeds)"
     )
-    for call in stub_vlm.forward_calls:
-        assert "pixel_values" not in call
-        assert "input_ids" not in call
 
 
 @skip_unless_slow
