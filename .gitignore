@@ -4,3 +4,15 @@
 
 # runtime hook breadcrumbs (generated; .claude/settings.json IS tracked)
 .claude/hooks/
+
+# LikeC4 static-website build artifacts (we ship the Mermaid renders, not the
+# interactive site; regenerate locally with `likec4 build architecture -o docs/architecture`).
+# The Mermaid files (landscape.mmd, container.mmd) ARE tracked.
+docs/architecture/404.html
+docs/architecture/favicon.ico
+docs/architecture/index.html
+docs/architecture/robots.txt
+docs/architecture/likec4-views.js
+docs/architecture/assets/
+# Auto-generated alias of the first named view; landscape.mmd is the real source.
+docs/architecture/index.mmd

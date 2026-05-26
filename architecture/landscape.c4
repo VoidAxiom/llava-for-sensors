@@ -1,0 +1,69 @@
+// architecture/landscape.c4 — llava-for-sensors system landscape
+//
+// Sole source of truth for the system-landscape diagram embedded in
+// README.md and TECH_REPORT.md. Container-level structure is in
+// container.c4 (extends `llava`). Phase-specific containers (e.g. the
+// CWRU loader vs the toy loader from Phase 1) are deliberately NOT
+// modelled separately here — the model represents the *Phase-6 final
+// state*, with `data_pipeline` covering both code paths.
+
+specification {
+  element actor {
+    style {
+      shape person
+    }
+  }
+  element system
+  element container
+
+  tag external
+}
+
+model {
+  user = actor 'Researcher / Reviewer' {
+    description '
+      Reads TECH_REPORT.md, runs the Gradio demo on uploaded sensor +
+      image, inspects the headline-ablation chart, and walks the per-PR
+      build audit trail on GitHub.
+    '
+  }
+
+  cwru = system 'CWRU Bearing Dataset' {
+    #external
+    description '
+      Case Western Reserve University 12 kHz drive-end accelerometer
+      recordings. Four fault classes: Normal, Inner-Race Fault,
+      Outer-Race Fault, Ball Fault. Downloaded once, cached locally;
+      windowed into 2048-sample non-overlapping segments.
+    '
+    style {
+      shape storage
+      color muted
+    }
+  }
+
+  llava = system 'llava-for-sensors' {
+    description '
+      Multimodal fault-prediction model. Frozen Qwen2-VL-2B with LoRA +
+      4-class classification head, fed by a time-series encoder whose
+      output is projected into the VLM token space by a trainable
+      fusion adapter. Trained locally on M2 Max (40 GB usable). Container
+      decomposition in container.c4.
+    '
+  }
+
+  // Landscape-level relations (system black-box view).
+  user -> llava 'uses Gradio demo + reads headline figure / tech report'
+  llava -> cwru 'reads bearing windows for training and eval'
+}
+
+views {
+  view landscape {
+    title 'System Landscape — llava-for-sensors'
+    include *
+
+    style llava {
+      color primary
+    }
+  }
+}
