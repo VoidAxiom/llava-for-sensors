@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from typing import Any
 
 import pytest
@@ -22,6 +23,14 @@ def _register_local_markers() -> None:
 
 
 _register_local_markers()
+
+
+SKIP_SLOW: bool = os.environ.get("RUN_SLOW_TESTS", "").lower() not in ("1", "true", "yes")
+
+skip_unless_slow = pytest.mark.skipif(
+    SKIP_SLOW,
+    reason="Slow test: set RUN_SLOW_TESTS=1 to enable",
+)
 
 
 def _resolve_hidden_size(model: Any) -> int | None:
@@ -61,6 +70,7 @@ def test_expected_hidden_size_constant() -> None:
     assert EXPECTED_HIDDEN_SIZE == 1536
 
 
+@skip_unless_slow
 @pytest.mark.slow
 def test_vlm_loads() -> None:
     model = load_frozen_vlm_with_lora()
@@ -69,6 +79,7 @@ def test_vlm_loads() -> None:
     assert isinstance(model, PeftModel)
 
 
+@skip_unless_slow
 @pytest.mark.slow
 def test_vlm_params_frozen() -> None:
     model = load_frozen_vlm_with_lora()
@@ -78,6 +89,7 @@ def test_vlm_params_frozen() -> None:
             assert parameter.requires_grad is False, f"Base parameter should be frozen: {name}"
 
 
+@skip_unless_slow
 @pytest.mark.slow
 def test_vlm_lora_trainable() -> None:
     model = load_frozen_vlm_with_lora()
@@ -88,6 +100,7 @@ def test_vlm_lora_trainable() -> None:
     assert trainable_count < 10_000_000
 
 
+@skip_unless_slow
 @pytest.mark.slow
 def test_vlm_hidden_size() -> None:
     model = load_frozen_vlm_with_lora()
@@ -97,6 +110,7 @@ def test_vlm_hidden_size() -> None:
     assert EXPECTED_HIDDEN_SIZE == 1536
 
 
+@skip_unless_slow
 @pytest.mark.slow
 def test_vlm_forward_oom_budget() -> None:
     if not torch.backends.mps.is_available():
