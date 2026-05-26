@@ -1,0 +1,1537 @@
+{
+  "version": "1.0.0",
+  "project": {
+    "name": "llava-for-sensors",
+    "languages": [
+      "c4",
+      "javascript",
+      "json",
+      "markdown",
+      "mermaid",
+      "python",
+      "shell",
+      "toml"
+    ],
+    "frameworks": [
+      "PyTorch",
+      "Transformers",
+      "PEFT",
+      "Accelerate",
+      "Gradio",
+      "pytest",
+      "Ruff",
+      "LikeC4",
+      "uv"
+    ],
+    "description": "Multimodal fault-prediction model fusing time-series sensor data with vision and language on a frozen Qwen2-VL-2B (LLaVA-for-sensors), trained locally on M2 Max.",
+    "analyzedAt": "2026-05-26T03:57:44Z",
+    "gitCommitHash": "7c4dccfe0c42e4e27d5c6ed8eaaba45f3b06ae08"
+  },
+  "nodes": [
+    {
+      "id": "document:AGENTS.md",
+      "type": "document",
+      "name": "AGENTS.md",
+      "filePath": "AGENTS.md",
+      "summary": "Operating contract for Codex exec workers (the bounded code-writers invoked by the implementer subagent): hard rules forbidding network access, git operations, scope drift, and invented domain content; plus learned-from-fan-in-misses UI/styling and test-value contracts.",
+      "tags": [
+        "documentation",
+        "agent-contract",
+        "codex-worker",
+        "doctrine",
+        "entry-point"
+      ],
+      "complexity": "moderate",
+      "languageNotes": "Companion to CLAUDE.md; both files together define the director/implementer/codex three-role split that the write-scope-guard hook enforces."
+    },
+    {
+      "id": "document:CLAUDE.md",
+      "type": "document",
+      "name": "CLAUDE.md",
+      "filePath": "CLAUDE.md",
+      "summary": "Master operating contract for the Claude director agent: spec-authoring discipline, the production-realistic-not-deployed scope rule, autonomous-mode behavior, the per-packet build loop (Linear issue -> impl subagent -> codex exec -> Codex review gate -> head-pinned squash-merge), and Claude's own file-scope allowlist enforced by hooks/write-scope-guard.mjs.",
+      "tags": [
+        "documentation",
+        "agent-contract",
+        "doctrine",
+        "build-loop",
+        "entry-point"
+      ],
+      "complexity": "complex",
+      "languageNotes": "Load-bearing; every section traces to a real past fan-in failure. This file is the source of truth for the director/impl/codex split that shapes every PR in the repo."
+    },
+    {
+      "id": "document:PLAN.md",
+      "type": "document",
+      "name": "PLAN.md",
+      "filePath": "PLAN.md",
+      "summary": "Planning contract for the project: pre-registered headline-figure design (3-bar modality ablation on CWRU bearing-fault classification, 5 seeds, 95% bootstrap CI, paired bootstrap p), framework choice (PyTorch + MPS, fp16, no 4-bit in v1), and an 8-phase delivery plan with per-phase code/data, LikeC4-view, /understand re-run, Linear subissue, and exit-gate specs.",
+      "tags": [
+        "documentation",
+        "planning",
+        "headline-contract",
+        "phase-plan",
+        "thesis"
+      ],
+      "complexity": "complex",
+      "languageNotes": "Pre-registers the experimental acceptance criterion before any model code exists, including the negative-result protocol \u2014 a discipline borrowed from preregistered scientific studies."
+    },
+    {
+      "id": "document:README.md",
+      "type": "document",
+      "name": "README.md",
+      "filePath": "README.md",
+      "summary": "Public-facing project overview: one-line thesis (sensors + vision + text beats vision + text on CWRU bearing-fault classification), reviewer entry-points table linking to PLAN/RUNNING_NOTES/TECH_REPORT/architecture/Linear, headline-figure and Gradio-demo placeholders to be filled in later phases, and the one-line doctrine statement.",
+      "tags": [
+        "documentation",
+        "overview",
+        "entry-point",
+        "reviewer-guide"
+      ],
+      "complexity": "simple",
+      "languageNotes": "Currently Phase-0 state \u2014 placeholders for headline SVG (Phase 4) and demo screenshot (Phase 5) are explicit and dated by phase deliverable."
+    },
+    {
+      "id": "document:RUNNING_NOTES.md",
+      "type": "document",
+      "name": "RUNNING_NOTES.md",
+      "filePath": "RUNNING_NOTES.md",
+      "summary": "Append-only lab journal: per-phase decisions, dead ends, blockers, tooling install state, and memory/timing measurements. Currently holds the Phase-0 provenance log (template instantiation, Linear hierarchy creation, codex-worker quota incident, zawarudo template-leak cleanup) and scheduled-but-empty headers for Phases 1-7.",
+      "tags": [
+        "documentation",
+        "lab-journal",
+        "decisions-log",
+        "provenance"
+      ],
+      "complexity": "moderate",
+      "languageNotes": "Raw material from which TECH_REPORT.md is distilled in Phase 6; append-only discipline preserves an honest record of dead ends and reversed decisions."
+    },
+    {
+      "id": "document:TECH_REPORT.md",
+      "type": "document",
+      "name": "TECH_REPORT.md",
+      "filePath": "TECH_REPORT.md",
+      "summary": "Skeleton of the Phase-6 mini-arXiv writeup: abstract, related work, method (frozen Qwen2-VL-2B + LoRA + classification head + time-series encoder + fusion adapter), data (CWRU split + Phase-1 toy dataset), ablations (the pre-registered headline figure plus per-modality table), limitations, future work, reproducibility. Each section is currently a one-line stub describing what will land there.",
+      "tags": [
+        "documentation",
+        "tech-report",
+        "deliverable",
+        "skeleton"
+      ],
+      "complexity": "moderate",
+      "languageNotes": "Intentionally stub-only at Phase 0 \u2014 content is forbidden until Phase 6, since real content depends on Phase-4 ablation results."
+    },
+    {
+      "id": "config:package.json",
+      "type": "config",
+      "name": "package.json",
+      "filePath": "package.json",
+      "summary": "Minimal Node project manifest: pins likec4 ^1.57 as the only runtime dependency and exposes a single build:c4 script that compiles architecture/ LikeC4 source into docs/architecture/ exports. Marked private (never published).",
+      "tags": [
+        "configuration",
+        "node",
+        "likec4",
+        "build-system"
+      ],
+      "complexity": "simple",
+      "languageNotes": "Per the project's local-dev-only doctrine, package.json is for tooling only \u2014 no publish workflow, no semver discipline beyond initial 0.0.1."
+    },
+    {
+      "id": "config:pyproject.toml",
+      "type": "config",
+      "name": "pyproject.toml",
+      "filePath": "pyproject.toml",
+      "summary": "Python project manifest declaring requires-python >=3.11, runtime dependencies (torch>=2.4, transformers, peft, accelerate, numpy, pandas, matplotlib, gradio>=4.0), dev tools (pytest, ruff), uv-managed Python preference, and ruff config (py311 target, 100-col line length).",
+      "tags": [
+        "configuration",
+        "python",
+        "uv",
+        "pytorch",
+        "build-system"
+      ],
+      "complexity": "simple",
+      "languageNotes": "uv owns the Python toolchain per the 2026-05-26 user directive \u2014 system python3 is 3.10 on this M2 Max, so [tool.uv] python-preference = managed routes everything through uv's installed 3.12."
+    },
+    {
+      "id": "file:hooks/compaction-sidecar.sh",
+      "type": "file",
+      "name": "compaction-sidecar.sh",
+      "filePath": "hooks/compaction-sidecar.sh",
+      "summary": "Combined PreCompact/PostCompact Claude Code hook that writes durable breadcrumb JSON (resume-pointer.json, last-compaction.json) into .claude/hooks/ so a post-compaction SessionStart reflex can recover Linear project context and the latest git state. Always exits 0 to guarantee compaction is never blocked.",
+      "tags": [
+        "agent-hook",
+        "lifecycle",
+        "compaction",
+        "sidecar",
+        "session-recovery"
+      ],
+      "complexity": "moderate",
+      "languageNotes": "Bash wrapper that delegates JSON construction to an embedded python3 heredoc, deliberately passing the hook payload via the HOOK_IN env var (stdin is consumed by the heredoc itself) and using json.dump rather than shell interpolation to stay safe with branch/commit strings containing quotes."
+    },
+    {
+      "id": "file:hooks/delegation-sidecar.sh",
+      "type": "file",
+      "name": "delegation-sidecar.sh",
+      "filePath": "hooks/delegation-sidecar.sh",
+      "summary": "PostToolUse hook fired after every Edit/Write/MultiEdit that surfaces a soft, throttled (~5 min) operating-compass nudge reminding Claude of standing delegation-first, Linear-plans/GitHub-delivers principles, with an optional gentle aside when the edit touched implementation code. Fail-open and strictly non-fatal.",
+      "tags": [
+        "agent-hook",
+        "post-tool-use",
+        "orchestration",
+        "delegation",
+        "sidecar"
+      ],
+      "complexity": "moderate",
+      "languageNotes": "Uses a jq-first / python3-fallback parser to read tool_input.file_path from the hook payload, skips re-entrant edits to hook files, throttles via a /tmp stamp file, and emits a hookSpecificOutput JSON envelope with additionalContext for Claude Code to inject."
+    },
+    {
+      "id": "file:hooks/session-recovery.sh",
+      "type": "file",
+      "name": "session-recovery.sh",
+      "filePath": "hooks/session-recovery.sh",
+      "summary": "SessionStart bash wrapper around session-recovery.py whose sole structural job is to guarantee the context-recovery reflex never silently vanishes: it invokes the python helper, and if python3 is missing or the helper errors, emits a hardcoded loud-degraded payload demanding a RESUME-ACK as the first output line. Explicitly skips recovery when source=clear.",
+      "tags": [
+        "agent-hook",
+        "session-start",
+        "context-recovery",
+        "sidecar",
+        "fallback"
+      ],
+      "complexity": "simple",
+      "languageNotes": "Minimal bash shim that resolves its own directory via $(cd \"$(dirname \"$0\")\" && pwd) to locate the sibling python helper, and uses an inline python3 -c snippet to safely parse the JSON source field rather than relying on shell substring matching."
+    },
+    {
+      "id": "file:scripts/check-prereqs.sh",
+      "type": "file",
+      "name": "check-prereqs.sh",
+      "filePath": "scripts/check-prereqs.sh",
+      "summary": "Verifies dev/build/test prerequisites (node, npm, uv, python3, git-lfs, likec4) at required versions and runs a regression check ensuring no runtime references to the stale .template.answers file exist in scripts/ or hooks/.",
+      "tags": [
+        "script",
+        "prerequisite-check",
+        "tooling",
+        "regression-check",
+        "build-system"
+      ],
+      "complexity": "moderate",
+      "languageNotes": "Uses portable POSIX awk for semver comparison (version_ge) so it works on macOS/BSD without GNU coreutils."
+    },
+    {
+      "id": "function:scripts/check-prereqs.sh:version_ge",
+      "type": "function",
+      "name": "version_ge",
+      "filePath": "scripts/check-prereqs.sh",
+      "lineRange": [
+        45,
+        60
+      ],
+      "summary": "Compares two dot-separated version strings numerically using POSIX awk, tolerating non-numeric suffixes like '3.11.0rc1'. Returns exit 0 if X >= Y.",
+      "tags": [
+        "utility",
+        "version-comparison",
+        "portable"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:scripts/check-prereqs.sh:fail",
+      "type": "function",
+      "name": "fail",
+      "filePath": "scripts/check-prereqs.sh",
+      "lineRange": [
+        30,
+        36
+      ],
+      "summary": "Prints a failure marker for a prerequisite check, optionally including an install hint, and increments fail_count for the final verdict.",
+      "tags": [
+        "utility",
+        "reporting",
+        "diagnostics"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:scripts/check-shell-syntax.sh",
+      "type": "file",
+      "name": "check-shell-syntax.sh",
+      "filePath": "scripts/check-shell-syntax.sh",
+      "summary": "Runs `bash -n` syntax check against the STAGED blob (via `git show :FILE`) of all tracked shell scripts so the pre-commit hook validates exactly what will be committed, with a hint for the common python3 -c single-quote pitfall.",
+      "tags": [
+        "script",
+        "syntax-check",
+        "pre-commit-hook",
+        "shell-lint",
+        "validation"
+      ],
+      "complexity": "moderate",
+      "languageNotes": "Validates the staged blob rather than the working tree, catching the common 'git add then fix' divergence bug."
+    },
+    {
+      "id": "file:scripts/codex-review.sh",
+      "type": "file",
+      "name": "codex-review.sh",
+      "filePath": "scripts/codex-review.sh",
+      "summary": "Pre-PR adversarial local review backstop: runs `codex exec` (gpt-5.5 / xhigh effort by default) read-only over the full git diff vs origin/main and emits a graded P0-P3 finding list with a strict pass/fail verdict, enforced as a required gate.",
+      "tags": [
+        "script",
+        "code-review",
+        "ci-cd",
+        "adversarial-review",
+        "quality-gate"
+      ],
+      "complexity": "complex",
+      "languageNotes": "Feeds the prompt via stdin (not argv) to avoid Linux's ~131 KiB ARG_MAX limit on large diffs; refuses to silently partial-review when diffs exceed CODEX_REVIEW_MAX_BYTES."
+    },
+    {
+      "id": "file:scripts/codex-run.sh",
+      "type": "file",
+      "name": "codex-run.sh",
+      "filePath": "scripts/codex-run.sh",
+      "summary": "Dispatches a `codex exec` worker or explorer run inside .codex-runs/<run-id>/, capturing the full event stream, exit code, and git diff so Claude can audit Codex's edits; intent-adds only the delta of untracked files created during the invocation to make the audit-trail check defensible.",
+      "tags": [
+        "script",
+        "codex-dispatch",
+        "subagent-orchestration",
+        "audit-trail",
+        "sandboxing"
+      ],
+      "complexity": "moderate",
+      "languageNotes": "Closes stdin with </dev/null to prevent backgrounded codex runs from hanging on 'Reading additional input from stdin'."
+    },
+    {
+      "id": "file:scripts/codex-runs-gc.sh",
+      "type": "file",
+      "name": "codex-runs-gc.sh",
+      "filePath": "scripts/codex-runs-gc.sh",
+      "summary": "Garbage-collects .codex-runs/ artifact families with merged/gone protection: never deletes a run whose slug has an alive non-merged branch, never touches parallel-metrics.tsv, and groups child runs (-w0, -rev1, -fix1) into a single family for atomic deletion.",
+      "tags": [
+        "script",
+        "garbage-collection",
+        "maintenance",
+        "self-test",
+        "lifecycle"
+      ],
+      "complexity": "complex",
+      "languageNotes": "Includes a hermetic --self-test mode that builds a throwaway git repo with synthetic families and re-invokes itself to assert the merged/gone policy."
+    },
+    {
+      "id": "function:scripts/codex-runs-gc.sh:slug_protected",
+      "type": "function",
+      "name": "slug_protected",
+      "filePath": "scripts/codex-runs-gc.sh",
+      "lineRange": [
+        87,
+        98
+      ],
+      "summary": "Returns 0 (protected) if any local or origin ref matches the slug fragment AND that ref is NOT merged into origin/main \u2014 preserving live work from GC while allowing merged work to be collected.",
+      "tags": [
+        "utility",
+        "ref-matching",
+        "protection-check"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:scripts/codex-runs-gc.sh:base_of",
+      "type": "function",
+      "name": "base_of",
+      "filePath": "scripts/codex-runs-gc.sh",
+      "lineRange": [
+        111,
+        118
+      ],
+      "summary": "Strips child suffixes (-w0, -rev1, -fix1, -prepr, -selfreview) from a run id to derive the family base id, enabling per-family GC decisions instead of per-dir.",
+      "tags": [
+        "utility",
+        "string-manipulation",
+        "family-grouping"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:scripts/impl-precommit-scope.sh",
+      "type": "file",
+      "name": "impl-precommit-scope.sh",
+      "filePath": "scripts/impl-precommit-scope.sh",
+      "summary": "Authoritative two-layer scope gate enforcing both the per-packet allowlist (--scope-file) and the role allowlist (write-scope-guard.mjs) against staged (--cached) or committed (--base) diffs in an impl worktree, with fail-closed semantics and rename decomposition.",
+      "tags": [
+        "script",
+        "scope-enforcement",
+        "pre-commit-hook",
+        "security-gate",
+        "fail-closed"
+      ],
+      "complexity": "complex",
+      "languageNotes": "Uses --no-renames to decompose `git mv` into delete+add so both source and destination are validated, closing the rename-to-evade-scope hole. AGENT_TYPE is hard-coded (never sourced from worker-writable state) to prevent identity forgery."
+    },
+    {
+      "id": "function:scripts/impl-precommit-scope.sh:in_packet_scope",
+      "type": "function",
+      "name": "in_packet_scope",
+      "filePath": "scripts/impl-precommit-scope.sh",
+      "lineRange": [
+        218,
+        234
+      ],
+      "summary": "Returns 0 if a path matches an exact file entry or directory-prefix entry from the packet allowlist; guards array expansion under set -u and uses local-scoped loop vars to avoid clobbering the caller's $f.",
+      "tags": [
+        "utility",
+        "allowlist-check",
+        "anchored-matching"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:scripts/review-gate.sh",
+      "type": "file",
+      "name": "review-gate.sh",
+      "filePath": "scripts/review-gate.sh",
+      "summary": "Canonical helper for the GitHub Codex review gate: status/threads (reads), reply/resolve (GraphQL mutations), and a two-phase eye-emoji `wait` loop that auto-posts `@codex review` on missed acks then polls for a head-pinned verdict, distinguishing CLEAN-REVIEW (auto-mergeable) from CLEAN-COMMENT-MANUAL (operator-confirm-required).",
+      "tags": [
+        "script",
+        "github-integration",
+        "code-review",
+        "ci-cd",
+        "merge-gate"
+      ],
+      "complexity": "complex",
+      "languageNotes": "Matches both REST `chatgpt-codex-connector[bot]` and GraphQL `chatgpt-codex-connector` login forms; safe auto-clean requires `review.commit.oid == headRefOid`, never a clean comment alone."
+    },
+    {
+      "id": "file:scripts/worktree-new.sh",
+      "type": "file",
+      "name": "worktree-new.sh",
+      "filePath": "scripts/worktree-new.sh",
+      "summary": "Provisions a per-packet git worktree under <repo-parent>/.llava-for-sensors-worktrees/<name>/ with an APFS-cloned real node_modules (so the worktree is immediately bootable inside codex's workspace-write sandbox) and auto-wires the per-worktree pre-commit hook.",
+      "tags": [
+        "script",
+        "worktree-provisioning",
+        "sandboxing",
+        "subagent-orchestration",
+        "infrastructure"
+      ],
+      "complexity": "moderate",
+      "languageNotes": "Refuses to provision off a possibly-stale base unless ALLOW_STALE_BASE=1 \u2014 fetches origin first and resolves BASE to a concrete SHA to prevent stale-base build failures and origin/main drift mid-run."
+    },
+    {
+      "id": "document:.claude/agents/implementer.md",
+      "type": "document",
+      "name": "implementer.md",
+      "filePath": ".claude/agents/implementer.md",
+      "summary": "The 383-line per-packet Impl Contract that the implementer subagent must follow end-to-end: cardinal rule (no direct code writes), path-scope contract, the nine-step pipeline from spec-read through codex-exec dispatch, local /codex:review gate, pre-PR notify, PR creation, eye-emoji review loop, and clean-verdict notify.",
+      "tags": [
+        "agent-definition",
+        "documentation",
+        "impl-contract",
+        "load-bearing",
+        "entry-point"
+      ],
+      "complexity": "complex",
+      "languageNotes": "Load-bearing operating contract: codex is the only writer of production code, the impl orchestrates."
+    },
+    {
+      "id": "document:.claude/commands/review-gate.md",
+      "type": "document",
+      "name": "review-gate.md",
+      "filePath": ".claude/commands/review-gate.md",
+      "summary": "Slash-command definition that drives a PR through the Codex review gate to a clean head-pinned squash-merge, wrapping scripts/review-gate.sh wait/status/threads helpers.",
+      "tags": [
+        "slash-command",
+        "documentation",
+        "review-gate",
+        "automation"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:.claude/commands/work-issue.md",
+      "type": "document",
+      "name": "work-issue.md",
+      "filePath": ".claude/commands/work-issue.md",
+      "summary": "Slash-command definition that takes a Linear issue from start to merged PR by dispatching the implementer subagent through the full build loop.",
+      "tags": [
+        "slash-command",
+        "documentation",
+        "linear-workflow",
+        "automation"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:.claude/settings.json",
+      "type": "config",
+      "name": "settings.json",
+      "filePath": ".claude/settings.json",
+      "summary": "Claude Code project settings: permissions allowlist for non-destructive git/gh/codex/script commands, deny rules for force-push and dangerous flags, and PreToolUse/SessionStart/PreCompact/PostCompact/PostToolUse hooks wiring write-scope-guard.mjs, schedule-wakeup-guard.mjs, and session/compaction sidecars.",
+      "tags": [
+        "configuration",
+        "permissions",
+        "hooks",
+        "claude-code",
+        "security"
+      ],
+      "complexity": "moderate",
+      "languageNotes": "Hooks wire the PreToolUse write-scope guard that enforces Claude's file-scope contract."
+    },
+    {
+      "id": "document:.codex/DELEGATION.md",
+      "type": "document",
+      "name": "DELEGATION.md",
+      "filePath": ".codex/DELEGATION.md",
+      "summary": "The Claude-to-Codex-exec delegation doctrine: ownership boundaries, command modes (run vs task packet), trust-but-verify post-run audit, feedback loops, parallel strategy, and the cost/network policy enforced by .claude/settings.json deny rules.",
+      "tags": [
+        "documentation",
+        "delegation-contract",
+        "codex-exec",
+        "doctrine"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "config:.codex/schemas/codex-result.schema.json",
+      "type": "config",
+      "name": "codex-result.schema.json",
+      "filePath": ".codex/schemas/codex-result.schema.json",
+      "summary": "JSON Schema (draft 2020-12) defining the structured result every codex-exec worker must return: summary, files_inspected/changed, commands_run, verification_result, evidence, assumptions, risks, and follow-up flags.",
+      "tags": [
+        "json-schema",
+        "configuration",
+        "codex-contract",
+        "schema-definition"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:.codex/task-template.md",
+      "type": "document",
+      "name": "task-template.md",
+      "filePath": ".codex/task-template.md",
+      "summary": "Canonical task.md template the implementer fills in for each codex-exec worker dispatch \u2014 context, deliverables, allowed-paths, verification commands, and the required structured-result envelope.",
+      "tags": [
+        "documentation",
+        "template",
+        "codex-task",
+        "impl-tooling"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:.template.answers",
+      "type": "file",
+      "name": ".template.answers",
+      "filePath": ".template.answers",
+      "summary": "Answers file consumed by the upstream orc-temp init.sh scaffolder \u2014 captures the project name, Linear prefix, branch prefix, Codex model selection, scope mode (blocklist), and the production-realistic deployment doctrine that drove CLAUDE.md generation.",
+      "tags": [
+        "template-input",
+        "scaffold",
+        "configuration",
+        "init"
+      ],
+      "complexity": "simple",
+      "languageNotes": "PROJECT_NAME=zawarudo is the upstream template placeholder; the actual project slug llava-for-sensors lives in CLAUDE.md."
+    },
+    {
+      "id": "file:.understand-anything/.understandignore",
+      "type": "file",
+      "name": ".understandignore",
+      "filePath": ".understand-anything/.understandignore",
+      "summary": "Exclusion-pattern file for the understand-anything analyzer using gitignore syntax \u2014 all suggested patterns currently commented out so the full tree is analyzed.",
+      "tags": [
+        "configuration",
+        "ignore-file",
+        "understand-anything",
+        "tooling"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:architecture/container.c4",
+      "type": "file",
+      "name": "container.c4",
+      "filePath": "architecture/container.c4",
+      "summary": "LikeC4 container-decomposition for the llava system \u2014 seven containers (data_pipeline, ts_encoder, fusion, vlm, train_loop, eval_harness, demo_app) with training-time, eval-time, and demo-time relations; the canonical source rendered to docs/architecture/container.mmd.",
+      "tags": [
+        "architecture",
+        "likec4",
+        "container-diagram",
+        "source-of-truth"
+      ],
+      "complexity": "moderate",
+      "languageNotes": "LikeC4 DSL \u2014 extends the llava system defined in landscape.c4."
+    },
+    {
+      "id": "file:architecture/landscape.c4",
+      "type": "file",
+      "name": "landscape.c4",
+      "filePath": "architecture/landscape.c4",
+      "summary": "LikeC4 system-landscape: the researcher/reviewer actor, the external CWRU Bearing Dataset, and the llava-for-sensors system with its black-box relations; container-level structure delegated to container.c4.",
+      "tags": [
+        "architecture",
+        "likec4",
+        "landscape-diagram",
+        "source-of-truth"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:data/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "filePath": "data/__init__.py",
+      "summary": "Empty package marker for the data/ container \u2014 placeholder awaiting the Phase-1 toy synthetic dataset and Phase-2+ CWRU loader implementations.",
+      "tags": [
+        "entry-point",
+        "package-init",
+        "scaffold",
+        "placeholder"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:demo/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "filePath": "demo/__init__.py",
+      "summary": "Empty package marker for the demo/ container \u2014 placeholder awaiting the Phase-5 Gradio app implementation.",
+      "tags": [
+        "entry-point",
+        "package-init",
+        "scaffold",
+        "placeholder"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:docs/architecture/container.mmd",
+      "type": "file",
+      "name": "container.mmd",
+      "filePath": "docs/architecture/container.mmd",
+      "summary": "Mermaid rendering of the container view, generated by LikeC4 from architecture/container.c4 \u2014 embedded in README/TECH_REPORT for the container decomposition figure.",
+      "tags": [
+        "architecture",
+        "mermaid",
+        "generated",
+        "documentation"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:docs/architecture/landscape.mmd",
+      "type": "file",
+      "name": "landscape.mmd",
+      "filePath": "docs/architecture/landscape.mmd",
+      "summary": "Mermaid rendering of the system landscape, generated by LikeC4 from architecture/landscape.c4 \u2014 embedded in README/TECH_REPORT for the landscape figure.",
+      "tags": [
+        "architecture",
+        "mermaid",
+        "generated",
+        "documentation"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:eval/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "filePath": "eval/__init__.py",
+      "summary": "Empty package marker for the eval/ container \u2014 placeholder awaiting the Phase-4+ headline-figure logic (macro-F1, bootstrap CI, paired bootstrap p-value).",
+      "tags": [
+        "entry-point",
+        "package-init",
+        "scaffold",
+        "placeholder"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:hooks/session-recovery.py",
+      "type": "file",
+      "name": "session-recovery.py",
+      "filePath": "hooks/session-recovery.py",
+      "summary": "SessionStart hook that injects a small context blob (cwd, transcript path, current branch and head SHA, ahead/behind counts vs origin/main) so resumed/compacted Claude sessions immediately know the worktree state.",
+      "tags": [
+        "hook",
+        "session-recovery",
+        "claude-code",
+        "utility"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:hooks/session-recovery.py:_git",
+      "type": "function",
+      "name": "_git",
+      "filePath": "hooks/session-recovery.py",
+      "lineRange": [
+        17,
+        24
+      ],
+      "summary": "Thin subprocess wrapper that runs a git command in the given cwd with a 5-second timeout and returns stripped stdout, swallowing errors so the hook never blocks the session.",
+      "tags": [
+        "utility",
+        "subprocess",
+        "git",
+        "fault-tolerant"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:hooks/session-recovery.py:build",
+      "type": "function",
+      "name": "build",
+      "filePath": "hooks/session-recovery.py",
+      "lineRange": [
+        27,
+        61
+      ],
+      "summary": "Constructs the SessionStart additionalContext payload \u2014 collects cwd/transcript info plus current branch, head SHA, and ahead/behind tallies versus origin/main into the hookSpecificOutput envelope.",
+      "tags": [
+        "builder",
+        "context-payload",
+        "session-recovery"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:hooks/session-recovery.py:main",
+      "type": "function",
+      "name": "main",
+      "filePath": "hooks/session-recovery.py",
+      "lineRange": [
+        64,
+        71
+      ],
+      "summary": "Hook entry point \u2014 reads the JSON payload from stdin, calls build() to assemble the recovery context, writes the response JSON to stdout.",
+      "tags": [
+        "entry-point",
+        "stdio",
+        "hook-handler"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:hooks/worktree-impl-hooks/pre-commit",
+      "type": "file",
+      "name": "pre-commit",
+      "filePath": "hooks/worktree-impl-hooks/pre-commit",
+      "summary": "Worktree-scoped pre-commit hook installed by scripts/worktree-new.sh into each impl worktree \u2014 resolves the main repo root, runs impl-precommit-scope.sh against the staging area, then check-shell-syntax.sh on staged shell files.",
+      "tags": [
+        "git-hook",
+        "pre-commit",
+        "worktree",
+        "scope-enforcement"
+      ],
+      "complexity": "moderate",
+      "languageNotes": "Bash script with `set -euo pipefail`; delegates to canonical scripts in the main repo so worktrees stay clean."
+    },
+    {
+      "id": "file:hooks/write-scope-guard.mjs",
+      "type": "file",
+      "name": "write-scope-guard.mjs",
+      "filePath": "hooks/write-scope-guard.mjs",
+      "summary": "The 511-line PreToolUse hook that enforces the CLAUDE.md file-scope contract on Edit/Write/MultiEdit calls \u2014 distinguishes Claude (allowed only in .claude/.codex/hooks/docs/scripts/architecture/.understand-anything plus markdown/test files plus root .gitignore) from impl subagents (allowed anywhere inside a trusted linked worktree), denies otherwise with an explicit error pointing to the implementer subagent.",
+      "tags": [
+        "hook",
+        "security",
+        "scope-enforcement",
+        "load-bearing",
+        "pre-tool-use"
+      ],
+      "complexity": "complex",
+      "languageNotes": "ES module with anchored path matching (path.resolve + prefix check, never substring) to defeat lenient bypasses called out in CLAUDE.md \u00a7recurring-failure-classes."
+    },
+    {
+      "id": "function:hooks/write-scope-guard.mjs:isInside",
+      "type": "function",
+      "name": "isInside",
+      "filePath": "hooks/write-scope-guard.mjs",
+      "lineRange": [
+        128,
+        131
+      ],
+      "summary": "Anchored containment check \u2014 returns true only when candidate's path.relative to root is a non-absolute, non-parent-traversal prefix; rejects substring matches.",
+      "tags": [
+        "utility",
+        "path-validation",
+        "security"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:hooks/write-scope-guard.mjs:findGitRoot",
+      "type": "function",
+      "name": "findGitRoot",
+      "filePath": "hooks/write-scope-guard.mjs",
+      "lineRange": [
+        133,
+        141
+      ],
+      "summary": "Walks upward from a starting directory looking for a .git entry and returns the containing directory; falls back to null when none is found.",
+      "tags": [
+        "utility",
+        "git",
+        "filesystem"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:hooks/write-scope-guard.mjs:realpathOrNull",
+      "type": "function",
+      "name": "realpathOrNull",
+      "filePath": "hooks/write-scope-guard.mjs",
+      "lineRange": [
+        143,
+        145
+      ],
+      "summary": "Safe wrapper around fs.realpathSync that returns null instead of throwing when the path does not exist or cannot be resolved.",
+      "tags": [
+        "utility",
+        "filesystem",
+        "fault-tolerant"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:hooks/write-scope-guard.mjs:realpathOfPathOrParent",
+      "type": "function",
+      "name": "realpathOfPathOrParent",
+      "filePath": "hooks/write-scope-guard.mjs",
+      "lineRange": [
+        156,
+        174
+      ],
+      "summary": "Realpath-resolution helper that handles symlinked leaf paths and missing leaf files by walking up to the nearest extant ancestor, preserving the not-yet-created tail components.",
+      "tags": [
+        "utility",
+        "symlink-resolution",
+        "filesystem"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:hooks/write-scope-guard.mjs:canonicalAgentType",
+      "type": "function",
+      "name": "canonicalAgentType",
+      "filePath": "hooks/write-scope-guard.mjs",
+      "lineRange": [
+        176,
+        184
+      ],
+      "summary": "Normalizes raw subagent type strings into the canonical implementer/explorer/main identifiers used by the deny/allow logic.",
+      "tags": [
+        "utility",
+        "normalization",
+        "agent-type"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:hooks/write-scope-guard.mjs:linkedGitdir",
+      "type": "function",
+      "name": "linkedGitdir",
+      "filePath": "hooks/write-scope-guard.mjs",
+      "lineRange": [
+        186,
+        196
+      ],
+      "summary": "Reads a worktree's .git pointer file and returns the absolute gitdir path it points to (or null when the entry is a real .git directory rather than a worktree link).",
+      "tags": [
+        "utility",
+        "git-worktree",
+        "filesystem"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:hooks/write-scope-guard.mjs:linkedWorktreeRootFromGitdir",
+      "type": "function",
+      "name": "linkedWorktreeRootFromGitdir",
+      "filePath": "hooks/write-scope-guard.mjs",
+      "lineRange": [
+        198,
+        209
+      ],
+      "summary": "Given a worktree gitdir, parses the gitdir file to derive and realpath-resolve the worktree's working-tree root, validating the trailing /.git relationship.",
+      "tags": [
+        "utility",
+        "git-worktree",
+        "filesystem"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:hooks/write-scope-guard.mjs:trustedLinkedWorktree",
+      "type": "function",
+      "name": "trustedLinkedWorktree",
+      "filePath": "hooks/write-scope-guard.mjs",
+      "lineRange": [
+        211,
+        241
+      ],
+      "summary": "Validates that a candidate path is a real linked git worktree whose gitdir lives inside the main repo's .git/worktrees \u2014 the cryptographic anchor for impl-subagent trust.",
+      "tags": [
+        "security",
+        "git-worktree",
+        "trust-anchor"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:hooks/write-scope-guard.mjs:resolveWriteRoot",
+      "type": "function",
+      "name": "resolveWriteRoot",
+      "filePath": "hooks/write-scope-guard.mjs",
+      "lineRange": [
+        243,
+        305
+      ],
+      "summary": "Core dispatcher that decides which root a write is bounded to based on the calling agent (main Claude vs impl subagent), TRUSTED_WORKTREE_ROOT env, and the hook cwd \u2014 returns the resolved root or null to deny.",
+      "tags": [
+        "security",
+        "scope-resolution",
+        "agent-routing"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:models/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "filePath": "models/__init__.py",
+      "summary": "Empty package marker for the models/ container \u2014 placeholder awaiting the ts_encoder, fusion adapter, and Qwen2-VL-2B+LoRA+head modules from Phases 1-3.",
+      "tags": [
+        "entry-point",
+        "package-init",
+        "scaffold",
+        "placeholder"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:scripts/hooks/pre-commit",
+      "type": "file",
+      "name": "pre-commit",
+      "filePath": "scripts/hooks/pre-commit",
+      "summary": "Main-repo pre-commit hook auto-wired by init.sh via `git config core.hooksPath scripts/hooks` \u2014 runs scripts/check-shell-syntax.sh against staged shell files only, exiting non-zero on any syntax failure.",
+      "tags": [
+        "git-hook",
+        "pre-commit",
+        "shell-syntax",
+        "main-repo"
+      ],
+      "complexity": "moderate",
+      "languageNotes": "POSIX /bin/sh with set -eu; uses xargs -0 to pipe NUL-delimited staged paths."
+    },
+    {
+      "id": "file:train/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "filePath": "train/__init__.py",
+      "summary": "Empty package marker for the train/ container \u2014 placeholder awaiting the Phase-4 headline-ablation training loop (3 conditions \u00d7 5 seeds within 40 GB / 24 h budget on M2 Max).",
+      "tags": [
+        "entry-point",
+        "package-init",
+        "scaffold",
+        "placeholder"
+      ],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    {
+      "source": "document:README.md",
+      "target": "document:PLAN.md",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:README.md",
+      "target": "document:RUNNING_NOTES.md",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:README.md",
+      "target": "document:TECH_REPORT.md",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:README.md",
+      "target": "document:CLAUDE.md",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:CLAUDE.md",
+      "target": "document:AGENTS.md",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:AGENTS.md",
+      "target": "document:CLAUDE.md",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:PLAN.md",
+      "target": "document:CLAUDE.md",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:PLAN.md",
+      "target": "document:RUNNING_NOTES.md",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:PLAN.md",
+      "target": "document:TECH_REPORT.md",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:RUNNING_NOTES.md",
+      "target": "document:TECH_REPORT.md",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:TECH_REPORT.md",
+      "target": "document:PLAN.md",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:TECH_REPORT.md",
+      "target": "document:RUNNING_NOTES.md",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "config:package.json",
+      "target": "document:PLAN.md",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "config:pyproject.toml",
+      "target": "document:PLAN.md",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:scripts/check-prereqs.sh",
+      "target": "function:scripts/check-prereqs.sh:version_ge",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:scripts/check-prereqs.sh",
+      "target": "function:scripts/check-prereqs.sh:fail",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:scripts/codex-runs-gc.sh",
+      "target": "function:scripts/codex-runs-gc.sh:slug_protected",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:scripts/codex-runs-gc.sh",
+      "target": "function:scripts/codex-runs-gc.sh:base_of",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:scripts/impl-precommit-scope.sh",
+      "target": "function:scripts/impl-precommit-scope.sh:in_packet_scope",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:scripts/codex-review.sh",
+      "target": "file:scripts/codex-run.sh",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:scripts/impl-precommit-scope.sh",
+      "target": "file:scripts/codex-run.sh",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:scripts/worktree-new.sh",
+      "target": "file:scripts/impl-precommit-scope.sh",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:scripts/check-shell-syntax.sh",
+      "target": "file:scripts/check-prereqs.sh",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:hooks/session-recovery.py",
+      "target": "function:hooks/session-recovery.py:_git",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:hooks/session-recovery.py",
+      "target": "function:hooks/session-recovery.py:build",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:hooks/session-recovery.py",
+      "target": "function:hooks/session-recovery.py:main",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:hooks/write-scope-guard.mjs",
+      "target": "function:hooks/write-scope-guard.mjs:isInside",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:hooks/write-scope-guard.mjs",
+      "target": "function:hooks/write-scope-guard.mjs:findGitRoot",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:hooks/write-scope-guard.mjs",
+      "target": "function:hooks/write-scope-guard.mjs:realpathOrNull",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:hooks/write-scope-guard.mjs",
+      "target": "function:hooks/write-scope-guard.mjs:realpathOfPathOrParent",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:hooks/write-scope-guard.mjs",
+      "target": "function:hooks/write-scope-guard.mjs:canonicalAgentType",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:hooks/write-scope-guard.mjs",
+      "target": "function:hooks/write-scope-guard.mjs:linkedGitdir",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:hooks/write-scope-guard.mjs",
+      "target": "function:hooks/write-scope-guard.mjs:linkedWorktreeRootFromGitdir",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:hooks/write-scope-guard.mjs",
+      "target": "function:hooks/write-scope-guard.mjs:trustedLinkedWorktree",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:hooks/write-scope-guard.mjs",
+      "target": "function:hooks/write-scope-guard.mjs:resolveWriteRoot",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "config:.claude/settings.json",
+      "target": "file:hooks/write-scope-guard.mjs",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:.claude/settings.json",
+      "target": "file:hooks/session-recovery.py",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "document:.claude/agents/implementer.md",
+      "target": "file:hooks/write-scope-guard.mjs",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:.claude/agents/implementer.md",
+      "target": "document:.codex/DELEGATION.md",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:.claude/agents/implementer.md",
+      "target": "document:.codex/task-template.md",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:.claude/agents/implementer.md",
+      "target": "config:.codex/schemas/codex-result.schema.json",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:.codex/DELEGATION.md",
+      "target": "config:.codex/schemas/codex-result.schema.json",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:.codex/DELEGATION.md",
+      "target": "document:.codex/task-template.md",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:.codex/task-template.md",
+      "target": "config:.codex/schemas/codex-result.schema.json",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:.claude/commands/review-gate.md",
+      "target": "document:.claude/agents/implementer.md",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:.claude/commands/work-issue.md",
+      "target": "document:.claude/agents/implementer.md",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:.claude/commands/work-issue.md",
+      "target": "document:.claude/commands/review-gate.md",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:architecture/landscape.c4",
+      "target": "file:docs/architecture/landscape.mmd",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:architecture/container.c4",
+      "target": "file:docs/architecture/container.mmd",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:architecture/container.c4",
+      "target": "file:architecture/landscape.c4",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:architecture/container.c4",
+      "target": "file:data/__init__.py",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:architecture/container.c4",
+      "target": "file:models/__init__.py",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:architecture/container.c4",
+      "target": "file:train/__init__.py",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:architecture/container.c4",
+      "target": "file:eval/__init__.py",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:architecture/container.c4",
+      "target": "file:demo/__init__.py",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:hooks/worktree-impl-hooks/pre-commit",
+      "target": "file:scripts/hooks/pre-commit",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:.template.answers",
+      "target": "config:.claude/settings.json",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    }
+  ],
+  "layers": [
+    {
+      "id": "layer:documentation-planning",
+      "name": "Documentation & Planning",
+      "description": "Project narrative, pre-registered headline-figure contract, lab journal, agent-operating contracts (CLAUDE.md, AGENTS.md, implementer.md, DELEGATION.md), and slash-command definitions that drive the per-packet build loop.",
+      "nodeIds": [
+        "document:AGENTS.md",
+        "document:CLAUDE.md",
+        "document:PLAN.md",
+        "document:README.md",
+        "document:RUNNING_NOTES.md",
+        "document:TECH_REPORT.md",
+        "document:.claude/agents/implementer.md",
+        "document:.claude/commands/review-gate.md",
+        "document:.claude/commands/work-issue.md",
+        "document:.codex/DELEGATION.md",
+        "document:.codex/task-template.md"
+      ]
+    },
+    {
+      "id": "layer:architecture-as-code",
+      "name": "Architecture-as-Code",
+      "description": "LikeC4 sources (system landscape and container decomposition) plus their generated Mermaid renderings \u2014 the canonical visual contract referenced by README and TECH_REPORT.",
+      "nodeIds": [
+        "file:architecture/container.c4",
+        "file:architecture/landscape.c4",
+        "file:docs/architecture/container.mmd",
+        "file:docs/architecture/landscape.mmd"
+      ]
+    },
+    {
+      "id": "layer:orchestration-scripts",
+      "name": "Agent Orchestration \u2014 Scripts",
+      "description": "Bash tooling that drives the build loop: worktree provisioning, codex-exec dispatch, local /codex:review backstop, the two-layer scope gate, the GitHub Codex review-gate helper, garbage collection, and pre-commit syntax checks.",
+      "nodeIds": [
+        "file:scripts/check-prereqs.sh",
+        "file:scripts/check-shell-syntax.sh",
+        "file:scripts/codex-review.sh",
+        "file:scripts/codex-run.sh",
+        "file:scripts/codex-runs-gc.sh",
+        "file:scripts/impl-precommit-scope.sh",
+        "file:scripts/review-gate.sh",
+        "file:scripts/worktree-new.sh",
+        "file:scripts/hooks/pre-commit"
+      ]
+    },
+    {
+      "id": "layer:orchestration-hooks",
+      "name": "Agent Orchestration \u2014 Hooks",
+      "description": "Claude Code lifecycle hooks: the load-bearing write-scope-guard PreToolUse wall, session-recovery and compaction sidecars that preserve context across resumes, the delegation-nudge PostToolUse hook, and the worktree-installed pre-commit hook.",
+      "nodeIds": [
+        "file:hooks/compaction-sidecar.sh",
+        "file:hooks/delegation-sidecar.sh",
+        "file:hooks/session-recovery.sh",
+        "file:hooks/session-recovery.py",
+        "file:hooks/worktree-impl-hooks/pre-commit",
+        "file:hooks/write-scope-guard.mjs"
+      ]
+    },
+    {
+      "id": "layer:configuration",
+      "name": "Configuration",
+      "description": "Project manifests (pyproject.toml for Python+uv, package.json for LikeC4), Claude Code settings wiring permissions and hooks, the codex-exec result JSON schema, analyzer ignore patterns, and the upstream scaffolder answer file.",
+      "nodeIds": [
+        "config:package.json",
+        "config:pyproject.toml",
+        "config:.claude/settings.json",
+        "config:.codex/schemas/codex-result.schema.json",
+        "file:.understand-anything/.understandignore",
+        "file:.template.answers"
+      ]
+    },
+    {
+      "id": "layer:production-scaffold",
+      "name": "Production Code (Scaffold)",
+      "description": "Empty Python package markers for the seven container surfaces (data, models, train, eval, demo) \u2014 placeholders awaiting Phase 1+ packets to land the toy dataset, ts_encoder, fusion adapter, Qwen2-VL+LoRA head, training loop, eval harness, and Gradio demo.",
+      "nodeIds": [
+        "file:data/__init__.py",
+        "file:models/__init__.py",
+        "file:train/__init__.py",
+        "file:eval/__init__.py",
+        "file:demo/__init__.py"
+      ]
+    }
+  ],
+  "tour": [
+    {
+      "order": 1,
+      "title": "Project Overview",
+      "description": "Start at the README to absorb the thesis in one page: a frozen Qwen2-VL-2B with a small trainable fusion adapter that lets time-series sensor data flow into a vision-language model's token space \u2014 LLaVA, but for sensors. The thesis is measurable: sensors + vision + text must beat vision + text alone on CWRU bearing-fault classification across four classes, trained end-to-end on an M2 Max. The README also names the four reviewer entry-points (PLAN, RUNNING_NOTES, TECH_REPORT, architecture) that the next steps of this tour will visit in order.",
+      "nodeIds": [
+        "document:README.md"
+      ]
+    },
+    {
+      "order": 2,
+      "title": "The Pre-Registered Headline Figure",
+      "description": "PLAN.md is the experimental contract: before any model code exists, it pre-registers the headline figure as a 3-bar modality ablation (text-only vs vision+text vs sensors+vision+text) with 5 seeds, 95% bootstrap confidence intervals, and a paired bootstrap p-value. This is the highest-fan-in document in the repo (4 inbound edges) \u2014 every other doctrine doc cross-references it. The 8-phase delivery plan that follows binds each phase to concrete exit gates, locking the build loop to a falsifiable scientific claim.",
+      "nodeIds": [
+        "document:PLAN.md"
+      ],
+      "languageLesson": "Pre-registration is a discipline borrowed from clinical trials: you commit to the analysis (test, sample size, decision rule) BEFORE seeing data. It defeats p-hacking and HARKing (Hypothesizing After Results are Known) by removing the researcher's degrees of freedom retrospectively."
+    },
+    {
+      "order": 3,
+      "title": "The Director's Operating Contract",
+      "description": "CLAUDE.md is the master operating contract for the agent system that builds this project. Its central claim: Claude (the director) does not write production code \u2014 every production change flows through a per-packet implementer subagent that dispatches codex exec workers, with a per-PR audit trail. The doc encodes the production-realistic-not-deployed scope rule (single env, no infra automation, no backwards-compat shims), autonomous-mode behavior, and the build loop that ties Linear (planning ledger) to GitHub (delivery ledger). AGENTS.md is its sibling: the symmetric contract for the codex workers at the bottom of the stack.",
+      "nodeIds": [
+        "document:CLAUDE.md",
+        "document:AGENTS.md"
+      ]
+    },
+    {
+      "order": 4,
+      "title": "System Landscape (Architecture-as-Code)",
+      "description": "Architecture is checked in as source, not as drift-prone diagrams. landscape.c4 declares the system boundary in LikeC4 DSL \u2014 three actors (researcher/reviewer, the external CWRU bearing dataset, and the llava-for-sensors black box) and the relations between them. The .mmd file beside it is the Mermaid rendering that gets embedded in README and TECH_REPORT, generated by `npm run build:c4`. The pattern: one source of truth (.c4), many derived views (.mmd, .svg).",
+      "nodeIds": [
+        "file:architecture/landscape.c4",
+        "file:docs/architecture/landscape.mmd"
+      ],
+      "languageLesson": "LikeC4 implements the C4 model (Context / Containers / Components / Code) as a typed DSL with extends/inheritance. A landscape view defines the outermost ring; container views drill in. The whole graph is type-checked, so a renamed container fails the build everywhere it's referenced."
+    },
+    {
+      "order": 5,
+      "title": "Container Decomposition",
+      "description": "container.c4 zooms inside the llava-for-sensors system box from Step 4 and decomposes it into seven containers: data_pipeline, ts_encoder, fusion, vlm (the frozen Qwen2-VL-2B + LoRA + head), train_loop, eval_harness, and demo_app. The file has the highest fan-out in the entire graph (7) because it documents every Python package scaffold in the repo (data/, models/, train/, eval/, demo/). The three relation sets \u2014 training-time, eval-time, demo-time \u2014 express that the same containers participate in different data flows depending on the phase.",
+      "nodeIds": [
+        "file:architecture/container.c4",
+        "file:docs/architecture/container.mmd"
+      ]
+    },
+    {
+      "order": 6,
+      "title": "The Implementer Contract",
+      "description": "Where CLAUDE.md describes the director's behavior, implementer.md is the 383-line contract the impl subagent itself follows. The cardinal rule: the impl has no Edit/Write/MultiEdit tools \u2014 it can only commission codex exec workers to write code, then audit their diffs. The doc walks a nine-step pipeline from spec-read through the local /codex:review gate, pre-PR notify, PR creation, and the eye-emoji review loop with the GitHub Codex bot. The supporting templates \u2014 DELEGATION.md, task-template.md, codex-result.schema.json \u2014 define the exact shape of every worker dispatch and the structured envelope every worker must return.",
+      "nodeIds": [
+        "document:.claude/agents/implementer.md",
+        "document:.codex/DELEGATION.md",
+        "document:.codex/task-template.md",
+        "config:.codex/schemas/codex-result.schema.json"
+      ]
+    },
+    {
+      "order": 7,
+      "title": "Write-Scope Enforcement (the Wall)",
+      "description": "Doctrine in a markdown file is advisory; this is the wall that makes it enforced. write-scope-guard.mjs is a 511-line PreToolUse hook wired by .claude/settings.json that intercepts every Edit/Write/MultiEdit call and denies it unless the resolved path falls inside the active write root for the calling agent. Claude is bounded to .claude/.codex/hooks/docs/scripts/architecture/.understand-anything plus markdown anywhere; impl subagents are bounded to a trusted linked git worktree validated cryptographically against the main repo's .git/worktrees pointer. The hook is what stops Claude from quietly editing production Python.",
+      "nodeIds": [
+        "file:hooks/write-scope-guard.mjs",
+        "config:.claude/settings.json"
+      ],
+      "languageLesson": "Anchored path matching: path.resolve() canonicalizes (collapsing `..`) BEFORE prefix-check, and matching uses strict prefix-from-root (`rel === p || rel.startsWith(p + '/')`) rather than substring-anywhere. This defeats the bypass `src/components/scripts/evil.ts` passing as 'scripts/'. The hook also realpath-resolves to defeat symlink chicanery \u2014 both lexical and realpath containment must succeed."
+    },
+    {
+      "order": 8,
+      "title": "The Orchestration Rails",
+      "description": "These four scripts are the rails the impl subagent runs on. worktree-new.sh provisions a per-packet sibling git worktree with an APFS-cloned node_modules so codex's sandbox boots instantly. codex-run.sh dispatches a worker into .codex-runs/<run-id>/ capturing the full event stream, exit code, and git diff for audit. impl-precommit-scope.sh is the two-layer scope gate \u2014 per-packet allowlist (--scope-file) on top of the role allowlist \u2014 that fails-closed on any path outside scope, including renames (decomposed via --no-renames). review-gate.sh wraps the GitHub Codex review bot in a head-pinned eye-emoji wait loop, distinguishing auto-mergeable CLEAN-REVIEW from operator-confirm-required CLEAN-COMMENT-MANUAL.",
+      "nodeIds": [
+        "file:scripts/worktree-new.sh",
+        "file:scripts/codex-run.sh",
+        "file:scripts/impl-precommit-scope.sh",
+        "file:scripts/review-gate.sh"
+      ],
+      "languageLesson": "Defense in depth, three layers: (1) the impl subagent's tools list strips Edit/Write/MultiEdit at the harness level, (2) write-scope-guard.mjs denies out-of-scope writes at PreToolUse, (3) impl-precommit-scope.sh fails the commit if anything still made it through. Each layer assumes the others may fail."
+    },
+    {
+      "order": 9,
+      "title": "Tooling and Dependencies",
+      "description": "pyproject.toml declares the Python runtime: requires-python >=3.11, torch>=2.4 for MPS-on-M2 training, plus transformers / peft / accelerate for the frozen-VLM-with-LoRA pattern, matplotlib for the headline figure, gradio for the Phase-5 demo, and pytest+ruff for dev. The [tool.uv] python-preference = managed line routes the toolchain through uv's installed Python 3.12 because system python3 is 3.10 on this M2 Max. package.json is intentionally minimal: likec4 is the only runtime dependency and the only script is build:c4 (no publish workflow, no semver \u2014 local-dev-only per the doctrine).",
+      "nodeIds": [
+        "config:pyproject.toml",
+        "config:package.json"
+      ],
+      "languageLesson": "uv is a Rust-written Python package manager that owns the interpreter as well as dependencies. `python-preference = managed` makes uv install its own Python rather than borrowing the system one, eliminating the M2 'system python3 is 3.10 but we need 3.11+' bootstrapping pain. requires-python in pyproject.toml is the upper bound that uv resolves against."
+    },
+    {
+      "order": 10,
+      "title": "The Production-Code Scaffold",
+      "description": "These five empty __init__.py files are the entire production-code surface at Phase 0. Each corresponds to one of the containers in Step 5's container.c4 diagram: data/ awaits the Phase-1 toy synthetic dataset then the CWRU loader, models/ awaits ts_encoder + fusion adapter + Qwen2-VL-2B+LoRA wiring across Phases 1-3, train/ awaits the headline ablation training loop (3 conditions \u00d7 5 seeds within 40 GB / 24 h on M2 Max), eval/ awaits the macro-F1 + bootstrap CI + paired-bootstrap-p logic, demo/ awaits the Gradio app. The emptiness is the point \u2014 every line that lands here goes through the codex exec audit trail you saw in Steps 6-8.",
+      "nodeIds": [
+        "file:data/__init__.py",
+        "file:models/__init__.py",
+        "file:train/__init__.py",
+        "file:eval/__init__.py",
+        "file:demo/__init__.py"
+      ]
+    },
+    {
+      "order": 11,
+      "title": "Phase 0 Deliverables and the Path Forward",
+      "description": "Two append-only documents close the loop. RUNNING_NOTES.md is the lab journal \u2014 per-phase decisions, dead ends, blockers, timing measurements; right now it holds the Phase-0 provenance log (template instantiation, Linear hierarchy creation, codex-worker quota incident, template-leak cleanup) plus empty headers for Phases 1-7. TECH_REPORT.md is the mini-arXiv skeleton that will be distilled from RUNNING_NOTES in Phase 6: abstract, method, the pre-registered headline figure from Step 2, ablations, limitations, reproducibility. Each section is currently a one-line stub \u2014 intentionally, because real content depends on Phase-4 experimental results that haven't happened yet.",
+      "nodeIds": [
+        "document:RUNNING_NOTES.md",
+        "document:TECH_REPORT.md"
+      ]
+    }
+  ]
+}

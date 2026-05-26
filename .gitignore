@@ -32,3 +32,13 @@ node_modules/
 # (HuggingFace caches default to ~/.cache/huggingface; uncomment a project-local
 # entry here if any future packet redirects them under the repo.)
 .cache/
+
+# Understand-Anything — knowledge-graph.json + meta.json + fingerprints.json +
+# .understandignore ARE tracked. intermediate/, tmp/, and diff-overlay.json are
+# per-run scratch (/understand-diff writes the overlay each invocation; commit-
+# ing transient overlay data would dirty `git status` and bloat history).
+.understand-anything/intermediate/
+.understand-anything/tmp/
+.understand-anything/diff-overlay.json
+# Dashboard runtime-verification screenshots — gitignored evidence, not deliverables.
+.understand-anything/*-verification.png

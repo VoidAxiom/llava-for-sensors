@@ -1,0 +1,606 @@
+{
+  "version": "1.0.0",
+  "gitCommitHash": "7c4dccfe0c42e4e27d5c6ed8eaaba45f3b06ae08",
+  "generatedAt": "2026-05-26T03:58:05.353Z",
+  "files": {
+    ".claude/agents/implementer.md": {
+      "filePath": ".claude/agents/implementer.md",
+      "contentHash": "c91dc78b5ad34a7274ef26342ca795db81fd8b2f4d7e4341b016c1a34ceb08c9",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 384,
+      "hasStructuralAnalysis": true
+    },
+    ".claude/commands/review-gate.md": {
+      "filePath": ".claude/commands/review-gate.md",
+      "contentHash": "e23fa028e4d194fc0c9e66d8b9cbb4f39b72282a8095d35b067554b75a965215",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 54,
+      "hasStructuralAnalysis": true
+    },
+    ".claude/commands/work-issue.md": {
+      "filePath": ".claude/commands/work-issue.md",
+      "contentHash": "b4d3e2f172053e4a172771b4f5e052f127f57edce4808742062c074d9d3d45e9",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 61,
+      "hasStructuralAnalysis": true
+    },
+    ".claude/settings.json": {
+      "filePath": ".claude/settings.json",
+      "contentHash": "af7f455937ceb2df72672936a166612a8a84fe32874f527300d033f804dbbbe5",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 147,
+      "hasStructuralAnalysis": true
+    },
+    ".codex/DELEGATION.md": {
+      "filePath": ".codex/DELEGATION.md",
+      "contentHash": "ec127948fe5167d4388ac8d5a1fd7813cf2fb458b2afc5a0d7cebc7230a18aba",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 163,
+      "hasStructuralAnalysis": true
+    },
+    ".codex/schemas/codex-result.schema.json": {
+      "filePath": ".codex/schemas/codex-result.schema.json",
+      "contentHash": "70148d44a766ac25f7dfb3bdbcc1bda4460ad6b367f980ef1faebd0fa729161e",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 44,
+      "hasStructuralAnalysis": true
+    },
+    ".codex/task-template.md": {
+      "filePath": ".codex/task-template.md",
+      "contentHash": "c08eb785e6f3e1cb42febb92bd460db162c96058b434d07ef8a4ef9a2470c70b",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 46,
+      "hasStructuralAnalysis": true
+    },
+    ".template.answers": {
+      "filePath": ".template.answers",
+      "contentHash": "1a52a14e93bedb52009ed9617b0ee8fe7e87131c43dc26afb7f907a2c31a8bea",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 36,
+      "hasStructuralAnalysis": false
+    },
+    ".understand-anything/.understandignore": {
+      "filePath": ".understand-anything/.understandignore",
+      "contentHash": "29e3b2a48b5a3bde79ad1013c8e6d4a1f4ef2de184389f189e8108c05d4c1400",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 35,
+      "hasStructuralAnalysis": false
+    },
+    "AGENTS.md": {
+      "filePath": "AGENTS.md",
+      "contentHash": "3969d27c3d39cc6b1f71d69b89b5fff98dec3728768d88b80fabf2bed56c305b",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 83,
+      "hasStructuralAnalysis": true
+    },
+    "architecture/container.c4": {
+      "filePath": "architecture/container.c4",
+      "contentHash": "a13d10c46570f8eb4e140210b53ee935c2c5a92ec6cbcdeec9919a69844b791e",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 107,
+      "hasStructuralAnalysis": false
+    },
+    "architecture/landscape.c4": {
+      "filePath": "architecture/landscape.c4",
+      "contentHash": "e4ae1927f9cb167fdb4995bb01d9c3fb24d365739eccfa01abe891f846122c2c",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 70,
+      "hasStructuralAnalysis": false
+    },
+    "CLAUDE.md": {
+      "filePath": "CLAUDE.md",
+      "contentHash": "ab049f18898d5cb236556ea7cb39bbe4052a56dff9a7c71b9bb38bf8c8a1404c",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 578,
+      "hasStructuralAnalysis": true
+    },
+    "data/__init__.py": {
+      "filePath": "data/__init__.py",
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 1,
+      "hasStructuralAnalysis": true
+    },
+    "demo/__init__.py": {
+      "filePath": "demo/__init__.py",
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 1,
+      "hasStructuralAnalysis": true
+    },
+    "docs/architecture/container.mmd": {
+      "filePath": "docs/architecture/container.mmd",
+      "contentHash": "c17cdfc802ba32327c6d211843dddfc332812bf7060ff93322b226b03afccf11",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 26,
+      "hasStructuralAnalysis": false
+    },
+    "docs/architecture/landscape.mmd": {
+      "filePath": "docs/architecture/landscape.mmd",
+      "contentHash": "e9889f16c3c6b3b9792e7575085df45b3120095cbee808c140bd4a72168a6d3f",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 12,
+      "hasStructuralAnalysis": false
+    },
+    "eval/__init__.py": {
+      "filePath": "eval/__init__.py",
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 1,
+      "hasStructuralAnalysis": true
+    },
+    "hooks/compaction-sidecar.sh": {
+      "filePath": "hooks/compaction-sidecar.sh",
+      "contentHash": "d444ea3e0c383df6b0663a39f54fc62312007920e5e779bcd1cde082c84c4d8d",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 76,
+      "hasStructuralAnalysis": true
+    },
+    "hooks/delegation-sidecar.sh": {
+      "filePath": "hooks/delegation-sidecar.sh",
+      "contentHash": "c5ecd37c00e4bcb97c890ea2e1f59ecbf38ba69f1072402587983f87fa05b825",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 77,
+      "hasStructuralAnalysis": true
+    },
+    "hooks/session-recovery.py": {
+      "filePath": "hooks/session-recovery.py",
+      "contentHash": "ee591cafceabc949d46f82f71c76e9ad0ce5c069003ddc0d3123a59905544c3b",
+      "functions": [
+        {
+          "name": "_git",
+          "params": [
+            "cwd"
+          ],
+          "returnType": "str",
+          "exported": true,
+          "lineCount": 8
+        },
+        {
+          "name": "build",
+          "params": [
+            "payload"
+          ],
+          "returnType": "str",
+          "exported": true,
+          "lineCount": 35
+        },
+        {
+          "name": "main",
+          "params": [],
+          "returnType": "int",
+          "exported": true,
+          "lineCount": 8
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "json",
+          "specifiers": [
+            "json"
+          ]
+        },
+        {
+          "source": "subprocess",
+          "specifiers": [
+            "subprocess"
+          ]
+        },
+        {
+          "source": "sys",
+          "specifiers": [
+            "sys"
+          ]
+        }
+      ],
+      "exports": [
+        "_git",
+        "build",
+        "main"
+      ],
+      "totalLines": 76,
+      "hasStructuralAnalysis": true
+    },
+    "hooks/session-recovery.sh": {
+      "filePath": "hooks/session-recovery.sh",
+      "contentHash": "38e4307f51beffe9e72014dadee861dd2cd3d2dc2f8bcd0050450591115e2db8",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 27,
+      "hasStructuralAnalysis": true
+    },
+    "hooks/worktree-impl-hooks/pre-commit": {
+      "filePath": "hooks/worktree-impl-hooks/pre-commit",
+      "contentHash": "a03293ecdc9b23b0e2815f9a5b41d95d8c46b65ca2cb85257d7667892dfe0930",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 53,
+      "hasStructuralAnalysis": false
+    },
+    "hooks/write-scope-guard.mjs": {
+      "filePath": "hooks/write-scope-guard.mjs",
+      "contentHash": "1620c801bfd531f1276df6f143da1d0207188ab12f4bdd38947c8103997e6191",
+      "functions": [
+        {
+          "name": "isInside",
+          "params": [
+            "root",
+            "candidate"
+          ],
+          "exported": false,
+          "lineCount": 4
+        },
+        {
+          "name": "findGitRoot",
+          "params": [
+            "start"
+          ],
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "realpathOrNull",
+          "params": [
+            "p"
+          ],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "realpathOfPathOrParent",
+          "params": [
+            "p"
+          ],
+          "exported": false,
+          "lineCount": 19
+        },
+        {
+          "name": "canonicalAgentType",
+          "params": [
+            "raw"
+          ],
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "linkedGitdir",
+          "params": [
+            "root"
+          ],
+          "exported": false,
+          "lineCount": 11
+        },
+        {
+          "name": "linkedWorktreeRootFromGitdir",
+          "params": [
+            "gitdir"
+          ],
+          "exported": false,
+          "lineCount": 12
+        },
+        {
+          "name": "trustedLinkedWorktree",
+          "params": [
+            "root"
+          ],
+          "exported": false,
+          "lineCount": 31
+        },
+        {
+          "name": "resolveWriteRoot",
+          "params": [
+            "j",
+            "isSub",
+            "isImplAgent"
+          ],
+          "exported": false,
+          "lineCount": 63
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "node:fs",
+          "specifiers": [
+            "fs"
+          ]
+        },
+        {
+          "source": "node:path",
+          "specifiers": [
+            "path"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 512,
+      "hasStructuralAnalysis": true
+    },
+    "models/__init__.py": {
+      "filePath": "models/__init__.py",
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 1,
+      "hasStructuralAnalysis": true
+    },
+    "package.json": {
+      "filePath": "package.json",
+      "contentHash": "ff83c01ed419f7b91df60bbb6498c7f6ab238817b9abd4694ab0a36ed7002091",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 12,
+      "hasStructuralAnalysis": true
+    },
+    "PLAN.md": {
+      "filePath": "PLAN.md",
+      "contentHash": "88d51137f7e59f61d0e49c3f858fff84d4bffd60af18ef884de97f492af287dc",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 366,
+      "hasStructuralAnalysis": true
+    },
+    "pyproject.toml": {
+      "filePath": "pyproject.toml",
+      "contentHash": "f2a48c6fb38b862f967166db69eb58607b2ec71a4df455271f35b2c49e7195dd",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 26,
+      "hasStructuralAnalysis": true
+    },
+    "README.md": {
+      "filePath": "README.md",
+      "contentHash": "65241885d22d4ebface06586c8d04547e36155dd34db475f806bc72332742eb8",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 49,
+      "hasStructuralAnalysis": true
+    },
+    "RUNNING_NOTES.md": {
+      "filePath": "RUNNING_NOTES.md",
+      "contentHash": "0205e4ed5609d2295e43994574c46c813eed3e84dbc42fcc4527575e21e25f19",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 83,
+      "hasStructuralAnalysis": true
+    },
+    "scripts/check-prereqs.sh": {
+      "filePath": "scripts/check-prereqs.sh",
+      "contentHash": "126e58ce082066c1e8109bd91daaa38a00508fa3a05b3c9a896d3094fac58674",
+      "functions": [
+        {
+          "name": "pass",
+          "params": [],
+          "exported": false,
+          "lineCount": 1
+        },
+        {
+          "name": "fail",
+          "params": [],
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "info",
+          "params": [],
+          "exported": false,
+          "lineCount": 1
+        },
+        {
+          "name": "version_ge",
+          "params": [],
+          "exported": false,
+          "lineCount": 16
+        }
+      ],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 164,
+      "hasStructuralAnalysis": true
+    },
+    "scripts/check-shell-syntax.sh": {
+      "filePath": "scripts/check-shell-syntax.sh",
+      "contentHash": "1db510ce51df5b47c89ca54777c7afbaf9aae98b8e0e75bf3cb99c11a8b47a37",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 74,
+      "hasStructuralAnalysis": true
+    },
+    "scripts/codex-review.sh": {
+      "filePath": "scripts/codex-review.sh",
+      "contentHash": "06013689c4caeab1a3f75c12a39b8e7a225eebe3ad9cf2bbfb6b6a6843f66601",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 159,
+      "hasStructuralAnalysis": true
+    },
+    "scripts/codex-run.sh": {
+      "filePath": "scripts/codex-run.sh",
+      "contentHash": "e02d93fae77a47cab589be31cfec61478babe5e6fbb30724f3892d07a94bb2f0",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 120,
+      "hasStructuralAnalysis": true
+    },
+    "scripts/codex-runs-gc.sh": {
+      "filePath": "scripts/codex-runs-gc.sh",
+      "contentHash": "6038b704e2ba779aaa08b855daa376a33b7e9314e2988c62753b32144262a0d4",
+      "functions": [
+        {
+          "name": "slug_protected",
+          "params": [],
+          "exported": false,
+          "lineCount": 12
+        },
+        {
+          "name": "base_of",
+          "params": [],
+          "exported": false,
+          "lineCount": 8
+        }
+      ],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 160,
+      "hasStructuralAnalysis": true
+    },
+    "scripts/hooks/pre-commit": {
+      "filePath": "scripts/hooks/pre-commit",
+      "contentHash": "a2192f0bd1032b17f90e28005945e47b75121e6fa5bc1505d12f2f3f4bf60961",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 37,
+      "hasStructuralAnalysis": false
+    },
+    "scripts/impl-precommit-scope.sh": {
+      "filePath": "scripts/impl-precommit-scope.sh",
+      "contentHash": "b4e2f4b4b354eddee70a17d079016a7df0c7bedd64c2858e10e62576a7f07319",
+      "functions": [
+        {
+          "name": "in_packet_scope",
+          "params": [],
+          "exported": false,
+          "lineCount": 17
+        },
+        {
+          "name": "cleanup_tmp",
+          "params": [],
+          "exported": false,
+          "lineCount": 1
+        }
+      ],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 382,
+      "hasStructuralAnalysis": true
+    },
+    "scripts/review-gate.sh": {
+      "filePath": "scripts/review-gate.sh",
+      "contentHash": "801333ff1da0aba620d3c7c5f722fa4e84630b9a52c246cd9d1ca6104086d18d",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 335,
+      "hasStructuralAnalysis": true
+    },
+    "scripts/worktree-new.sh": {
+      "filePath": "scripts/worktree-new.sh",
+      "contentHash": "6e910770998025f5c95f3deb04db8f41f7de4573afd9de1fe22321b7dcb10275",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 115,
+      "hasStructuralAnalysis": true
+    },
+    "TECH_REPORT.md": {
+      "filePath": "TECH_REPORT.md",
+      "contentHash": "3e7bc661c0bd83dc7a51284371494986e333368432d80c4802ff5a8bdd763eef",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 72,
+      "hasStructuralAnalysis": true
+    },
+    "train/__init__.py": {
+      "filePath": "train/__init__.py",
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 1,
+      "hasStructuralAnalysis": true
+    }
+  }
+}
