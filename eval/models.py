@@ -107,7 +107,7 @@ class AllThreeModel(nn.Module):
         # prepending sensor tokens -- makes image inclusion self-evident and
         # avoids relying on Qwen2VL's internal scatter mechanism.
         pixel_values = inputs.pop("pixel_values", None)
-        image_grid_thw = inputs.pop("image_grid_thw", None)
+        image_grid_thw = inputs.get("image_grid_thw", None)
 
         input_ids = inputs.pop("input_ids", None)
         if not isinstance(input_ids, Tensor):
