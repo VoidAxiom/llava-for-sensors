@@ -1,0 +1,11 @@
+{
+  "name": "llava-for-sensors",
+  "version": "0.0.1",
+  "private": true,
+  "dependencies": {
+    "likec4": "^1.57"
+  },
+  "scripts": {
+    "build:c4": "likec4 build -o docs/architecture architecture"
+  }
+}
