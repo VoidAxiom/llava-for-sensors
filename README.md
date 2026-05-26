@@ -16,14 +16,14 @@ A multimodal foundation model that bolts a small trainable **fusion adapter** on
 | Phased delivery, milestones, exit gates | [`PLAN.md` §4](./PLAN.md) |
 | Lab journal — decisions, dead ends, memory/timing | [`RUNNING_NOTES.md`](./RUNNING_NOTES.md) |
 | Mini-arXiv writeup (final) | [`TECH_REPORT.md`](./TECH_REPORT.md) — Phase 6 deliverable |
-| Architecture diagrams (LikeC4 sources → SVG exports) | [`architecture/`](./architecture/) → [`docs/architecture/`](./docs/architecture/) |
-| Committed knowledge graph (Understand-Anything) | [`.understand-anything/knowledge-graph.json`](./.understand-anything/) — regenerated end-of-phase |
+| Architecture diagrams (LikeC4 sources → SVG exports) | `architecture/` → `docs/architecture/` (populated in P0.6) |
+| Committed knowledge graph (Understand-Anything) | `.understand-anything/knowledge-graph.json` (populated in P0.9; regenerated end-of-phase) |
 | Per-PR audit trail (the meta-story) | [PR list](https://github.com/VoidAxiom/llava-for-sensors/pulls?q=is%3Apr+sort%3Acreated-asc) |
 | Linear command center | [VOI-180](https://linear.app/voidaxiom/issue/VOI-180) (project tracker, links to all phase issues + packet subissues) |
 
 ## Headline figure (placeholder)
 
-The pre-registered ablation chart — 3 modality conditions (sensors-only, vision+text, all-three) × 5 seeds, macro-F1 on CWRU test split, 95% bootstrap CI, paired bootstrap p for `all-three` vs `vision+text` — is committed as a stub in `eval/headline_figure.py` (P0.7) and produced for real in Phase 4 (P4.3).
+The pre-registered ablation chart — 3 modality conditions (sensors-only, vision+text, all-three) × 5 seeds, macro-F1 on CWRU test split, 95% bootstrap CI, paired bootstrap p for `all-three` vs `vision+text` — lands as a stub in `eval/headline_figure.py` (P0.7) and is produced for real in Phase 4 (P4.3).
 
 > _Final SVG will be embedded here by P4.4._
 
