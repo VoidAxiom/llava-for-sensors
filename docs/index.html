@@ -65,9 +65,12 @@
           <img src="figures/headline.svg" alt="Headline ablation: macro-F1 across modality conditions on the toy bearing-fault task." />
           <figcaption>
             <strong>Headline figure</strong> — macro-F1 across 3 modality conditions on the
-            <a href="#phase-1">Phase&nbsp;1 toy set</a>. Placeholder until the
-            live run completes; the file at <code>docs/figures/headline.svg</code>
-            is overwritten when <code>eval/headline.py</code> finishes.
+            <a href="#phase-1">Phase&nbsp;1 toy set</a>. 5 seeds, 95% percentile-bootstrap CI,
+            paired bootstrap p&nbsp;=&nbsp;0.0002. <strong>all-three</strong> beats
+            <strong>vision+text</strong> by 45&nbsp;pp — the Phase 1
+            <a href="#algorithms">load-bearing gate</a> passed by a wide margin.
+            Regenerated from <code>eval/results_toy.csv</code> via
+            <code>uv run python -m eval.headline</code>.
           </figcaption>
         </figure>
       </div>
