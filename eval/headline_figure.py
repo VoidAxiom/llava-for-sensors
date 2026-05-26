@@ -1,7 +1,7 @@
 """eval/headline_figure.py - pre-registered headline figure for llava-for-sensors.
 
 Public API:
-  compute_headline(results, n_resamples=10_000, rng_seed=0) -> dict
+  compute_headline(results, n_resamples=10_000, rng_seed=0, strict=True) -> dict
   render_svg(headline, out_path) -> None
 """
 from __future__ import annotations
@@ -82,8 +82,14 @@ def compute_headline(
     results: np.ndarray,  # shape (3, N) - rows: sensors-only, vision+text, all-three
     n_resamples: int = 10_000,
     rng_seed: int = 0,
+    strict: bool = True,
 ) -> dict:
     values = _validate_results(results)
+    if strict and values.shape != (3, 5):
+        raise ValueError(
+            "Headline figure protocol locked to 3 conditions × 5 seeds; "
+            f"got shape {results.shape}. Pass strict=False for exploratory use only."
+        )
     _validate_n_resamples(n_resamples)
 
     means = [float(values[i].mean()) for i in range(3)]

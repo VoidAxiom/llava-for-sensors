@@ -10,6 +10,7 @@ from __future__ import annotations
 import xml.etree.ElementTree as ET
 
 import numpy as np
+import pytest
 
 from eval.headline_figure import compute_headline, render_svg
 
@@ -47,8 +48,16 @@ def test_known_flat_no_difference() -> None:
 
 
 def test_single_seed_returns_no_significant_difference() -> None:
-    result = compute_headline(np.array([[0.65], [0.78], [0.88]]))
+    result = compute_headline(np.array([[0.65], [0.78], [0.88]]), strict=False)
     assert result["verdict"] == "no_significant_difference"
+
+
+def test_strict_mode_rejects_non_3x5() -> None:
+    with pytest.raises(ValueError):
+        compute_headline(np.zeros((3, 4)))
+
+    result = compute_headline(np.zeros((3, 4)), strict=False)
+    assert isinstance(result, dict)
 
 
 def test_negative_result_protocol() -> None:
@@ -126,5 +135,5 @@ def test_svg_output(tmp_path) -> None:
     svg_text = out.read_text()
     assert "macro-F1" in svg_text, "Y-axis label 'macro-F1' not found in SVG"
     assert "sensors-only" in svg_text, "Condition 'sensors-only' not in SVG"
-    assert "vision" in svg_text, "Condition 'vision+text' not in SVG"
+    assert "vision+text" in svg_text, "Condition 'vision+text' not in SVG"
     assert "all-three" in svg_text, "Condition 'all-three' not in SVG"
