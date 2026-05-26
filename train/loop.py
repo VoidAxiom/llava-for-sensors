@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 import pathlib
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -14,6 +15,9 @@ import torch.nn as nn
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from torch.utils.data import DataLoader
+
+
+N_CLASSES = 4
 
 
 @dataclass
@@ -81,7 +85,8 @@ def train_one_run(
         raise ValueError("model must have at least one trainable parameter")
 
     optimizer = AdamW(trainable_params, lr=lr, weight_decay=weight_decay)
-    scheduler_t_max = float(n_epochs * steps_per_epoch / grad_accum)
+    steps_per_optimizer_step = math.ceil(steps_per_epoch / grad_accum)
+    scheduler_t_max = n_epochs * steps_per_optimizer_step
     scheduler = CosineAnnealingLR(optimizer, T_max=scheduler_t_max)
     loss_fn = nn.CrossEntropyLoss()
 
@@ -223,7 +228,7 @@ def _macro_f1(preds: Sequence[int], targets: Sequence[int]) -> float:
     if pred_array.size == 0 or target_array.size == 0:
         return 0.0
 
-    labels = np.union1d(pred_array, target_array)
+    labels = np.arange(N_CLASSES, dtype=np.int64)
     scores: list[float] = []
     for label in labels:
         pred_match = pred_array == label

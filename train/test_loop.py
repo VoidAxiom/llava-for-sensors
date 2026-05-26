@@ -10,7 +10,7 @@ import pytest
 import torch
 import torch.nn as nn
 
-from train.loop import TrainResult, train_one_run
+from train.loop import TrainResult, _macro_f1, train_one_run
 
 
 class _TinyLinearModel(nn.Module):
@@ -238,3 +238,46 @@ def test_grad_accum_steps_optimizer_every_n_batches(tmp_path: Path) -> None:
     assert len(result.loss_per_step) == 4
     assert sum(line["event"] == "step" for line in lines) == 4
     assert sum(line["event"] == "epoch" for line in lines) == 1
+
+
+def test_macro_f1_all_classes_averaged() -> None:
+    assert abs(_macro_f1([0, 0], [0, 0]) - 0.25) < 1e-6
+
+
+def test_scheduler_t_max_is_ceil_not_floor(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    scheduler_calls = {"t_max": 0, "steps": 0}
+
+    class _CountingScheduler:
+        def __init__(self, optimizer: torch.optim.Optimizer, T_max: int) -> None:
+            del optimizer
+            scheduler_calls["t_max"] = T_max
+
+        def step(self) -> None:
+            scheduler_calls["steps"] += 1
+
+    monkeypatch.setattr("train.loop.CosineAnnealingLR", _CountingScheduler)
+
+    model = _TinyLinearModel()
+    dataset = _TinyDataset(n=10)
+
+    result = train_one_run(
+        model,
+        dataset,
+        dataset,
+        run_id="ceil_t_max",
+        n_epochs=1,
+        batch_size=2,
+        grad_accum=4,
+        device="cpu",
+        log_dir=tmp_path / "logs",
+        ckpt_dir=tmp_path / "ckpt",
+    )
+
+    # 5 batches with grad_accum 4 flushes once at batch 4 and once at the final
+    # partial batch, so ceil(5 / 4) == 2 scheduler steps.
+    assert scheduler_calls["t_max"] == 2
+    assert scheduler_calls["steps"] == 2
+    assert len(result.loss_per_step) == 5
