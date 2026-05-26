@@ -225,7 +225,13 @@ def _prepare_processor_inputs(
 ) -> dict[str, Any]:
     pil_images = _tensor_batch_to_pil(image)
     text = [_build_qwen_chat_prompt(item) for item in text]
-    raw_inputs = processor(text=text, images=pil_images, return_tensors="pt", padding=True)
+    raw_inputs = processor(
+        text=text,
+        images=pil_images,
+        return_tensors="pt",
+        padding=True,
+        return_mm_token_type_ids=True,
+    )
     return _move_batch_to_device(raw_inputs, device)
 
 
