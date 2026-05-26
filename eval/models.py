@@ -104,34 +104,60 @@ class AllThreeModel(nn.Module):
         sensor = sensor.to(device)
         inputs = _prepare_processor_inputs(self.processor, image, text, device)
 
-        # pixel_values, image_grid_thw, and mm_token_type_ids remain in `inputs`
-        # and are forwarded to self.vlm(..., **inputs). Qwen2VLModel.forward
-        # internally scatters visual embeddings from pixel_values into inputs_embeds
-        # at image-pad token positions when both are provided, and uses image_grid_thw
-        # + mm_token_type_ids to compute multimodal RoPE (M-RoPE) position IDs.
-        input_ids = inputs.pop("input_ids", None)
+        input_ids = inputs.get("input_ids")
         if not isinstance(input_ids, Tensor):
             raise ValueError("processor output must include tensor input_ids")
-        inputs["input_ids"] = input_ids
 
-        attention_mask = inputs.pop("attention_mask", None)
+        attention_mask = inputs.get("attention_mask")
         if attention_mask is not None and not isinstance(attention_mask, Tensor):
             raise ValueError("processor attention_mask must be a tensor when provided")
+        pixel_values = inputs.get("pixel_values")
+        image_grid_thw = inputs.get("image_grid_thw")
+        mm_token_type_ids = inputs.get("mm_token_type_ids")
+
+        text_embeds = self.vlm.get_input_embeddings()(input_ids)
+
+        if pixel_values is not None:
+            base_model = getattr(self.vlm, "model", None)
+            if base_model is None:
+                base_model = getattr(self.vlm, "base_model", None)
+            visual_module = getattr(base_model, "visual", None) if base_model is not None else None
+
+            if visual_module is not None:
+                visual_dtype = getattr(visual_module, "dtype", text_embeds.dtype)
+                pv = pixel_values.to(dtype=visual_dtype, device=device)
+                vision_out = visual_module(pv, grid_thw=image_grid_thw)
+                if hasattr(vision_out, "pooler_output"):
+                    pooler = vision_out.pooler_output
+                    if isinstance(pooler, (list, tuple)):
+                        image_embeds = torch.cat(list(pooler), dim=0)
+                    else:
+                        image_embeds = pooler
+                else:
+                    image_embeds = vision_out
+                image_embeds = image_embeds.to(device=device, dtype=text_embeds.dtype)
+
+                image_token_id = None
+                cfg = getattr(base_model, "config", None)
+                if cfg is not None:
+                    image_token_id = getattr(cfg, "image_token_id", None)
+                if image_token_id is None:
+                    tok = getattr(self.processor, "tokenizer", self.processor)
+                    image_token_id = tok.convert_tokens_to_ids("<|image_pad|>")
+
+                image_mask = input_ids == image_token_id
+                image_mask_expanded = image_mask.unsqueeze(-1).expand_as(text_embeds)
+                expected_image_embed_elements = int(image_mask.sum().item()) * text_embeds.shape[-1]
+                assert image_embeds.numel() == expected_image_embed_elements
+                text_embeds = text_embeds.masked_scatter(
+                    image_mask_expanded,
+                    image_embeds.flatten(),
+                )
 
         sensor_tokens = self.fusion(self.encoder(sensor))
-        text_image_embeds = self.vlm.get_input_embeddings()(input_ids)
-        sensor_tokens = sensor_tokens.to(device=device, dtype=text_image_embeds.dtype)
-        combined_embeds = torch.cat([sensor_tokens, text_image_embeds], dim=1)
-
+        sensor_tokens = sensor_tokens.to(device=device, dtype=text_embeds.dtype)
+        combined_embeds = torch.cat([sensor_tokens, text_embeds], dim=1)
         batch_size = combined_embeds.shape[0]
-        pad_id = getattr(getattr(self.vlm, "config", None), "pad_token_id", None) or 0
-        sensor_input_ids = torch.full(
-            (batch_size, T_SENSOR_TOKENS),
-            fill_value=pad_id,
-            dtype=input_ids.dtype,
-            device=input_ids.device,
-        )
-        inputs["input_ids"] = torch.cat([sensor_input_ids, input_ids], dim=1)
 
         if attention_mask is not None:
             sensor_mask = torch.ones(
@@ -140,32 +166,49 @@ class AllThreeModel(nn.Module):
                 dtype=attention_mask.dtype,
                 device=attention_mask.device,
             )
-            inputs["attention_mask"] = torch.cat([sensor_mask, attention_mask], dim=1)
+            extended_mask = torch.cat([sensor_mask, attention_mask], dim=1)
+        else:
+            extended_mask = None
 
-        # Extend mm_token_type_ids if present (real Qwen2-VL processor may include it).
-        # Sensor tokens are typed as 0 (text type) since they are not image/video tokens.
-        mm_token_type_ids = inputs.pop("mm_token_type_ids", None)
-        if mm_token_type_ids is not None and isinstance(mm_token_type_ids, Tensor):
-            batch_size = combined_embeds.shape[0]
-            sensor_type_ids = torch.zeros(
-                batch_size,
-                T_SENSOR_TOKENS,
-                dtype=mm_token_type_ids.dtype,
-                device=mm_token_type_ids.device,
-            )
-            inputs["mm_token_type_ids"] = torch.cat(
-                [sensor_type_ids, mm_token_type_ids],
-                dim=1,
-            )
-
-        output = self.vlm(
-            inputs_embeds=combined_embeds,
-            output_hidden_states=True,
-            logits_to_keep=1,
-            **inputs,
+        position_ids = None
+        base_model_for_rope = getattr(self.vlm, "model", None)
+        if base_model_for_rope is None:
+            base_model_for_rope = getattr(self.vlm, "base_model", None)
+        compute_3d = (
+            getattr(base_model_for_rope, "compute_3d_position_ids", None)
+            if base_model_for_rope is not None
+            else None
         )
-        mask = inputs.get("attention_mask")
-        pooled = _pool_vlm_output(output, mask if isinstance(mask, Tensor) else None)
+        if compute_3d is not None and mm_token_type_ids is not None and image_grid_thw is not None:
+            text_pos = compute_3d(
+                input_ids=input_ids,
+                inputs_embeds=text_embeds,
+                image_grid_thw=image_grid_thw,
+                attention_mask=attention_mask,
+                mm_token_type_ids=mm_token_type_ids,
+            )
+            if text_pos is not None:
+                sensor_pos = torch.zeros(
+                    3,
+                    batch_size,
+                    T_SENSOR_TOKENS,
+                    dtype=text_pos.dtype,
+                    device=text_pos.device,
+                )
+                position_ids = torch.cat([sensor_pos, text_pos], dim=2)
+
+        vlm_kwargs: dict[str, object] = {
+            "inputs_embeds": combined_embeds,
+            "output_hidden_states": True,
+            "logits_to_keep": 1,
+        }
+        if extended_mask is not None:
+            vlm_kwargs["attention_mask"] = extended_mask
+        if position_ids is not None:
+            vlm_kwargs["position_ids"] = position_ids
+
+        output = self.vlm(**vlm_kwargs)
+        pooled = _pool_vlm_output(output, extended_mask)
         return self.head(pooled)
 
     def save_pretrained(self, save_path: str) -> None:
