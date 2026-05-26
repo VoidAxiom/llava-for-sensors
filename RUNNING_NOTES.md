@@ -63,6 +63,47 @@ One existing worktree (the impl's VOI-225 pyproject worktree) still lives at the
 
 Nothing material to log until the toy training loop lights up in Phase 1.
 
+### Phase 0 — DONE (2026-05-26, 10 packets + 2 META PRs)
+
+All Phase 0 packets merged to `main`. Final ledger:
+
+| Packet | Linear | PR | Type | Notes |
+| -- | -- | -- | -- | -- |
+| P0.1 scaffold dirs | VOI-224 | #4 | impl | data/, models/, train/, eval/, demo/ with empty `__init__.py` |
+| P0.2 check-prereqs.sh | VOI-189 | #2 | Claude | node/npm/uv/python/git-lfs/likec4 verifier + .template.answers regression guard |
+| P0.3 pyproject + package.json | VOI-225 | #7 + #8 | impl + Claude | uv-managed python ≥3.11, likec4 ^1.57; .gitignore split out as Claude follow-up |
+| P0.4 LikeC4 + Understand-Anything verify | VOI-190 | #9 | Claude | likec4 1.57.0 global install; /understand skill loaded |
+| P0.5 scope-guard expansion | VOI-191 | #1 | Claude | architecture/** + .understand-anything/** added to Claude allowlist + CLAUDE_ONLY_DIRS |
+| P0.6 architecture skeleton | VOI-192 | #5 | Claude | landscape.c4 + container.c4 + Mermaid renders (likec4 1.57 has no native SVG; Mermaid renders inline on GitHub) |
+| P0.7 headline figure + tests | VOI-193 | #11 | impl | `compute_headline` (3xN array → verdict), pre-registered logic, deterministic SVG render; 9 pytest cases pass |
+| P0.8 doc skeletons | VOI-194 | #3 | Claude | README + RUNNING_NOTES (this file) + TECH_REPORT mini-arXiv scaffold |
+| P0.9 first /understand | VOI-195 | #14 | Claude | 58-node / 57-edge / 6-layer / 11-tour-step graph; dashboard render verified end-to-end |
+| P0.10 template cleanup | VOI-227 | #6 | Claude | scripts/worktree-new + codex-review prompt + codex-run CODEX_MODEL default → gpt-5.5 |
+| META parallelization gate | VOI-229 | #12 | Claude | PreToolUse hook on ScheduleWakeup; blocks idle wake when Todo packets are dispatchable |
+| META deliver-working-product doctrine | VOI-230 | #13 | Claude | CLAUDE.md §"Deliver a working product" — packet acceptance requires runtime verification, not just test-pass |
+
+**Pre-registered headline-figure contract live (PLAN.md §1).** `eval/headline_figure.py` + `eval/test_headline.py` encode the bar-chart + bootstrap-CI + paired-bootstrap-p + verdict logic. Mock SVG renders with 3 bars, axis labels, `**` significance annotation. Phase 4 ablation results will route through this same code path.
+
+**Architecture-as-code live.** `architecture/landscape.c4` + `container.c4` validated; Mermaid renders in `docs/architecture/` embed inline in GitHub markdown. LikeC4 1.57 has no native SVG; Mermaid is the chosen embed format (documented in PR #5 description).
+
+**Committed knowledge graph live.** `.understand-anything/knowledge-graph.json` (65 kB, 58 nodes, 57 edges, 6 layers, 11 tour steps) opens in `/understand-dashboard` at http://127.0.0.1:5173. Auto-update baseline (`fingerprints.json`) committed so subsequent commits trigger incremental updates correctly. Phase exit gates require regenerating the graph at the end of each phase.
+
+**Parallelization gate live.** `scripts/queue-scan.sh` + `hooks/schedule-wakeup-guard.mjs` deny `ScheduleWakeup` when there are dispatchable Phase-N Todo packets whose dependencies are content-available (merged-to-main OR on an in-flight branch via the stacked-PR pattern). Tripped exactly once in this session — on a branch-misname false-positive that I resolved by renaming `sk/voi-228-...` → `sk/voi-229-...` via the GitHub branch-rename API.
+
+**Deliver-working-product doctrine live.** Every future packet spec.md needs a `### Runtime verification` subsection with EXACT commands + EXACT observable outputs. Phase exit gate gets a new step 7 ("Claude has personally run the integrated phase deliverable end-to-end"). Cited as the rationale for VOI-195's dashboard render check and VOI-193's mock-SVG visual confirmation in this Phase 0.
+
+### Phase 0 timing
+
+- Session start: ~2026-05-25 23:14 UTC.
+- Phase 0 close (PR #14 merge): ~2026-05-26 04:20 UTC.
+- ~5 hours wall, ~14 squash-merges (11 packets + 3 in-flight fix rounds for VOI-193).
+- Codex-worker quota stall: ~10 min before the user authorized the gpt-5.5 model switch.
+- Branch-misname mishap: ~5 min to resolve via GitHub rename API (preserved PR linkage cleanly).
+
+### Phase 0 → Phase 1 — awaiting user "proceed"
+
+Per PLAN.md §2.3 step 6: phase boundaries cross only when Claude explicitly tells the user "Phase N done" and the user replies "proceed to Phase N+1". Phase 1 packets (VOI-196..202 — toy synthetic dataset, encoder/fusion/VLM stubs, train loop, ablation, LikeC4 + /understand updates) are queued in Linear; spec-author work on their packet.md files starts on the proceed signal.
+
 ---
 
 ## Phase 1 — _(scheduled — toy synthetic pipeline)_
