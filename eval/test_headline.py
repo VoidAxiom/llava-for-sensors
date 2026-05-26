@@ -150,3 +150,21 @@ def test_non_finite_input_rejected() -> None:
     )
     with pytest.raises(ValueError, match="non-finite values"):
         compute_headline(arr, strict=True)
+
+
+def test_svg_render_is_deterministic(tmp_path) -> None:
+    arr = np.array(
+        [
+            [0.648, 0.651, 0.652, 0.649, 0.650],
+            [0.778, 0.781, 0.779, 0.782, 0.780],
+            [0.878, 0.881, 0.879, 0.882, 0.880],
+        ]
+    )
+    headline = compute_headline(arr, rng_seed=0)
+    out_a = tmp_path / "a.svg"
+    out_b = tmp_path / "b.svg"
+
+    render_svg(headline, out_a)
+    render_svg(headline, out_b)
+
+    assert out_a.read_bytes() == out_b.read_bytes()

@@ -188,7 +188,14 @@ def render_svg(headline: dict, out_path: str | Path) -> None:
     output_path = Path(out_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    with plt.rc_context({"svg.fonttype": "none"}):
+    with plt.rc_context(
+        {
+            "svg.fonttype": "none",
+            # Fix nondeterministic SVG element IDs (gid attrs, clipPath IDs)
+            # between repeated runs with identical inputs.
+            "svg.hashsalt": "llava-for-sensors-headline",
+        }
+    ):
         fig, ax = plt.subplots(figsize=(6, 4))
         try:
             ax.bar(
@@ -209,7 +216,8 @@ def render_svg(headline: dict, out_path: str | Path) -> None:
                 y_max = max(y_max, y_text + 0.05)
             ax.set_ylim(0.0, y_max)
             fig.tight_layout()
-            plt.savefig(output_path, format="svg")
+            # Date="" suppresses per-render timestamp in SVG <dc:date> for byte-deterministic output.
+            plt.savefig(output_path, format="svg", metadata={"Date": ""})
         finally:
             plt.close(fig)
 
