@@ -103,6 +103,10 @@ class AllThreeModel(nn.Module):
         device = _module_device(self.vlm, sensor.device)
         sensor = sensor.to(device)
         inputs = _prepare_processor_inputs(self.processor, image, text, device)
+        # pixel_values and image_grid_thw remain in `inputs` and are forwarded
+        # to self.vlm(..., **inputs). Qwen2VLModel.forward scatters visual
+        # embeddings from pixel_values into inputs_embeds at image-pad token
+        # positions, so image content IS included in the VLM representation.
 
         input_ids = inputs.pop("input_ids", None)
         if not isinstance(input_ids, Tensor):

@@ -10,6 +10,7 @@ import numpy as np
 import pytest
 import torch
 import torch.nn as nn
+from PIL import Image as PILImage
 
 from eval.ablation import run_ablation
 from eval.headline import PhaseAcceptanceError, run_headline_from_csv
@@ -112,6 +113,97 @@ def test_models_have_4class_logits() -> None:
         image,
         text,
     ).shape == (2, 4)
+
+
+class _StubProcessorWithPixelValues:
+    def __call__(
+        self,
+        text: list[str] | None = None,
+        images: list[object] | None = None,
+        return_tensors: str | None = None,
+        padding: bool = True,
+        **kw: object,
+    ) -> dict[str, torch.Tensor]:
+        del return_tensors, padding, kw
+        batch_size = len(text) if text else 1
+        pixel_values_list: list[torch.Tensor] = []
+        if images:
+            for img in images:
+                if not isinstance(img, PILImage.Image):
+                    raise TypeError("images must contain PIL.Image instances")
+                arr = np.array(img, dtype=np.float32) / 255.0
+                mean_val = float(arr.mean())
+                pv = torch.full((3, 16, 16), mean_val, dtype=torch.float32)
+                pixel_values_list.append(pv)
+        else:
+            for _ in range(batch_size):
+                pixel_values_list.append(torch.zeros(3, 16, 16, dtype=torch.float32))
+        return {
+            "input_ids": torch.ones(batch_size, 8, dtype=torch.long),
+            "attention_mask": torch.ones(batch_size, 8, dtype=torch.long),
+            "pixel_values": torch.stack(pixel_values_list),
+        }
+
+
+class _StubVLMWithPixelValues(nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+        self.embed = _StubEmbedding()
+
+    def get_input_embeddings(self) -> nn.Module:
+        return self.embed
+
+    def forward(
+        self,
+        inputs_embeds: torch.Tensor | None = None,
+        attention_mask: torch.Tensor | None = None,
+        input_ids: torch.Tensor | None = None,
+        output_hidden_states: bool = False,
+        pixel_values: torch.Tensor | None = None,
+        **kwargs: object,
+    ) -> SimpleNamespace:
+        del attention_mask, output_hidden_states, kwargs
+        if inputs_embeds is not None:
+            batch_size, seq_len = inputs_embeds.shape[:2]
+        elif input_ids is not None:
+            batch_size, seq_len = input_ids.shape
+        else:
+            batch_size, seq_len = 1, 8
+        hidden = torch.zeros(batch_size, seq_len, 1536, dtype=torch.float32)
+        if pixel_values is not None:
+            # Add pixel mean to hidden state so different images produce
+            # different outputs -- simulates Qwen2VL visual feature scatter.
+            pixel_mean = pixel_values.float().mean()
+            hidden = hidden + pixel_mean
+            # LayerNorm removes uniform offsets; keep one feature image-dependent.
+            hidden[:, :, 0] = hidden[:, :, 0] + pixel_mean
+        return SimpleNamespace(
+            hidden_states=(hidden,) * 4,
+            last_hidden_state=hidden,
+            logits=torch.zeros(batch_size, seq_len, 152000, dtype=torch.float32),
+        )
+
+
+def test_all_three_logits_change_with_image() -> None:
+    """AllThreeModel logits must differ when the image content changes."""
+    torch.manual_seed(0)
+    stub_processor = _StubProcessorWithPixelValues()
+    model = AllThreeModel(_vlm=_StubVLMWithPixelValues(), _processor=stub_processor)
+    model.eval()
+
+    sensor = torch.zeros(1, 2048)
+    text = ["describe sensor data"]
+    image_a = torch.zeros(1, 224, 224, 3, dtype=torch.uint8)
+    image_b = torch.ones(1, 224, 224, 3, dtype=torch.uint8) * 255
+
+    with torch.no_grad():
+        logits_a = model.forward(sensor, image_a, text)
+        logits_b = model.forward(sensor, image_b, text)
+
+    assert not torch.allclose(logits_a, logits_b), (
+        "AllThreeModel logits must differ when the input image differs "
+        "(image features must be included in the VLM representation)"
+    )
 
 
 @skip_unless_slow
