@@ -128,7 +128,11 @@ DISPATCHED_TOKENS=" $(printf '%s\n%s\n' "$DISPATCHED_LOCAL" "$DISPATCHED_REMOTE"
 # downstream impl provisions its worktree from `origin/sk/<dep>` — a
 # stale, unpushed local dep branch is NOT actually content-available to
 # the downstream packet, so it must not count as satisfying the dep.
-REMOTE_DISPATCHED_TOKENS=" $DISPATCHED_REMOTE "
+# Normalize the newline-delimited token list to space-delimited so the
+# `contains` helper (which matches `" $needle "` inside the haystack)
+# finds every token, not just the first — matches the pattern used by
+# DISPATCHED_TOKENS just above (VOI-229 PR #10 round-2 [P1] fix).
+REMOTE_DISPATCHED_TOKENS=" $(printf '%s\n' "$DISPATCHED_REMOTE" | tr '\n' ' ') "
 
 contains() {
   local hay="$1" needle="$2"
