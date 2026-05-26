@@ -32,3 +32,8 @@ node_modules/
 # (HuggingFace caches default to ~/.cache/huggingface; uncomment a project-local
 # entry here if any future packet redirects them under the repo.)
 .cache/
+
+# Understand-Anything — knowledge-graph.json + meta.json + fingerprints.json +
+# .understandignore ARE tracked. intermediate/ and tmp/ are per-run scratch.
+.understand-anything/intermediate/
+.understand-anything/tmp/
