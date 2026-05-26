@@ -47,6 +47,6 @@ class FusionAdapter(nn.Module):
         batch_size = enc_out.shape[0]
         kv = self.kv_proj(enc_out)
         queries = self.query_tokens.unsqueeze(0).expand(batch_size, -1, -1)
-        attn_out, _ = self.cross_attn(queries, kv, kv)
+        attn_out, _ = self.cross_attn(queries, kv, kv, need_weights=False)
         out = self.norm(attn_out + self.mlp(attn_out))
         return out
