@@ -86,8 +86,21 @@ def compute_headline(
     values = _validate_results(results)
     _validate_n_resamples(n_resamples)
 
-    rng = np.random.default_rng(rng_seed)
     means = [float(values[i].mean()) for i in range(3)]
+
+    # A single seed makes bootstrap CIs and paired p-values degenerate and can
+    # otherwise produce a false significance verdict from the clipped p-value.
+    if values.shape[1] < 2:
+        return {
+            "conditions": list(_CONDITIONS),
+            "means": means,
+            "ci_lo": means.copy(),
+            "ci_hi": means.copy(),
+            "paired_p": float("nan"),
+            "verdict": "no_significant_difference",
+        }
+
+    rng = np.random.default_rng(rng_seed)
 
     ci_lo: list[float] = []
     ci_hi: list[float] = []

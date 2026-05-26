@@ -46,6 +46,11 @@ def test_known_flat_no_difference() -> None:
     assert result["verdict"] == "no_significant_difference"
 
 
+def test_single_seed_returns_no_significant_difference() -> None:
+    result = compute_headline(np.array([[0.65], [0.78], [0.88]]))
+    assert result["verdict"] == "no_significant_difference"
+
+
 def test_negative_result_protocol() -> None:
     """all-three ~0.70, vision+text ~0.80 - fusion underperformed."""
     arr = np.array(
