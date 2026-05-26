@@ -418,6 +418,26 @@ narrates sandbox commits/PRs which do **NOT** land in this repo. So:
   findings text; never on its self-reported commits/PRs/tests; verify repo
   state if in doubt (`gh pr list --state all`, `gh api …/commits/<sha>`).
 
+**`@codex review` re-trigger guard — the 👍 skip rule.** Codex's no-issues
+verdicts contain `:+1:` (👍) in the review comment body. Before posting
+**any** `@codex review` re-trigger, check the most recent codex bot
+comment/review on the current PR head:
+- If it contains 👍 / `:+1:` → it's a head-pinned no-issues verdict;
+  **do NOT post `@codex review`.** The PR is review-clean for the current
+  head; further codex calls just burn cycles and risk flaky non-deterministic
+  flips.
+- If no codex comment exists on the current head, or the most recent
+  comment lacks 👍 → re-trigger is legitimate.
+- A new commit pushed after a 👍 invalidates the 👍 (it was about the old
+  head); the next re-trigger is allowed.
+
+Check before triggering:
+```bash
+latest=$(gh api repos/$OWNER/$REPO/issues/$PR/comments \
+  --jq '[.[] | select(.user.login=="chatgpt-codex-connector[bot]")] | last | .body // ""')
+echo "$latest" | grep -qE ':\+1:|👍' && echo "skip" || echo "ok-to-trigger"
+```
+
 **Detecting the Codex verdict — use the canonical tool, never hand-roll.**
 The Codex bot interacts with PRs in two shapes — both must be tracked:
 - **Issue-comment verdicts** (PR issue comments): `gh pr view <n>
@@ -533,6 +553,33 @@ isn't a parallel packet — engineer the seam (Claude-owned arch) first.
 local /codex:review, eye-emoji loop) lives inside the implementer's Impl
 Contract. Claude's serial time is the pre-PR scope check + audit-trail
 check, the merge-time re-gate, and the squash-merge.
+
+**Impl silent-death — RE-DISPATCH, never take over.** The Claude Code
+subagent framework occasionally exits an implementer early after the impl
+dispatched a codex worker but before the impl ran gates / staged /
+committed / pushed. The visible symptom: codex-run artifacts present
+(`exit_code.txt`, `git_diff.patch`), files modified in the worktree, but
+no commit, no PR comment, and no notify-done message to Claude. The
+INSTINCT is to take over the gates/commit/push/PR sequence from the
+worktree — that violates the doctrine and accumulates Claude-as-impl
+work that isn't audit-traced to the implementer contract.
+
+The CORRECT response:
+1. Confirm the codex worker fully exited (`exit_code.txt` present).
+2. Re-dispatch a fresh `implementer` subagent with a continuation prompt
+   that points at the worktree, names the completed codex run id(s),
+   says "the codex worker for `voi-N-rK` exited successfully — your job
+   starts at step 3 of the Impl Contract (run gates, stage, commit,
+   notify Claude)", and references the spec.
+3. The fresh impl runs gates, commits, and notifies — exactly the
+   contract path. The audit trail stays intact (only impl-driven
+   commits within the allowlist).
+
+Do NOT manually run `uv run pytest` + `git add` + `git commit` + `git
+push` from Claude as a shortcut. The pattern is the failure mode, not
+the speed-up. Re-dispatch costs ~30s of overhead; protects the
+delegation-first contract. The `.claude/agents/implementer.md`
+subagent contract documents the continuation prompt shape.
 
 **The flywheel.** A subagent miss is a *system* signal, not just a patch.
 Every recurring fan-in fix → generalize the rule and fold it into
