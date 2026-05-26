@@ -250,6 +250,25 @@ def test_headline_gate_rejects_wrong_seed_count(tmp_path: pathlib.Path) -> None:
         run_headline_from_csv(csv_path=str(csv_path), out_svg=str(tmp_path / "out.svg"))
 
 
+def test_headline_gate_rejects_duplicate_seeds(tmp_path: pathlib.Path) -> None:
+    csv_path = tmp_path / "duplicate_seeds.csv"
+    seeds = [0, 0, 1, 2, 3]
+    values_by_condition = {
+        "sensors-only": [0.45, 0.46, 0.44, 0.47, 0.45],
+        "vision+text": [0.55, 0.56, 0.54, 0.57, 0.55],
+        "all-three": [0.92, 0.93, 0.91, 0.94, 0.92],
+    }
+    with csv_path.open("w", encoding="utf-8", newline="") as csv_file:
+        writer = csv.writer(csv_file)
+        writer.writerow(["condition", "seed", "final_val_f1"])
+        for condition, values in values_by_condition.items():
+            for seed, value in zip(seeds, values):
+                writer.writerow([condition, seed, value])
+
+    with pytest.raises(PhaseAcceptanceError):
+        run_headline_from_csv(csv_path=str(csv_path), out_svg=str(tmp_path / "out.svg"))
+
+
 def test_headline_gate_accepts_passing_results(tmp_path: pathlib.Path) -> None:
     passing = np.array(
         [

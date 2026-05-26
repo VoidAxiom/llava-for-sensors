@@ -77,6 +77,11 @@ def _read_results_csv(csv_path: Path) -> np.ndarray:
         cond: sorted(seed for seed, _ in values_by_condition[cond]) for cond in _CONDITIONS
     }
     seeds_canonical = seeds_per_condition[_CONDITIONS[0]]
+    if len(set(seeds_canonical)) != len(seeds_canonical):
+        raise PhaseAcceptanceError(
+            f"Duplicate seed IDs detected in condition {_CONDITIONS[0]}: "
+            f"seeds {seeds_canonical} are not all distinct"
+        )
     for cond in _CONDITIONS[1:]:
         if seeds_per_condition[cond] != seeds_canonical:
             raise PhaseAcceptanceError(
