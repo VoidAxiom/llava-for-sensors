@@ -31,6 +31,21 @@ cd "$REPO" 2>/dev/null || { echo "✗ sidecar: cannot cd $REPO" >&2; exit 1; }
 mkdir -p "$REPO/.codex-runs" 2>/dev/null || true
 now=$(date +%s)
 
+# Portable ISO-8601 ("2026-05-27T04:52:31Z") → epoch parser.
+# Why python3: macOS ships BSD `date` (uses `-j -f <fmt>`), Linux ships
+# GNU `date` (uses `-d <str>`); neither flag set works on the other.
+# Python is already a dependency of this script (used for JSON parsing
+# below), so reuse it for one consistent code path.
+_iso_to_epoch() {
+  python3 -c 'import datetime, sys
+try:
+    s = sys.argv[1]
+    dt = datetime.datetime.strptime(s, "%Y-%m-%dT%H:%M:%SZ")
+    print(int(dt.replace(tzinfo=datetime.timezone.utc).timestamp()))
+except Exception:
+    print(0)' "$1" 2>/dev/null || echo 0
+}
+
 # ── ALWAYS fetch latest main from origin (every tick, no exception) ──
 # Without this, the sidecar reads a stale local origin/main and misses
 # merges Claude made in another worktree or that landed via squash-
@@ -157,9 +172,7 @@ for p in json.load(sys.stdin):
       last_comment_iso=$(gh api "repos/$GH_OWNER/$GH_REPO_NAME/issues/$pr_num/comments" \
         --jq '[.[].updated_at] | max // ""' 2>/dev/null)
       if [ -n "$last_comment_iso" ]; then
-        # NB: -ju forces UTC; the bare -j -f flag chain parses as LOCAL on macOS,
-        # which yielded bogus negative-idle ages once the local clock crossed a TZ boundary.
-        last_comment_epoch=$(date -ju -f '%Y-%m-%dT%H:%M:%SZ' "$last_comment_iso" '+%s' 2>/dev/null || echo 0)
+        last_comment_epoch=$(_iso_to_epoch "$last_comment_iso")
         pr_age=$(( (now - last_comment_epoch) / 60 ))
       fi
       status_out=$(bash "$REPO/scripts/review-gate.sh" status "$pr_num" 2>&1)
@@ -311,7 +324,7 @@ for p in json.load(sys.stdin):
         [ "${eyes:-0}" -gt 0 ] && acked="yes" || acked="no"
       fi
       if [ -n "$rr_at" ]; then
-        rr_epoch=$(date -ju -f '%Y-%m-%dT%H:%M:%SZ' "$rr_at" '+%s' 2>/dev/null || echo 0)
+        rr_epoch=$(_iso_to_epoch "$rr_at")
         rr_age=$(( (now - rr_epoch) / 60 ))
       fi
     fi
