@@ -6,6 +6,8 @@ Expected layout under data/raw/cwru/:
     inner_race/      (multiple records)
     outer_race/      (multiple records)
     ball/            (multiple records)
+Normal baseline files (97.mat–100.mat) are 48 kHz recordings; pass
+native_rate_hz=48000 to load_class_windows for the normal/ class.
 """
 
 from __future__ import annotations
@@ -15,6 +17,7 @@ from pathlib import Path
 
 import numpy as np
 import scipy.io
+import scipy.signal
 from sklearn.model_selection import train_test_split
 import torch
 
@@ -24,7 +27,7 @@ WINDOW_SIZE: int = 2048
 SAMPLE_RATE_HZ: int = 12000
 
 
-def load_cwru_mat(path: Path) -> np.ndarray:
+def load_cwru_mat(path: Path, native_rate_hz: int = SAMPLE_RATE_HZ) -> np.ndarray:
     """Load a CWRU .mat file's drive-end accelerometer channel as float32."""
 
     mat_data = scipy.io.loadmat(str(path))
@@ -37,7 +40,11 @@ def load_cwru_mat(path: Path) -> np.ndarray:
             f"No drive-end key (X*_DE_time) found in {path}. "
             f"Available keys: {sorted(available_keys)}"
         )
-    return np.asarray(mat_data[drive_end_key]).reshape(-1).astype(np.float32)
+    raw = np.asarray(mat_data[drive_end_key]).reshape(-1)
+    if native_rate_hz != SAMPLE_RATE_HZ:
+        resampled = scipy.signal.resample_poly(raw, SAMPLE_RATE_HZ, native_rate_hz)
+        return resampled.astype(np.float32)
+    return raw.astype(np.float32)
 
 
 def preprocess_to_windows(samples: np.ndarray, window_size: int = WINDOW_SIZE) -> np.ndarray:
@@ -47,46 +54,71 @@ def preprocess_to_windows(samples: np.ndarray, window_size: int = WINDOW_SIZE) -
     return samples[: n_windows * window_size].reshape(n_windows, window_size).astype(np.float32)
 
 
-def load_class_windows(class_dir: Path) -> np.ndarray:
-    """Load and window every .mat file in one class directory."""
+def load_class_windows(class_dir: Path, native_rate_hz: int = SAMPLE_RATE_HZ) -> np.ndarray:
+    """Load and window every .mat file in one class directory.
+
+    Pass native_rate_hz=48000 for CWRU normal baseline files (97.mat–100.mat).
+    """
 
     if not class_dir.exists():
         raise FileNotFoundError(f"Class directory not found: {class_dir}")
     mat_files = sorted(class_dir.glob("*.mat"))
     if not mat_files:
         raise ValueError(f"No .mat files found in {class_dir}")
-    windows = [preprocess_to_windows(load_cwru_mat(mat_file)) for mat_file in mat_files]
+    windows = [
+        preprocess_to_windows(load_cwru_mat(mat_file, native_rate_hz=native_rate_hz))
+        for mat_file in mat_files
+    ]
     return np.concatenate(windows, axis=0)
 
 
 def build_split(raw_root: Path, seed: int = 0) -> dict[str, tuple[np.ndarray, np.ndarray]]:
-    """Build deterministic stratified train/val/test splits from raw CWRU .mat files."""
+    """Build deterministic file-grouped stratified train/val/test splits.
 
-    x_list: list[np.ndarray] = []
-    y_list: list[np.ndarray] = []
+    Splits at the recording (.mat file) level first to prevent data leakage
+    from near-duplicate contiguous windows sharing a recording across splits.
+    """
+
+    file_windows: list[np.ndarray] = []
+    file_labels: list[int] = []
     for class_name in CLASS_NAMES:
-        windows = load_class_windows(raw_root / class_name)
+        class_dir = raw_root / class_name
+        if not class_dir.exists():
+            raise FileNotFoundError(f"Class directory not found: {class_dir}")
+        mat_files = sorted(class_dir.glob("*.mat"))
+        if not mat_files:
+            raise ValueError(f"No .mat files found in {class_dir}")
         label = CLASS_LABELS[class_name]
-        x_list.append(windows)
-        y_list.append(np.full(len(windows), label, dtype=np.int64))
+        for mat_file in mat_files:
+            windows = preprocess_to_windows(load_cwru_mat(mat_file))
+            file_windows.append(windows)
+            file_labels.append(label)
 
-    x_all = np.concatenate(x_list, axis=0).astype(np.float32)
-    y_all = np.concatenate(y_list, axis=0).astype(np.int64)
-    x_train, x_hold, y_train, y_hold = train_test_split(
-        x_all,
-        y_all,
+    indices = list(range(len(file_windows)))
+    idx_train, idx_hold = train_test_split(
+        indices,
         test_size=0.20,
-        stratify=y_all,
+        stratify=file_labels,
         random_state=seed,
     )
-    x_val, x_test, y_val, y_test = train_test_split(
-        x_hold,
-        y_hold,
+    hold_labels = [file_labels[i] for i in idx_hold]
+    hold_counts = np.unique(hold_labels, return_counts=True)[1]
+    hold_stratify = hold_labels if hold_counts.min() >= 2 else None
+    idx_val, idx_test = train_test_split(
+        idx_hold,
         test_size=0.50,
-        stratify=y_hold,
+        stratify=hold_stratify,
         random_state=seed,
     )
-    return {"train": (x_train, y_train), "val": (x_val, y_val), "test": (x_test, y_test)}
+
+    def gather(idx_list: list[int]) -> tuple[np.ndarray, np.ndarray]:
+        x = np.concatenate([file_windows[i] for i in idx_list], axis=0).astype(np.float32)
+        y = np.concatenate(
+            [np.full(len(file_windows[i]), file_labels[i], dtype=np.int64) for i in idx_list]
+        )
+        return x, y
+
+    return {"train": gather(idx_train), "val": gather(idx_val), "test": gather(idx_test)}
 
 
 def save_split(split: dict[str, tuple[np.ndarray, np.ndarray]], out_root: Path) -> None:

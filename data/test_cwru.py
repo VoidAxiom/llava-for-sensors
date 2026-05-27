@@ -37,6 +37,16 @@ def test_load_cwru_mat_probes_key(tmp_path: Path) -> None:
     assert result.dtype == np.float32
 
 
+def test_load_cwru_mat_resamples_48khz_to_12khz(tmp_path: Path) -> None:
+    """load_cwru_mat with native_rate_hz=48000 downsamples 4:1."""
+    signal = np.arange(48000, dtype=np.float64)
+    mat_path = tmp_path / "normal.mat"
+    scipy.io.savemat(str(mat_path), {"X097_DE_time": signal})
+    result = load_cwru_mat(mat_path, native_rate_hz=48000)
+    assert result.shape == (12000,)
+    assert result.dtype == np.float32
+
+
 def test_load_cwru_mat_raises_on_missing_key(tmp_path: Path) -> None:
     """load_cwru_mat raises ValueError when no X*_DE_time key is present."""
     mat_path = tmp_path / "bad.mat"
@@ -68,6 +78,16 @@ def test_load_class_windows(fixture_root: Path) -> None:
     assert windows.dtype == np.float32
 
 
+def test_load_class_windows_passes_native_rate(fixture_root: Path) -> None:
+    """native_rate_hz=48000 → 4:1 downsample → fewer windows per file."""
+    # Each fixture .mat has 16384 samples (at "12kHz equivalent").
+    # With native_rate_hz=48000, signal is resampled to 16384//4=4096 samples.
+    # 4096 samples // 2048 window_size = 2 windows per file × 4 files = 8 windows.
+    windows = load_class_windows(fixture_root / "normal", native_rate_hz=48000)
+    assert windows.shape == (8, 2048)
+    assert windows.dtype == np.float32
+
+
 def test_build_split_deterministic(fixture_root: Path) -> None:
     """Two calls with seed=0 produce byte-identical arrays."""
     s1 = build_split(fixture_root, seed=0)
@@ -78,14 +98,14 @@ def test_build_split_deterministic(fixture_root: Path) -> None:
 
 
 def test_build_split_proportions(fixture_root: Path) -> None:
-    """128 total windows → ~80/10/10 stratified split."""
+    """128 total windows, file-grouped split → train ≥80%, val+test ≤20%."""
     split = build_split(fixture_root, seed=0)
     y_train = split["train"][1]
     y_val = split["val"][1]
     y_test = split["test"][1]
     total = len(y_train) + len(y_val) + len(y_test)
     assert total == 128
-    assert 100 <= len(y_train) <= 106, f"y_train size {len(y_train)} not in [100, 106]"
+    assert 80 <= len(y_train) <= 112, f"y_train size {len(y_train)} not in [80, 112]"
     assert len(y_val) >= 10
     assert len(y_test) >= 10
 
