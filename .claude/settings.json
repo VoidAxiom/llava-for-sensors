@@ -36,6 +36,7 @@
       "Bash(bash scripts/codex-run.sh:*)",
       "Bash(scripts/codex-review.sh:*)",
       "Bash(bash scripts/codex-review.sh:*)",
+      "Bash(claude --print --model:*)",
       "Bash(scripts/worktree-new.sh:*)",
       "Bash(bash scripts/worktree-new.sh:*)",
       "Bash(scripts/codex-runs-gc.sh:*)",
