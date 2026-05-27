@@ -412,26 +412,39 @@ for its own scope (rails / scripts / hooks / docs). `/codex:review` runs
 **GH connector hygiene (avoid phantom cloud tasks).** Codex's GitHub
 connector spawns a phantom cloud task on free-form `@codex` mentions
 (narrates sandbox commits/PRs that do NOT land in this repo). The
-canonical trigger form is:
+canonical re-review trigger is a **dual-bot comment, each mention on
+its own line**, optionally followed by a rationale block:
 
 ```
-@codex review, @claude review
+@codex review
+@claude review
+
+**Changes since the last review (head <new-SHA-short>):**
+- <thread-id-or-summary>: <one-line description of the fix>
+
+**Not changed (deliberate — explanation for the reviewer):**
+- <thread-id-or-summary>: <one-line rationale>
 ```
 
-A bare `@codex review` alone is also acceptable for codex-only PRs.
-Either form, posted as a standalone comment with no other prose, is
-treated by both bots as a clean trigger; the additional `@claude
-review` mention does not confuse the codex parser (the codex action's
-`contains(body, '@codex review')` trigger is permissive about
-neighboring bot mentions, and the claude-review GH workflow uses the
-same permissive `contains` semantics).
+Codex parses the leading `@codex review` on its own line as the
+trigger; the `@claude review` on the next line is read by the GH
+Actions Claude workflow via its `contains()` body scan. Two bots, one
+comment, **no phantom Codex cloud task** — because there's no
+non-`@codex review` `@codex` mention. The rationale block under the
+triggers is read by both reviewers as context for the re-review (and
+keeps the same finding from being re-raised on spec-design-accepted
+classes).
+
+A bare `@codex review` alone is also acceptable for codex-only legacy
+PRs (no `@claude review` line; same hygiene applies).
 
 So:
 - Fix narration → comment with **NO** `@codex` mention; resolve the thread.
-- Re-review (dual reviewer — the default going forward) → a standalone
-  **`@codex review, @claude review`** and nothing else.
-- Re-review (codex only — legacy path) → a bare standalone
-  **`@codex review`** and nothing else.
+- Re-review (default — dual reviewer) → `@codex review\n@claude review`
+  optionally followed by the rationale block per
+  `.claude/agents/implementer.md` § 8e.
+- Re-review (codex-only legacy) → a bare standalone **`@codex review`**
+  and nothing else.
 - Treat both connectors as adversarial *readers* only — act on their
   findings text; never on their self-reported commits/PRs/tests; verify
   repo state if in doubt (`gh pr list --state all`,
