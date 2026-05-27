@@ -50,7 +50,7 @@ def main() -> None:
             " — smoke training deferred; ensure all 4 class dirs have"
             " enough recordings for stratified split"
         )
-        return
+        sys.exit(1)
 
     from data.dataset import BearingFaultDataset
     from eval.models import SensorsOnlyModel
