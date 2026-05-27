@@ -323,6 +323,10 @@ except Exception:
         if [ "$acked" = "yes" ] && [ "$eyes_age" != "-" ] && [ "$eyes_age" -lt "$STALL_MIN" ] 2>/dev/null; then
           decision="NO-ACTION: codex 👀'd ${eyes_age}min ago, impl iterating (≤ ${STALL_MIN}min)"
           in_flight=$((in_flight+1))
+        elif [ "$acked" = "yes" ] && [ "$eyes_age" != "-" ]; then
+          # Stale 👀: don't let recent unrelated local/PR activity mask it.
+          decision="ACT-NOW: codex 👀'd ${eyes_age}min ago, no verdict (> ${STALL_MIN}min STALL_MIN) — re-trigger (review likely dropped)"
+          actions_now=$((actions_now+1))
         elif [ "$recent" -lt "$STALL_MIN" ]; then
           decision="VERIFY: ${recent}min idle, no 👀 — TaskList alive? else re-dispatch"
           verify_owed=$((verify_owed+1))
@@ -335,6 +339,10 @@ except Exception:
         if [ "$acked" = "yes" ] && [ "$eyes_age" != "-" ] && [ "$eyes_age" -lt "$STALL_MIN" ] 2>/dev/null; then
           decision="NO-ACTION: codex 👀'd ${eyes_age}min ago, verdict in flight (≤ ${STALL_MIN}min)"
           in_flight=$((in_flight+1))
+        elif [ "$acked" = "yes" ] && [ "$eyes_age" != "-" ]; then
+          # Stale 👀: don't let recent unrelated local/PR activity mask it.
+          decision="ACT-NOW: codex 👀'd ${eyes_age}min ago, no verdict (> ${STALL_MIN}min STALL_MIN) — re-trigger (review likely dropped)"
+          actions_now=$((actions_now+1))
         elif [ "$recent" -lt "$STALL_MIN" ]; then
           decision="NO-ACTION: ${recent}min idle, in wait helper grace window"
           in_flight=$((in_flight+1))
