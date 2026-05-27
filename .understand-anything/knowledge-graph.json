@@ -24,8 +24,8 @@
       "uv"
     ],
     "description": "Multimodal fault-prediction model fusing time-series sensor data with vision and language on a frozen Qwen2-VL-2B (LLaVA-for-sensors), trained locally on M2 Max.",
-    "analyzedAt": "2026-05-27T10:29:15Z",
-    "gitCommitHash": "3ece215951d73c422c2177acf3a4bd81d3ec3cf0"
+    "analyzedAt": "2026-05-27T14:29:25Z",
+    "gitCommitHash": "3720e5deeb7632e3906bee9c07c6b576abb26b80"
   },
   "nodes": [
     {
@@ -407,15 +407,15 @@
       "type": "file",
       "name": "dataset.py",
       "filePath": "data/dataset.py",
-      "summary": "Torch Dataset wrapper around the synthetic generator that yields sensor/image/text/label tuples for training and evaluation.",
+      "summary": "Torch Dataset wrapper that yields (sensor, image, text, label) tuples in one of two modes. mode='synthetic' (Phase 1) delegates to data.synthetic.generate. mode='cwru' (Phase 3) loads CWRU windows from data/cwru.build_split, pairs each window with the procedural class image from data.images.render_class_image and a deterministic technician note from data.notes.render_class_note. Returns images as torch.Tensor (H,W,C uint8) for torch.stack collation parity across modes. Raises on present-but-invalid raw data (no silent fixture fallback).",
       "tags": [
-        "data-model",
-        "torch-dataset",
-        "synthetic-data",
-        "wrapper",
-        "tested"
+        "dataset",
+        "torch",
+        "multimodal",
+        "cwru",
+        "synthetic"
       ],
-      "complexity": "simple",
+      "complexity": "moderate",
       "languageNotes": "Generic Dataset[tuple[...]] typing carries the four-modality tuple shape through PyTorch's DataLoader."
     },
     {
@@ -427,7 +427,7 @@
         13,
         31
       ],
-      "summary": "Map-style PyTorch Dataset that wraps a list of SyntheticSample dicts (or generates them from a seed) and returns (sensor_tensor, image_tensor, text, label) tuples on indexing.",
+      "summary": "Map-style PyTorch Dataset that takes a mode parameter ('synthetic' or 'cwru') and dispatches to the corresponding loader. The class name is preserved for caller stability across the Phase 1\u21923 transition; new code prefers the BearingFaultDataset alias exported alongside it.",
       "tags": [
         "data-model",
         "torch-dataset",
@@ -2259,7 +2259,7 @@
       "type": "file",
       "name": "container.c4",
       "filePath": "architecture/container.c4",
-      "summary": "LikeC4 container-level model of the llava-for-sensors system (data_pipeline, ts_encoder, fusion, vlm, gradio_demo, knowledge_graph) extending the landscape system.",
+      "summary": "LikeC4 container-level model of the llava-for-sensors system, updated for Phase 3. data_pipeline now reads CWRU drive-end accelerometer .mat files (with synthetic-fixture fallback for CI), the time-series encoder reflects the Phase 2 PatchTST swap, and the fusion adapter remains the single trainable projection mapping (B, 32, 512) into the frozen Qwen2-VL-2B token space.",
       "tags": [
         "architecture-as-code",
         "likec4",
@@ -2683,6 +2683,146 @@
       ],
       "complexity": "simple",
       "languageNotes": "POSIX sh hook auto-wired by init.sh via `git config core.hooksPath scripts/hooks`; delegates real checking to scripts/check-shell-syntax.sh and exits non-zero if any staged shell file fails."
+    },
+    {
+      "id": "file:data/cwru.py",
+      "type": "file",
+      "name": "cwru.py",
+      "filePath": "data/cwru.py",
+      "summary": "CWRU Bearing Data Center loader, preprocessor, and stratified splitter. Probes X*_DE_time keys in each .mat file, downsamples 48 kHz normal/ recordings to the 12 kHz fault sample rate, slices each recording into non-overlapping 2048-sample windows, then file-groups the windows so all windows from one recording stay in the same train/val/test bucket (prevents within-recording leakage). Falls back to data/test_assets/cwru/ fixtures when data/raw/cwru/ is absent (CI path).",
+      "tags": [
+        "data-loader",
+        "preprocessing",
+        "stratified-split",
+        "cwru"
+      ],
+      "complexity": "complex",
+      "languageNotes": "Uses scipy.io.loadmat to extract drive-end accelerometer keys, scipy.signal.resample_poly for the 48 kHz\u219212 kHz downsample, and sklearn.model_selection.train_test_split (twice \u2014 first 80/20, then 50/50 on the held-out half) for the 80/10/10 file-grouped stratified split."
+    },
+    {
+      "id": "file:data/images.py",
+      "type": "file",
+      "name": "images.py",
+      "filePath": "data/images.py",
+      "summary": "Procedural bearing-diagram renderer for the four fault classes. Uses PIL primitives (lines, circles) to draw a 224x224 RGB cutaway diagram per class with a class-distinctive fault marker (red dot positioned on the inner race, outer race, or rolling element). Deterministic \u2014 same class name always produces the identical image (no RNG).",
+      "tags": [
+        "data-generation",
+        "rendering",
+        "deterministic"
+      ],
+      "complexity": "simple",
+      "languageNotes": "Wraps PIL.Image + PIL.ImageDraw; no numpy in this module. Exports render_class_image(class_name) -> PIL.Image and save_class_images(out_dir) to materialize the four PNGs under data/assets/images/."
+    },
+    {
+      "id": "file:data/notes.py",
+      "type": "file",
+      "name": "notes.py",
+      "filePath": "data/notes.py",
+      "summary": "Deterministic template-based technician-note generator for the four CWRU fault classes. One template per class with {load_hp} and {fault_diameter_in} placeholders filled from per-sample CWRU metadata; templates encode the real vibration-signature vocabulary (BPFI, BPFO, BSF, FTF) so the text modality carries information the fusion adapter can actually exploit. No metered LLM call \u2014 pure string formatting.",
+      "tags": [
+        "data-generation",
+        "text-templates",
+        "deterministic",
+        "no-llm"
+      ],
+      "complexity": "simple",
+      "languageNotes": "Pure-stdlib (collections.abc.Mapping for type hints). Exports render_class_note(class_name, metadata) -> str with default metadata values."
+    },
+    {
+      "id": "file:scripts/run_cwru_smoke.py",
+      "type": "file",
+      "name": "run_cwru_smoke.py",
+      "filePath": "scripts/run_cwru_smoke.py",
+      "summary": "Smoke training script that loads CWRU in 'cwru' mode and runs one short training epoch with SensorsOnlyModel to verify the dataset\u2192model\u2192loss pipeline. WARN-skips with exit 0 when data/raw/cwru/ is absent (so CI doesn't fail just because the manual-fetch dataset isn't checked in).",
+      "tags": [
+        "smoke-test",
+        "training",
+        "cwru",
+        "ci-graceful"
+      ],
+      "complexity": "moderate",
+      "languageNotes": "sys.path mutation to import sibling packages (data, models, eval) without an installed pyproject entry point. Reuses eval.models.SensorsOnlyModel for the smoke model so this exercises the same code that the ablation runs."
+    },
+    {
+      "id": "file:data/test_cwru.py",
+      "type": "file",
+      "name": "test_cwru.py",
+      "filePath": "data/test_cwru.py",
+      "summary": "Pytest suite for the CWRU loader: validates .mat key probing, the 48\u219212 kHz downsample produces the right window length, file-grouped stratified split doesn't leak windows from one recording across buckets, and the fixture-mode fallback under data/test_assets/cwru/ works end-to-end.",
+      "tags": [
+        "test",
+        "data-loader",
+        "cwru"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:data/test_dataset.py",
+      "type": "file",
+      "name": "test_dataset.py",
+      "filePath": "data/test_dataset.py",
+      "summary": "Pytest suite for BearingFaultDataset covering both mode='synthetic' (legacy Phase 1 path) and mode='cwru' (Phase 3 path). Asserts the 4-tuple return shape, dtypes, and that present-but-invalid raw data now raises instead of silently falling back (the codex P1 fix from PR #34).",
+      "tags": [
+        "test",
+        "dataset",
+        "cwru",
+        "synthetic"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:data/test_images.py",
+      "type": "file",
+      "name": "test_images.py",
+      "filePath": "data/test_images.py",
+      "summary": "Pytest suite for the procedural image renderer: per-class determinism, shape/dtype invariants, and pixel-level distinctness between classes.",
+      "tags": [
+        "test",
+        "image-rendering",
+        "determinism"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:data/test_notes.py",
+      "type": "file",
+      "name": "test_notes.py",
+      "filePath": "data/test_notes.py",
+      "summary": "Pytest suite for the technician-note generator: per-class template selection, placeholder substitution with custom and default metadata, and determinism.",
+      "tags": [
+        "test",
+        "text-templates",
+        "determinism"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:demo/app.py",
+      "type": "file",
+      "name": "app.py",
+      "filePath": "demo/app.py",
+      "summary": "Gradio UI shell for the demo (Phase 5 P5.1 scaffold from VOI-213). Defines build_app() returning a gr.Blocks with file inputs for sensor CSV + bearing image plus a stub_predict(...) handler that returns a literal 'TBD' string. Real inference wiring happens in P5.2 (VOI-214); this packet only ships the page skeleton so the Gradio process boots.",
+      "tags": [
+        "ui",
+        "gradio",
+        "stub",
+        "phase-5"
+      ],
+      "complexity": "simple",
+      "languageNotes": "gradio.Blocks composition; no torch / no model loading here."
+    },
+    {
+      "id": "file:demo/test_app.py",
+      "type": "file",
+      "name": "test_app.py",
+      "filePath": "demo/test_app.py",
+      "summary": "Pytest suite for the demo skeleton: build_app() returns a gr.Blocks instance, stub_predict() returns the literal placeholder string, and the page mounts at the expected route.",
+      "tags": [
+        "test",
+        "ui",
+        "gradio"
+      ],
+      "complexity": "simple"
     }
   ],
   "edges": [
@@ -4260,6 +4400,76 @@
       "type": "related",
       "direction": "forward",
       "weight": 0.5
+    },
+    {
+      "source": "file:data/dataset.py",
+      "target": "file:data/cwru.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.9
+    },
+    {
+      "source": "file:data/dataset.py",
+      "target": "file:data/images.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:data/dataset.py",
+      "target": "file:data/notes.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:scripts/run_cwru_smoke.py",
+      "target": "file:data/dataset.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:scripts/run_cwru_smoke.py",
+      "target": "file:eval/models.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:data/test_cwru.py",
+      "target": "file:data/cwru.py",
+      "type": "tests",
+      "direction": "forward",
+      "weight": 0.95
+    },
+    {
+      "source": "file:data/test_dataset.py",
+      "target": "file:data/dataset.py",
+      "type": "tests",
+      "direction": "forward",
+      "weight": 0.95
+    },
+    {
+      "source": "file:data/test_images.py",
+      "target": "file:data/images.py",
+      "type": "tests",
+      "direction": "forward",
+      "weight": 0.95
+    },
+    {
+      "source": "file:data/test_notes.py",
+      "target": "file:data/notes.py",
+      "type": "tests",
+      "direction": "forward",
+      "weight": 0.95
+    },
+    {
+      "source": "file:demo/test_app.py",
+      "target": "file:demo/app.py",
+      "type": "tests",
+      "direction": "forward",
+      "weight": 0.95
     }
   ],
   "layers": [
@@ -4270,7 +4480,10 @@
       "nodeIds": [
         "file:data/dataset.py",
         "file:data/synthetic.py",
-        "file:data/__init__.py"
+        "file:data/__init__.py",
+        "file:data/cwru.py",
+        "file:data/images.py",
+        "file:data/notes.py"
       ]
     },
     {
@@ -4317,7 +4530,12 @@
         "file:data/test_synthetic.py",
         "file:eval/test_ablation.py",
         "file:eval/test_headline.py",
-        "file:train/test_loop.py"
+        "file:train/test_loop.py",
+        "file:data/test_cwru.py",
+        "file:data/test_dataset.py",
+        "file:data/test_images.py",
+        "file:data/test_notes.py",
+        "file:demo/test_app.py"
       ]
     },
     {
@@ -4341,7 +4559,8 @@
         "file:hooks/session-recovery.py",
         "file:hooks/worktree-impl-hooks/pre-commit",
         "file:hooks/write-scope-guard.mjs",
-        "file:scripts/hooks/pre-commit"
+        "file:scripts/hooks/pre-commit",
+        "file:scripts/run_cwru_smoke.py"
       ]
     },
     {

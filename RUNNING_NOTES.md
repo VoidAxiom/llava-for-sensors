@@ -224,7 +224,46 @@ Phase 3 packets (CWRU integration):
 
 P3.1-3.3 are impl-dispatchable in parallel where surfaces are disjoint (data/cwru.py vs data/images.py vs data/dataset.py).
 
-## Phase 3 — _(scheduled — CWRU integration)_
+## Phase 3 — CWRU integration
+
+### Decisions
+
+- **CWRU access: manual fetch (registration wall).** The Case Western Reserve University Bearing Data Center [requires per-user registration](https://engineering.case.edu/bearingdatacenter/download-data-file) to access the `.mat` files; that registration cannot be agent-scripted. `README.md § "CWRU dataset — manual fetch"` documents the exact files to download (`97.mat`–`100.mat` for the normal baseline; ≥4 recordings each for `inner_race`, `outer_race`, `ball`) and the on-disk layout `data/raw/cwru/{normal,inner_race,outer_race,ball}/*.mat`. `data/raw/cwru/` is gitignored.
+- **Fixture fallback for CI.** `data/test_assets/cwru/` carries 16 small committed `.mat` fixtures (4 per class) so `data/cwru.py` and `data/dataset.py` work end-to-end without the raw data. `_has_usable_cwru_raw(_RAW_ROOT)` gates the choice: raw present and complete → real; otherwise → fixtures. Phase 3 surfaced the natural follow-up: **present-but-INVALID** raw (passes `_has_usable_cwru_raw` but `build_split` fails) now RAISES instead of silently catching and falling through to fixtures — codex P1 finding `PRRT_kwDOSnxPcM6FHtmo` on PR #34, fixed in the same packet.
+- **Sample-rate alignment.** CWRU's normal-baseline recordings (`97.mat`–`100.mat`) are 48 kHz; the fault classes are 12 kHz. `data.cwru.load_class_windows(class_dir, native_rate_hz=...)` resamples 48 kHz → 12 kHz via `scipy.signal.resample_poly(up=1, down=4)` before windowing so every 2048-sample window represents the same `~170 ms` physical duration regardless of class.
+- **File-grouped stratified split.** Each `.mat` file is a single physical recording that we slice into many 2048-sample windows; if windows from one recording end up in both train AND val, we have within-recording leakage and the gap_vt headline becomes meaningless. The splitter sorts (file → list[window]) into buckets by recording, then does a stratified 80/10/10 file-grouped split (seed=0) — every window from one recording stays in the same bucket. Verified by `data/test_cwru.py::test_split_no_within_recording_leakage`.
+- **Image source: procedural PIL drawing per class.** Four 224×224 RGB cutaway diagrams (`data/assets/images/{normal,inner_race,outer_race,ball}.png`), rendered by `data.images.render_class_image(class_name)`. The renderer uses only `PIL.ImageDraw` primitives (lines + circles), is fully deterministic (no RNG), and places a class-distinctive red fault marker (on the inner race, outer race, or rolling element). Chosen over web-scraping or stock photos so the asset is reproducible, copyright-clean, and small enough to commit.
+- **Note source: deterministic template per class.** Four templates in `data.notes.NOTE_TEMPLATES` reference real CWRU vibration-signature vocabulary (BPFI, BPFO, BSF, FTF) so the text modality is informative — not just `"class={class_name}"`. Placeholders `{load_hp}` and `{fault_diameter_in}` are filled from per-sample CWRU metadata with sensible defaults when metadata is absent. **Zero metered API spend** — the autonomy boundary forbids it; templates are the right ergonomic.
+- **`BearingFaultDataset` is the new public alias.** `data.dataset.ToyDataset` is preserved as a backwards-compatible alias (no callers will silently break). New code uses `BearingFaultDataset(mode="cwru")`; legacy synthetic-mode callers (the Phase 1 ablation runner) keep working via `mode="synthetic"`.
+- **Images returned as `torch.Tensor` (H,W,C uint8), not `PIL.Image`.** Both modes now return a tensor so `torch.stack` collation works without per-sample type checks. Phase 1's `mode="synthetic"` path was migrated to match.
+
+### Phase 3 packet-by-packet outcomes
+
+| Packet | Linear | PR | Type | Outcome |
+| -- | -- | -- | -- | -- |
+| P3.1 `data/cwru.py` loader + preprocessor + splitter | VOI-205 | #32 | impl | `load_cwru_mat`, `preprocess_to_windows(window_size=2048)`, `build_split(seed=0)` file-grouped stratified 80/10/10; 12-kHz target with 48-kHz downsample for `normal/`; 16 committed fixtures under `data/test_assets/cwru/` |
+| P3.2 `data/images.py` + `data/notes.py` | VOI-206 | #31 | impl | Procedural PIL bearing diagrams + deterministic per-class templates with BPFI/BPFO/BSF/FTF vocabulary |
+| P3.3 `data/dataset.py` CWRU mode + smoke script | VOI-207 | #34 | impl | `BearingFaultDataset(mode={"synthetic","cwru"})`; `scripts/run_cwru_smoke.py` runs one training epoch (WARN-skips with exit 0 when raw absent); codex P1 fix landed in-packet (present-but-invalid raw now raises) |
+| P3.4 architecture + /understand + this entry | VOI-208 | _(this PR)_ | Claude | `architecture/container.c4` data_pipeline + ts_encoder descriptions refreshed; LikeC4 mermaid validated; /understand graph +10 nodes / +10 edges; this RUNNING_NOTES entry |
+| P3.5 `scripts/budget-check.sh` Phase 3 exit gate | VOI-223 | _(pending)_ | impl | **BLOCKED on user fetching real CWRU `.mat` files** — the budget check exercises the real-data path end-to-end before phase close |
+
+### Live verification (per CLAUDE.md §"Deliver a working product")
+
+- `uv run pytest data/ -v` → **44/44 passed** at PR #34 merge (`3720e5d`); covers `cwru.py`, `images.py`, `notes.py`, `dataset.py` (both modes) including the within-recording leakage assertion and the present-but-invalid-raise assertion.
+- `uv run python scripts/run_cwru_smoke.py` with `data/raw/cwru/` absent → exits 0 with `WARN: data/raw/cwru/ not populated; smoke skipped.` line (as designed — Phase 3.5 will exercise the real path).
+- `python3 -c "from data.dataset import BearingFaultDataset; d = BearingFaultDataset(mode='cwru'); s, i, t, l = d[0]; print(type(s), s.shape, type(i), i.shape, type(t), int(l))"` → real 4-tuple, sensor `(2048,)` float, image `(224, 224, 3)` uint8 tensor, template text, integer label.
+- `likec4 validate architecture` → `✓ Valid (3 files)`.
+- `.understand-anything/knowledge-graph.json` opens cleanly; +10 Phase-3 nodes (`data/cwru.py`, `data/images.py`, `data/notes.py`, four test files, smoke script, `demo/app.py` + `demo/test_app.py` from VOI-213) are present in the data/tests/orchestration layers.
+
+### Phase 3 → Phase 4 — ready to dispatch (once VOI-223 lands)
+
+Phase 4 packets (full training + headline ablation):
+- **VOI-209 (P4.1)** — multi-seed training orchestrator: `scripts/run_ablation_cwru.py` wrapping `train/loop.py` × 3 modality conditions × N seeds, writing one CSV row per (condition, seed). Adds `peak_memory_bytes` to the CSV per the Phase 2 carry-forward.
+- **VOI-210 (P4.2)** — full 15-run ablation on CWRU (5 seeds × 3 conditions × full epochs on the real CWRU dataset). Wall-time budgeted at ~24h on M2 Max; runs unattended.
+- **VOI-211 (P4.3)** — headline figure final render + acceptance verdict (gap_vt > 15 pp, paired bootstrap p < 0.05).
+- **VOI-212 (P4.4)** — Phase 4 RUNNING_NOTES entry + /understand graph regen.
+
+Phase 4 P4.1 can be specced + dispatched in parallel with VOI-223; the orchestrator surface is fully disjoint from the budget-check script.
 
 ## Phase 4 — _(scheduled — full training + headline ablation)_
 
