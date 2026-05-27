@@ -283,9 +283,14 @@ try:
     print(json.dumps(sorted(f, key=lambda c: c.get("created_at",""))[-1]) if f else "null")
 except Exception:
     print("null")' 2>/dev/null)
-      eyes_age="-"
+      eyes_age="-"; rr_age="-"
       if [ -n "$latest_rr" ] && [ "$latest_rr" != "null" ]; then
         rr_id=$(echo "$latest_rr" | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])' 2>/dev/null)
+        rr_at=$(echo "$latest_rr" | python3 -c 'import json,sys; print(json.load(sys.stdin)["created_at"])' 2>/dev/null)
+        if [ -n "$rr_at" ]; then
+          rr_epoch=$(_iso_to_epoch "$rr_at")
+          rr_age=$(( (now - rr_epoch) / 60 ))
+        fi
         if [ -n "$rr_id" ]; then
           # Fetch the 👀 reaction's created_at (not just count) — the
           # verdict-wait timer for `acked=yes` must be measured from the
@@ -324,8 +329,13 @@ except Exception:
           decision="NO-ACTION: codex 👀'd ${eyes_age}min ago, impl iterating (≤ ${STALL_MIN}min)"
           in_flight=$((in_flight+1))
         elif [ "$acked" = "yes" ] && [ "$eyes_age" != "-" ]; then
-          # Stale 👀: don't let recent unrelated local/PR activity mask it.
           decision="ACT-NOW: codex 👀'd ${eyes_age}min ago, no verdict (> ${STALL_MIN}min STALL_MIN) — re-trigger (review likely dropped)"
+          actions_now=$((actions_now+1))
+        elif [ "$rr_age" != "-" ] && [ "$rr_age" -ge "$STALL_MIN" ] 2>/dev/null; then
+          # Un-acked @codex review request older than STALL_MIN — re-trigger
+          # the review itself, regardless of any unrelated recent local
+          # activity that could mask the staleness via `recent`.
+          decision="ACT-NOW: @codex review ${rr_age}min ago + no 👀 (> ${STALL_MIN}min STALL_MIN) — re-trigger (codex may have missed)"
           actions_now=$((actions_now+1))
         elif [ "$recent" -lt "$STALL_MIN" ]; then
           decision="VERIFY: ${recent}min idle, no 👀 — TaskList alive? else re-dispatch"
@@ -340,8 +350,11 @@ except Exception:
           decision="NO-ACTION: codex 👀'd ${eyes_age}min ago, verdict in flight (≤ ${STALL_MIN}min)"
           in_flight=$((in_flight+1))
         elif [ "$acked" = "yes" ] && [ "$eyes_age" != "-" ]; then
-          # Stale 👀: don't let recent unrelated local/PR activity mask it.
           decision="ACT-NOW: codex 👀'd ${eyes_age}min ago, no verdict (> ${STALL_MIN}min STALL_MIN) — re-trigger (review likely dropped)"
+          actions_now=$((actions_now+1))
+        elif [ "$rr_age" != "-" ] && [ "$rr_age" -ge "$STALL_MIN" ] 2>/dev/null; then
+          # Un-acked @codex review request older than STALL_MIN — re-trigger.
+          decision="ACT-NOW: @codex review ${rr_age}min ago + no 👀 (> ${STALL_MIN}min STALL_MIN) — re-trigger (codex may have missed)"
           actions_now=$((actions_now+1))
         elif [ "$recent" -lt "$STALL_MIN" ]; then
           decision="NO-ACTION: ${recent}min idle, in wait helper grace window"
