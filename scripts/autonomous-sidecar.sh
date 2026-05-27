@@ -25,6 +25,10 @@ GH_REPO_NAME="${LLAVA_FOR_SENSORS_REPO_NAME:-llava-for-sensors}"
 COMMAND_CENTER="${LLAVA_FOR_SENSORS_COMMAND_CENTER:-VOI-180}"
 
 cd "$REPO" 2>/dev/null || { echo "✗ sidecar: cannot cd $REPO" >&2; exit 1; }
+# .codex-runs/ is gitignored and may not exist on a fresh checkout;
+# the sidecar writes a couple of state markers into it. Create up
+# front so the later `echo ... > "$MARKER"` redirections don't fail.
+mkdir -p "$REPO/.codex-runs" 2>/dev/null || true
 now=$(date +%s)
 
 # ── ALWAYS fetch latest main from origin (every tick, no exception) ──
