@@ -423,14 +423,25 @@ try:
     print(json.dumps(sorted(f, key=lambda c: c.get("created_at",""))[-1]) if f else "null")
 except Exception:
     print("null")' 2>/dev/null)
-    acked="?"; rr_age="-"
+    acked="?"; rr_age="-"; eyes_age="-"
     if [ -n "$latest_rr" ] && [ "$latest_rr" != "null" ]; then
       rr_id=$(echo "$latest_rr" | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])' 2>/dev/null)
       rr_at=$(echo "$latest_rr" | python3 -c 'import json,sys; print(json.load(sys.stdin)["created_at"])' 2>/dev/null)
       if [ -n "$rr_id" ]; then
-        eyes=$(gh api "repos/$GH_OWNER/$GH_REPO_NAME/issues/comments/$rr_id/reactions" \
-          --jq '[.[] | select(.content=="eyes") | select(.user.login=="chatgpt-codex-connector[bot]" or .user.login=="chatgpt-codex-connector")] | length' 2>/dev/null)
-        [ "${eyes:-0}" -gt 0 ] && acked="yes" || acked="no"
+        # Fetch the 👀 reaction's created_at (not just count) — the stall
+        # timer for `acked=yes` must be measured from the 👀 timestamp, not
+        # the request timestamp. Otherwise, if codex 👀s a long-stale request,
+        # rr_age can already exceed STALL_MIN at the moment of the 👀,
+        # immediately tripping a re-trigger before the verdict is in flight.
+        eyes_at=$(gh api "repos/$GH_OWNER/$GH_REPO_NAME/issues/comments/$rr_id/reactions" \
+          --jq '[.[] | select(.content=="eyes") | select(.user.login=="chatgpt-codex-connector[bot]" or .user.login=="chatgpt-codex-connector")] | sort_by(.created_at) | last.created_at // ""' 2>/dev/null)
+        if [ -n "$eyes_at" ] && [ "$eyes_at" != "null" ]; then
+          acked="yes"
+          eyes_epoch=$(_iso_to_epoch "$eyes_at")
+          eyes_age=$(( (now - eyes_epoch) / 60 ))
+        else
+          acked="no"
+        fi
       fi
       if [ -n "$rr_at" ]; then
         rr_epoch=$(_iso_to_epoch "$rr_at")
@@ -462,8 +473,20 @@ except Exception:
       fi
       actions_now=$((actions_now+1))
     elif [ "$acked" = "yes" ]; then
-      decision="NO-ACTION [$owner]: codex 👀'd ${rr_age}min ago — verdict in flight"
-      in_flight=$((in_flight+1))
+      # 👀'd but no verdict yet — usually means codex is processing. Cap
+      # against STALL_MIN (default 15min) so a dropped/stuck Codex review
+      # doesn't leave the PR ignored forever. Mirrors the worktree-pass
+      # STALL_MIN logic. Measured from the 👀 reaction timestamp (eyes_age),
+      # NOT the request timestamp — codex can 👀 a long-stale request, and
+      # request-age would immediately re-trigger before the verdict is
+      # actually in flight.
+      if [ "$eyes_age" != "-" ] && [ "$eyes_age" -gt "$STALL_MIN" ] 2>/dev/null; then
+        decision="ACT-NOW [$owner]: codex 👀'd ${eyes_age}min ago, no verdict (> ${STALL_MIN}min STALL_MIN) — re-trigger (review likely dropped)"
+        actions_now=$((actions_now+1))
+      else
+        decision="NO-ACTION [$owner]: codex 👀'd ${eyes_age}min ago — verdict in flight (≤ ${STALL_MIN}min)"
+        in_flight=$((in_flight+1))
+      fi
     elif [ "$rr_age" = "-" ]; then
       decision="ACT-NOW [$owner]: PR open + no @codex review yet — post bare @codex review"
       actions_now=$((actions_now+1))
