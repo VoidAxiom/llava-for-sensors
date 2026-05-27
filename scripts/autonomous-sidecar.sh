@@ -323,35 +323,29 @@ except Exception:
 
     # decision
     if [ -n "$pr_num" ]; then
-      if echo "$gate" | grep -q 'CLEAN ('; then
+      if echo "$gate" | grep -q 'CLEAN (' && [ "$pushed" = "local-ahead" ]; then
+        # Don't recommend merge while the worktree has unpushed commits — the
+        # gate describes the PR head, not the local head, so merging would
+        # silently omit the local-ahead commits. Push first, then re-gate.
+        decision="ACT-NOW: head-pinned CLEAN on PR head — but worktree is local-ahead (unpushed). Push first, then re-gate"
+        actions_now=$((actions_now+1))
+      elif echo "$gate" | grep -q 'CLEAN ('; then
         decision="ACT-NOW: head-pinned CLEAN — merge"
         actions_now=$((actions_now+1))
       elif echo "$gate" | grep -q 'CLEAN-COMMENT-MANUAL'; then
         decision="ACT-NOW: CLEAN-COMMENT-MANUAL — judge timeline + merge"
         actions_now=$((actions_now+1))
       elif [ "$threads_open" -gt 0 ]; then
-        if [ "$acked" = "yes" ] && [ "$eyes_age" != "-" ] && [ "$eyes_age" -lt 30 ] 2>/dev/null; then
-          # Phase 2 of review-gate.sh wait: once 👀 lands, STOP re-triggering
-          # (would queue redundant cloud tasks). Wait until ≤30min (verdictMaxSec
-          # default in review-gate.sh); past that, ESCALATE to operator — do
-          # NOT re-trigger.
-          decision="NO-ACTION: codex 👀'd ${eyes_age}min ago, impl iterating (verdict in flight, ≤30min per review-gate.sh wait)"
-          in_flight=$((in_flight+1))
-        elif [ "$acked" = "yes" ] && [ "$eyes_age" != "-" ]; then
-          decision="ESCALATE: codex 👀'd ${eyes_age}min ago, no verdict past 30min verdictMaxSec — notify operator, do NOT re-trigger (would queue redundant cloud task per review-gate.sh §Phase 2)"
-          actions_now=$((actions_now+1))
-        elif [ "$rr_age" != "-" ] && [ "$rr_age" -ge "$STALL_MIN" ] 2>/dev/null; then
-          # Un-acked @codex review request older than STALL_MIN — re-trigger
-          # the review itself, regardless of any unrelated recent local
-          # activity that could mask the staleness via `recent`. This is
-          # Phase 1 (ack) — re-trigger IS the right action when no 👀.
-          decision="ACT-NOW: @codex review ${rr_age}min ago + no 👀 (> ${STALL_MIN}min STALL_MIN) — re-trigger (codex may have missed)"
-          actions_now=$((actions_now+1))
-        elif [ "$recent" -lt "$STALL_MIN" ]; then
-          decision="VERIFY: ${recent}min idle, no 👀 — TaskList alive? else re-dispatch"
+        # FINDINGS arrived (threads_open > 0 IS terminal per review-gate.sh
+        # wait, not "in flight"). The actionable step is TaskList check on
+        # the impl + re-dispatch if dead — NOT waiting on the 👀. Skip the
+        # 👀-grace branches; the 👀 was the ack for the original review
+        # request, but findings are now what need acting on.
+        if [ "$recent" -lt "$STALL_MIN" ]; then
+          decision="VERIFY: $threads_open unresolved findings + ${recent}min idle — TaskList alive? else re-dispatch with state-aware resume"
           verify_owed=$((verify_owed+1))
         else
-          decision="ACT-NOW: ${recent}min silent + $threads_open unresolved — re-dispatch impl"
+          decision="ACT-NOW: $threads_open unresolved findings + ${recent}min silent — re-dispatch impl"
           actions_now=$((actions_now+1))
         fi
       else
