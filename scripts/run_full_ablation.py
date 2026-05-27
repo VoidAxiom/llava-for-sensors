@@ -40,7 +40,7 @@ def _main(argv: list[str] | None = None) -> int:
         return 0
 
     out_csv.parent.mkdir(parents=True, exist_ok=True)
-    file_exists = out_csv.exists()
+    file_exists = out_csv.exists() and out_csv.stat().st_size > 0
     mode = "a" if file_exists else "w"
     with out_csv.open(mode, encoding="utf-8", newline="") as csv_file:
         writer = csv.writer(csv_file)
@@ -83,6 +83,8 @@ def _main(argv: list[str] | None = None) -> int:
 
 def _read_existing_pairs(csv_path: pathlib.Path) -> set[tuple[str, int]]:
     if not csv_path.exists():
+        return set()
+    if csv_path.stat().st_size == 0:
         return set()
 
     pairs: set[tuple[str, int]] = set()
