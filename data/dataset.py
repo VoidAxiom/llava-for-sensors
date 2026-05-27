@@ -16,7 +16,17 @@ from data.notes import synthesize_note
 from data.synthetic import SyntheticSample, generate
 
 _FIXTURE_ROOT = Path(__file__).parent / "test_assets" / "cwru"
+_PROCESSED_ROOT = Path("data/processed/cwru")
 _RAW_ROOT = Path("data/raw/cwru")
+_CWRU_CLASS_NAMES = ("normal", "inner_race", "outer_race", "ball")
+
+
+def _has_usable_cwru_raw(root: Path) -> bool:
+    for class_name in _CWRU_CLASS_NAMES:
+        class_dir = root / class_name
+        if not class_dir.is_dir() or not any(class_dir.glob("*.mat")):
+            return False
+    return True
 
 
 class ToyDataset(Dataset[tuple[torch.Tensor, torch.Tensor, str, int]]):
@@ -58,9 +68,15 @@ class BearingFaultDataset(Dataset):
     ) -> None:
         self._mode = mode
         if mode == "cwru":
-            raw_root = _RAW_ROOT if _RAW_ROOT.exists() else _FIXTURE_ROOT
-            all_splits = build_split(raw_root, seed=0)
-            self._x, self._y = all_splits[split]
+            processed_path = _PROCESSED_ROOT / f"{split}.pt"
+            if processed_path.exists():
+                data = torch.load(processed_path, weights_only=True)
+                self._x = data["x"].numpy()
+                self._y = data["y"].numpy()
+            else:
+                raw_root = _RAW_ROOT if _has_usable_cwru_raw(_RAW_ROOT) else _FIXTURE_ROOT
+                all_splits = build_split(raw_root, seed=0)
+                self._x, self._y = all_splits[split]
         elif mode == "synthetic":
             seed = int(kwargs.get("seed", 0))
             n = int(kwargs.get("n", 1000))

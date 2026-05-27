@@ -10,15 +10,30 @@ Usage:
 
 from __future__ import annotations
 
+import sys
 import time
 from pathlib import Path
 
 
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+_PROJECT_ROOT_STR = str(_PROJECT_ROOT)
+if _PROJECT_ROOT_STR not in sys.path:
+    sys.path.insert(0, _PROJECT_ROOT_STR)
+
+_CWRU_CLASS_NAMES = ("normal", "inner_race", "outer_race", "ball")
 _RAW_ROOT = Path("data/raw/cwru")
 
 
+def _has_usable_cwru_raw(root: Path) -> bool:
+    for class_name in _CWRU_CLASS_NAMES:
+        class_dir = root / class_name
+        if not class_dir.is_dir() or not any(class_dir.glob("*.mat")):
+            return False
+    return True
+
+
 def main() -> None:
-    if not _RAW_ROOT.exists():
+    if not _has_usable_cwru_raw(_RAW_ROOT):
         print(
             "WARN: data/raw/cwru/ empty — smoke training deferred until user fetches CWRU;"
             " document in RUNNING_NOTES.md when done"
