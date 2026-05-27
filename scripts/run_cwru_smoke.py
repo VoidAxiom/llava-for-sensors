@@ -27,7 +27,7 @@ _RAW_ROOT = Path("data/raw/cwru")
 def _has_usable_cwru_raw(root: Path) -> bool:
     for class_name in _CWRU_CLASS_NAMES:
         class_dir = root / class_name
-        if not class_dir.is_dir() or not any(class_dir.glob("*.mat")):
+        if not class_dir.is_dir() or len(list(class_dir.glob("*.mat"))) < 2:
             return False
     return True
 
