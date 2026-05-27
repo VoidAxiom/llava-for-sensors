@@ -238,7 +238,10 @@ pre code {
 [data-theme="dark"]  .theme-toggle .moon { opacity: 1; color: var(--accent); }
 
 /* Responsive header — wrap the nav onto a second row at narrow widths
-   so brand + 6 links + theme toggle don't overflow a 375px viewport. */
+   so brand + 6 links + theme toggle don't overflow a 375px viewport.
+   Flex items of `.header-row` are `.brand`, `<nav>` (NOT the inner
+   `.primary-nav` ul), and `.theme-toggle` — so the order/width
+   controls must target the <nav> element itself. */
 @media (max-width: 720px) {
   .header-row {
     flex-wrap: wrap;
@@ -246,10 +249,13 @@ pre code {
     padding-top: 0.6rem;
     padding-bottom: 0.6rem;
   }
-  .primary-nav {
+  .header-row > nav {
     order: 3;
-    margin: 0.35rem 0 0;
     width: 100%;
+    margin: 0.35rem 0 0;
+  }
+  .primary-nav {
+    margin: 0;
     flex-wrap: wrap;
     gap: 0.4rem 0.9rem;
     font-size: 0.82rem;
