@@ -11,6 +11,7 @@ import scipy.io
 from data.cwru import (
     CLASS_LABELS,
     CLASS_NAMES,
+    CLASS_NATIVE_RATE_HZ,
     SAMPLE_RATE_HZ,
     WINDOW_SIZE,
     build_split,
@@ -98,16 +99,24 @@ def test_build_split_deterministic(fixture_root: Path) -> None:
 
 
 def test_build_split_proportions(fixture_root: Path) -> None:
-    """128 total windows, file-grouped split → train ≥80%, val+test ≤20%."""
+    """104 total windows, file-grouped split preserves rough proportions."""
     split = build_split(fixture_root, seed=0)
     y_train = split["train"][1]
     y_val = split["val"][1]
     y_test = split["test"][1]
     total = len(y_train) + len(y_val) + len(y_test)
-    assert total == 128
-    assert 80 <= len(y_train) <= 112, f"y_train size {len(y_train)} not in [80, 112]"
-    assert len(y_val) >= 10
-    assert len(y_test) >= 10
+    assert total == 104
+    assert 70 <= len(y_train) <= 90, f"y_train size {len(y_train)} not in [70, 90]"
+    assert len(y_val) >= 8
+    assert len(y_test) >= 8
+
+
+def test_class_labels_and_native_rates() -> None:
+    """CLASS_NATIVE_RATE_HZ covers all CLASS_NAMES with correct rates."""
+    assert set(CLASS_NATIVE_RATE_HZ.keys()) == set(CLASS_NAMES)
+    assert CLASS_NATIVE_RATE_HZ["normal"] == 48000
+    for cls in ("inner_race", "outer_race", "ball"):
+        assert CLASS_NATIVE_RATE_HZ[cls] == SAMPLE_RATE_HZ
 
 
 def test_class_labels_canonical() -> None:

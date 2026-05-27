@@ -12,6 +12,7 @@ native_rate_hz=48000 to load_class_windows for the normal/ class.
 
 from __future__ import annotations
 
+from collections import Counter
 import fnmatch
 from pathlib import Path
 
@@ -23,6 +24,12 @@ import torch
 
 CLASS_NAMES: tuple[str, ...] = ("normal", "inner_race", "outer_race", "ball")
 CLASS_LABELS: dict[str, int] = {"normal": 0, "inner_race": 1, "outer_race": 2, "ball": 3}
+CLASS_NATIVE_RATE_HZ: dict[str, int] = {
+    "normal": 48000,
+    "inner_race": 12000,
+    "outer_race": 12000,
+    "ball": 12000,
+}
 WINDOW_SIZE: int = 2048
 SAMPLE_RATE_HZ: int = 12000
 
@@ -77,6 +84,7 @@ def build_split(raw_root: Path, seed: int = 0) -> dict[str, tuple[np.ndarray, np
 
     Splits at the recording (.mat file) level first to prevent data leakage
     from near-duplicate contiguous windows sharing a recording across splits.
+    Uses CLASS_NATIVE_RATE_HZ to load each class at its native sample rate.
     """
 
     file_windows: list[np.ndarray] = []
@@ -90,7 +98,9 @@ def build_split(raw_root: Path, seed: int = 0) -> dict[str, tuple[np.ndarray, np
             raise ValueError(f"No .mat files found in {class_dir}")
         label = CLASS_LABELS[class_name]
         for mat_file in mat_files:
-            windows = preprocess_to_windows(load_cwru_mat(mat_file))
+            windows = preprocess_to_windows(
+                load_cwru_mat(mat_file, native_rate_hz=CLASS_NATIVE_RATE_HZ[class_name])
+            )
             file_windows.append(windows)
             file_labels.append(label)
 
@@ -102,12 +112,12 @@ def build_split(raw_root: Path, seed: int = 0) -> dict[str, tuple[np.ndarray, np
         random_state=seed,
     )
     hold_labels = [file_labels[i] for i in idx_hold]
-    hold_counts = np.unique(hold_labels, return_counts=True)[1]
-    hold_stratify = hold_labels if hold_counts.min() >= 2 else None
+    hold_class_counts = Counter(hold_labels)
+    can_stratify_hold = all(v >= 2 for v in hold_class_counts.values())
     idx_val, idx_test = train_test_split(
         idx_hold,
         test_size=0.50,
-        stratify=hold_stratify,
+        stratify=hold_labels if can_stratify_hold else None,
         random_state=seed,
     )
 
