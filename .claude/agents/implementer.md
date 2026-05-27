@@ -372,15 +372,27 @@ b. Stage only explicit files in your declared packet allowlist, rerun the staged
 
 c. Push the new commits.
 
-d. **Resolve the prior codex review threads** that you just addressed. The merge gate requires zero unresolved codex threads, so each iteration MUST close out the threads it just fixed:
+d. **Resolve EVERY prior codex review thread** — both the ones you fixed AND the ones you rejected as out-of-spec. The merge gate requires zero unresolved codex threads, period (`scripts/review-gate.sh wait` treats `openn > 0` as terminal `FINDINGS`). Leaving rejected threads open makes the next `wait` immediately return FINDINGS and keeps the merge gate dirty.
+
+   For **addressed** threads (you fixed the finding): just resolve.
+
+   For **rejected** threads (out-of-spec P2/P3 per the triage step above): FIRST reply to the thread with a non-`@codex` rationale comment citing the PR body's `## Out of scope` entry verbatim, THEN resolve. This leaves an audit trail of why the thread was closed without a code change, which the next reviewer (human or bot) can read.
 
    ```bash
    # List the unresolved codex threads:
    bash scripts/review-gate.sh threads <PR#>
 
-   # Resolve each addressed thread by ID:
+   # For ADDRESSED threads — just resolve:
+   bash scripts/review-gate.sh resolve <thread_id>
+
+   # For REJECTED threads — reply with the out-of-scope rationale first,
+   # then resolve. The reply MUST NOT contain `@codex` (would spawn a
+   # phantom cloud task per §"Codex connector hygiene"):
+   bash scripts/review-gate.sh reply <thread_id> "Rejected per PR body \`## Out of scope\`: \"<verbatim quote>\". This finding asks for behavior outside the spec verbatim."
    bash scripts/review-gate.sh resolve <thread_id>
    ```
+
+   After this step, `bash scripts/review-gate.sh threads <PR#>` should show 0 unresolved threads. If it doesn't, you missed one — the §8e re-review will return FINDINGS instantly because of the leftover.
 
 e. Post a **new** review-request comment that LEADS with `@codex review` and then briefly tells the reviewer what changed and what was deliberately not changed. Codex parses the leading `@codex review` as the trigger; the rationale that follows is read by the reviewer as context for the re-review. This is the only `@codex` mention pattern allowed beyond a bare `@codex review` — see format below.
 
