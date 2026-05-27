@@ -9,8 +9,16 @@
 
 set -uo pipefail
 
-REPO="${LLAVA_FOR_SENSORS_REPO:-/Users/sureshkasipandy/Projects/llava-for-sensors}"
-WT_ROOT="${LLAVA_FOR_SENSORS_WORKTREES:-/Users/sureshkasipandy/Projects/.llava-for-sensors-worktrees}"
+# Derive REPO from script location so the sidecar works from any clone.
+# Script lives at <repo>/scripts/autonomous-sidecar.sh, so two parents up
+# is <repo>. Override with LLAVA_FOR_SENSORS_REPO if running from outside
+# the tree (rare). Use cd + pwd to canonicalize without depending on
+# bash-4-only realpath / GNU readlink.
+_SIDECAR_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+_SIDECAR_REPO_DEFAULT="$(cd "${_SIDECAR_SCRIPT_DIR}/.." && pwd)"
+REPO="${LLAVA_FOR_SENSORS_REPO:-${_SIDECAR_REPO_DEFAULT}}"
+# Worktrees default to siblings of the repo (per scripts/worktree-new.sh).
+WT_ROOT="${LLAVA_FOR_SENSORS_WORKTREES:-$(dirname "${REPO}")/.llava-for-sensors-worktrees}"
 STALL_MIN="${SIDECAR_STALL_MIN:-15}"
 GH_OWNER="${LLAVA_FOR_SENSORS_OWNER:-VoidAxiom}"
 GH_REPO_NAME="${LLAVA_FOR_SENSORS_REPO_NAME:-llava-for-sensors}"
