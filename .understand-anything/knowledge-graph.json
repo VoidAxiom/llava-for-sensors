@@ -2768,7 +2768,7 @@
       "type": "file",
       "name": "test_cwru.py",
       "filePath": "data/test_cwru.py",
-      "summary": "Pytest suite for the CWRU loader: validates .mat key probing, the 48\u219212 kHz downsample produces the right window length, file-grouped stratified split doesn't leak windows from one recording across buckets, and the fixture-mode fallback under data/test_assets/cwru/ works end-to-end.",
+      "summary": "Pytest suite for the CWRU loader (~10 tests). Validates load_cwru_mat key probing + the 48\u219212 kHz resample_poly downsample, preprocess_to_windows shape/multiple invariants, load_class_windows on fixtures (incl. the per-class native_rate_hz dispatch), build_split determinism + class proportions on the fixture root, and the canonical CLASS_LABELS/CLASS_NATIVE_RATE_HZ constants. File-grouped split correctness is exercised indirectly through the determinism + proportion tests on the fixture data.",
       "tags": [
         "test",
         "data-loader",
@@ -2781,7 +2781,7 @@
       "type": "file",
       "name": "test_dataset.py",
       "filePath": "data/test_dataset.py",
-      "summary": "Pytest suite for BearingFaultDataset covering both mode='synthetic' (legacy Phase 1 path) and mode='cwru' (Phase 3 path). Asserts the 4-tuple return shape, dtypes, and that present-but-invalid raw data now raises instead of silently falling back (the codex P1 fix from PR #34).",
+      "summary": "Pytest suite for BearingFaultDataset (~8 tests, names start with test_cwru_mode_*). Asserts the 4-tuple shape on the CWRU fixture path, fixture-mode determinism, label range, fixture-fallback when data/raw/cwru/ is absent, split-size non-zero, len consistency, that ToyDataset still works (Phase 1 back-compat), and that present-but-invalid raw data now raises (test_cwru_mode_raises_on_invalid_raw — landed via the codex P1 fix on PR #34).",
       "tags": [
         "test",
         "dataset",
