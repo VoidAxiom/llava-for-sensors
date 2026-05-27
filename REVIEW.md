@@ -9,7 +9,7 @@ This project is **local-dev only**. Single environment on a single M2 Max — ne
 ## Severity calibration for THIS project
 
 - **[P0]** — Drop-everything. Reserved for issues universal across any input: SQL injection, secret leak, data loss, crash-on-startup, scope-guard bypass that lets impl write Claude-only paths (see CLAUDE.md §Recurring failure classes #5). Rare.
-- **[P1]** — Must fix this cycle. Examples: divergence from packet `spec.md` source-of-truth quote, hardcoded numbers asserted as computed values (see CLAUDE.md §Evidence), tests deleted or weakened across iterations (see implementer.md §Anti-gate-gaming), a substring-anywhere path matcher where an anchored one is required (CLAUDE.md §Recurring failure classes #5), a metric-mantra rule violated (`final_val_f1` reported where the spec demands `best_val_f1`, etc.).
+- **[P1]** — Must fix this cycle. Examples: divergence from packet `spec.md` source-of-truth quote, hardcoded numbers asserted as computed values (see CLAUDE.md §Evidence), tests deleted or weakened across iterations (see implementer.md §Anti-gate-gaming), a substring-anywhere path matcher where an anchored one is required (CLAUDE.md §Recurring failure classes #5), pre-registered acceptance silently relaxed (PLAN.md §1 fixes the headline contract as `all-three > vision+text` AND p<0.05 AND non-overlapping CIs — changing any of those three conjuncts without an explicit PLAN.md update is [P1]).
 - **[P2]** — Fix eventually. Examples: missing test for a non-load-bearing helper, a determinism gap that PLAN.md §"MPS nondeterminism" already concedes, a thinly-tested adapter that the next slow gate exercises end-to-end.
 - **[P3]** — Nice to have. Naming, comment density, doc polish, minor typing tightening.
 
@@ -53,10 +53,10 @@ The reviewer-side translation of CLAUDE.md §"Recurring failure classes" and §"
   **Rationale:** CLAUDE.md §Recurring failure classes #5 — the canonical example of a forgery-prone rail.
   **Suggested action:** Canonicalize via `path.resolve`, anchor to active write root, allow only by strict prefix from the project root.
 
-- **Pattern:** Silent fallback that makes a metric pass for the wrong reason — e.g. a `_TextOnlyProcessor` that swallows a missing dependency, an `if module is None: continue` that drops a load-bearing modality.
+- **Pattern:** Silent fallback that makes a metric pass for the wrong reason — e.g. an `if module is None: continue` that drops a load-bearing modality, an `except: pass` that swallows a missing dependency and routes through a degraded path, a config flag that disables a pipeline stage without raising.
   **Severity:** [P1].
-  **Rationale:** CLAUDE.md §"Deliver a working product" — the deliverable is a live working system, not green tests. Recently bit us in P1.5: a silently-dropped vision pathway let `all-three` hit 1.000 on the wrong substrate.
-  **Suggested action:** Either remove the fallback and `raise`, or make the fallback explicit + tested + RUNNING_NOTES-documented.
+  **Rationale:** CLAUDE.md §"Deliver a working product" — the deliverable is a live working system, not green tests. A silently-dropped modality lets the `all-three` ablation condition collapse to whichever sub-condition still works, and the headline figure reports the wrong attribution.
+  **Suggested action:** Either remove the fallback and `raise`, or make the fallback explicit + tested + RUNNING_NOTES-documented. If you cite a specific incident, link the `RUNNING_NOTES.md` entry.
 
 - **Pattern:** Determinism gap — RNG / clock / unordered-dict / unstable-sort introduced in render or layout logic.
   **Severity:** [P2] (MPS nondeterminism is PLAN.md-conceded), else [P1].
@@ -107,7 +107,7 @@ Flag missing tests only where one of the load-bearing cases applies. A "thinly-t
 
 ## What lint/types/tests already catch
 
-`ruff check` is wired for `data/`, `models/`, `train/`, `eval/`; `mypy`-equivalent strictness is set via `from __future__ import annotations` + type hints throughout. `pytest` runs determinism, shape, and acceptance-gate tests on every PR via local impl gates (CLAUDE.md §Internal review loop). The merge gate also enforces: scope check (`scripts/impl-precommit-scope.sh`), codex-exec audit trail, head-pinned Codex verdict, zero unresolved review threads. **Don't waste reviewer cycles re-flagging what these already catch** — flag what they *miss*.
+`ruff check` is wired for `data/`, `models/`, `train/`, `eval/` (configured in `pyproject.toml`). Type hints + `from __future__ import annotations` are present throughout for readability, but **no static type checker is gated** — there is no `mypy` / `pyright` / `pyre` step in `pyproject.toml` or any pre-commit / CI hook. Strict-typing issues that ruff doesn't catch (subtle generic variance, `Optional` not narrowed, `Any` leaking through a public signature, signature drift between caller and callee) are reviewer territory; flag them per the severity table above. `pytest` runs determinism, shape, and acceptance-gate tests on every PR via local impl gates (CLAUDE.md §Internal review loop). The merge gate also enforces: scope check (`scripts/impl-precommit-scope.sh`), codex-exec audit trail, head-pinned Codex verdict, zero unresolved review threads. **Don't waste reviewer cycles re-flagging what these already catch** — flag what they *miss*.
 
 ## What humans add that bots can't
 
