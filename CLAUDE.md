@@ -45,7 +45,7 @@ source spec.
    ```
    Otherwise the verbatim block IS the spec — no implicit refinement.
 
-**The escalation signal.** When an impl `/codex:review` or `@codex review`
+**The escalation signal.** When an impl `/code-review` or `@codex review`
 flags a contradiction between the packet spec and the source, that is a
 CRITICAL signal. Claude (a) reads the source file immediately,
 (b) determines who's wrong (almost always Claude's packet spec),
@@ -100,7 +100,7 @@ What we DO care about: schema correctness, simulator/fixture fidelity,
 algorithmic quality, latency under load, observability. Those are
 production-realistic; they're the whole point.
 
-Codex `/codex:review` findings about "this won't be portable to other
+Codex `@codex review` (or local `/code-review`) findings about "this won't be portable to other
 envs" or "this hardcodes a value" or "no rollback path" can be closed
 by citing this section — they're not bugs in this project. The impl
 should add the rationale inline per the implementer.md § 8e re-review
@@ -186,7 +186,7 @@ Per packet, Claude spawns an `implementer` subagent (Task tool,
 implementer's tools list omits `Edit`/`Write`/`MultiEdit`; it dispatches
 `codex exec` workers via `scripts/codex-run.sh worker <run-id> <task-file>`
 to produce code changes. **Codex is the only writer of production code.** The
-implementer also runs local gates, drives the `/codex:review` loop until
+implementer also runs local gates, drives the `/code-review` loop until
 clean, commits within the packet allowlist, pushes, opens the PR, and drives
 the `@codex review` eye-emoji loop including thread resolution. See
 `.claude/agents/implementer.md` for the full Impl Contract.
@@ -251,7 +251,7 @@ Linear is the planning ledger. GitHub is the delivery ledger. Per packet:
 5. **Wait for the impl's "notify-done — ready for pre-PR check" message.**
    The impl runs the Impl Contract entirely in its worktree
    (see `.claude/agents/implementer.md`): inner loop of codex-run → gates →
-   `/codex:review` until VERDICT: correct → stage within allowlist →
+   `/code-review` until VERDICT: correct → stage within allowlist →
    `impl-precommit-scope.sh --cached` → commit. The impl does NOT push or
    open a PR before notifying you.
 
@@ -389,34 +389,139 @@ Per change:
 
 ## Internal review loop
 
-The impl's local `/codex:review` IS the primary net. Not optional. The
-GitHub `@codex review` that runs after PR open is the **backstop**, never
-the primary. Before any push, the implementer subagent MUST run:
+One local reviewer + one PR reviewer = cross-family adversarial
+coverage with minimum friction. Claude (Opus 4.7 via the built-in
+`/code-review` slash command) is the local reviewer; Codex
+(`@codex review` after push) is the PR reviewer. Different families,
+different surfaces (local diff vs PR commit), different lenses. One
+plugin runs silently in the background for security hygiene.
+
+**1. `/code-review --effort high` (Claude Code built-in, blocking,
+local).** Runs on the impl's working-tree diff BEFORE commit.
+Subscription-covered via OAuth (not metered API spend). Posts
+severity-tagged findings in the P0/P1/P2/P3 scheme. The impl reads
+the verdict, fixes `[P0]`/`[P1]` mandatory, judges `[P2]`. Iterate
+until VERDICT: correct (or `NO BLOCKING ISSUES`). Pushing first and
+letting the PR `@codex` bot find what local review would have caught
+is the exact failure this rail prevents.
+
+The impl's own `/code-review` is the load-bearing local gate for
+production code; the rule extends to Claude when Claude is in the
+implementer role for its own scope (rails / scripts / hooks / docs).
+
+**2. `@codex review` on the PR (gpt-5.5, blocking via the merge gate).**
+Cross-family vs Claude's local reviewer. Runs after push as the
+official PR-level reviewer; its head-pinned verdict is part of the
+merge gate. The impl drives the eye-emoji loop per § 7 + § 8e of
+`.claude/agents/implementer.md`.
+
+**3. `/security-review` (Claude Code plugin, auto-running,
+non-blocking).** Install once via
+`claude plugin install security-guidance@claude-plugins-official`.
+Runs silently per-edit + on commit / push; auto-fixes flagged
+vulnerabilities in the same session. No invocation needed; treated as
+background hygiene.
+
+**Deprecated:** the previous local-codex reviewer (`/codex:review`,
+`scripts/codex-review.sh`, `codex-companion.mjs`) is deprecated as
+of this section. The script + plugin stay installed for anyone who
+wants to run codex locally on demand, but the impl loop no longer
+requires it — codex review happens once, on the PR, via `@codex review`.
+Same logic on the PR side: there is **no** PR-level `@claude review`
+in this project — Claude's PR-reviewer GH-Actions workflow is
+disabled at the trigger level (kept on `main` as `on: workflow_dispatch`
+for documentation; never fires automatically).
+
+**GH connector hygiene (avoid phantom cloud tasks).** Any `@codex` PR
+comment other than the two accepted trigger forms below spawns a Codex
+cloud task that narrates sandbox commits/PRs which do **NOT** land in
+this repo. The accepted trigger forms:
+
+1. **First review** (initial PR review request): a bare standalone
+   **`@codex review`** and nothing else.
+2. **Re-review** (after a fix iteration on the same PR): a comment
+   whose first line is exactly `@codex review`, followed by the
+   rationale block per `.claude/agents/implementer.md` § 8e —
+   a "Changes since last review" enumeration and a "Not changed
+   deliberately" enumeration. The rationale block prevents the
+   reviewer from re-raising findings the impl already addressed.
+
+Patterns that are NOT trigger forms:
+- Fix narration (acknowledging a finding without re-running review) →
+  comment with **NO** `@codex` mention; resolve the thread.
+- Free-form `@codex …` mentions inside prose, code blocks, or thread
+  replies → phantom-cloud-task vectors. Don't.
+
+Treat the connector as an adversarial *reader* only — act on its
+findings text; never on its self-reported commits/PRs/tests; verify
+repo state if in doubt (`gh pr list --state all`,
+`gh api …/commits/<sha>`).
+
+**Claude is NOT a PR-level reviewer in this project.** The GH-Actions
+workflow at `.github/workflows/claude-review.yml` is kept on `main`
+for documentation but is disabled (`on: workflow_dispatch`, manual-
+only). Claude's reviewer role is exercised LOCALLY in the impl loop
+via the built-in Claude Code slash command `/code-review --effort
+high` (subscription-covered, runs against the impl's working-tree
+diff). See § "Internal review loop" below for the full local-reviewer
+stack.
+
+**`@codex review` re-trigger guard — the 👍 skip rule.** Codex's no-issues
+verdicts contain `:+1:` (👍) in the review comment body. Before posting
+**any** `@codex review` re-trigger, check the most recent codex bot
+comment/review on the current PR head:
+- If it contains 👍 / `:+1:` → it's a head-pinned no-issues verdict;
+  **do NOT post `@codex review`.** The PR is review-clean for the current
+  head; further codex calls just burn cycles and risk flaky non-deterministic
+  flips.
+- If no codex comment exists on the current head, or the most recent
+  comment lacks 👍 → re-trigger is legitimate.
+- A new commit pushed after a 👍 invalidates the 👍 (it was about the old
+  head); the next re-trigger is allowed.
+
+Check before triggering — delegate to the canonical helper, which
+queries BOTH shapes (issue comments + PR Reviews) AND pins each
+verdict to the current head SHA (`review.commit.oid == headRefOid`):
 
 ```bash
-node "$CLAUDE_PLUGIN_ROOT/scripts/codex-companion.mjs" review --wait
+bash scripts/review-gate.sh status "$PR" | grep -qE '^GATE: CLEAN( |$)' && echo "skip" || echo "ok-to-trigger"
 ```
 
-(Or the in-repo fallback `bash scripts/codex-review.sh <run-id>` if the
-Codex Code plugin is not installed.) Read the verdict. Fix `[P0]`/`[P1]`
-mandatory; judge `[P2]`. Iterate until VERDICT: correct (or `NO BLOCKING
-ISSUES`). Pushing first and letting the GH `@codex` bot find what local
-review would have caught is the exact failure this rail prevents.
+`GATE: CLEAN` means there is a head-pinned Codex review on the current
+head, zero unresolved threads, and `mergeStateStatus = CLEAN`. Anything
+else (`BLOCKED`, `CLEAN-COMMENT-MANUAL`, etc.) is ok-to-trigger.
 
-The impl's own `/codex:review` is the load-bearing gate for production
-code; this rule extends to Claude when Claude is in the implementer role
-for its own scope (rails / scripts / hooks / docs). `/codex:review` runs
-`gpt-5.5` by default — cross-family relative to the
-`gpt-5.3-codex-spark` worker, so its findings catch what the worker missed.
+**Caveat — when CLEAN is NOT a real clean verdict** (P1 hole codex
+correctly flagged on PR #23 round 4): Codex posts findings as a
+*Review* (head-pinned, body lists the findings) plus per-line review
+comments. When Claude resolves those threads on a "rationale" /
+"not changed deliberately" basis WITHOUT a fresh codex re-review,
+the gate flips to CLEAN because the mechanical conditions are
+satisfied (review is on head, threads are resolved, mss is CLEAN) —
+but Codex never agreed with the rationale. So:
 
-**GH connector hygiene (avoid phantom cloud tasks).** ANY `@codex` PR
-comment that is not EXACTLY `@codex review` spawns a Codex cloud task that
-narrates sandbox commits/PRs which do **NOT** land in this repo. So:
-- Fix narration → comment with **NO** `@codex` mention; resolve the thread.
-- Re-review → a bare standalone **`@codex review`** and nothing else.
-- Treat the connector as an adversarial *reader* only — act on its
-  findings text; never on its self-reported commits/PRs/tests; verify repo
-  state if in doubt (`gh pr list --state all`, `gh api …/commits/<sha>`).
+- If you're skipping changes on a finding ("not changed deliberately"),
+  re-trigger via the §8e re-review format AFTER resolving the threads
+  so Codex gets a chance to reject your rationale. Don't trust
+  `GATE: CLEAN` after pure thread resolution.
+- The mechanically robust path is: push → bare `@codex review`
+  trigger → wait for codex's verdict (findings → fix → re-trigger
+  with §8e block; no findings → CLEAN-COMMENT-MANUAL with a clean
+  comment post-dating the current head).
+
+The one-liner above is sufficient for the "Codex posted no findings
+since the most recent push" case, but always trips through the
+`/code-review` local pass first to surface anything codex might
+not catch.
+
+A hand-rolled one-liner over `issues/<n>/comments` is **not** sufficient:
+- It misses Codex Reviews (the common no-issues shape after a fix
+  iteration) — fails open on stale-Review verdicts.
+- It doesn't pin to head SHA — a new commit after a 👍 still finds the
+  old 👍 in the comments list and skips, contradicting the doctrine bullet
+  above ("a new commit pushed after a 👍 invalidates the 👍").
+
+Always delegate to `scripts/review-gate.sh status`. Don't hand-roll.
 
 **Detecting the Codex verdict — use the canonical tool, never hand-roll.**
 The Codex bot interacts with PRs in two shapes — both must be tracked:
@@ -530,9 +635,36 @@ entry, reconciled by rebase at fan-in. If work isn't genuinely disjoint, it
 isn't a parallel packet — engineer the seam (Claude-owned arch) first.
 
 **Fan-in = Claude judgement only.** Mechanical (typecheck/tests/build,
-local /codex:review, eye-emoji loop) lives inside the implementer's Impl
+local /code-review, eye-emoji loop) lives inside the implementer's Impl
 Contract. Claude's serial time is the pre-PR scope check + audit-trail
 check, the merge-time re-gate, and the squash-merge.
+
+**Impl silent-death — RE-DISPATCH, never take over.** The Claude Code
+subagent framework occasionally exits an implementer early after the impl
+dispatched a codex worker but before the impl ran gates / staged /
+committed / pushed. The visible symptom: codex-run artifacts present
+(`exit_code.txt`, `git_diff.patch`), files modified in the worktree, but
+no commit, no PR comment, and no notify-done message to Claude. The
+INSTINCT is to take over the gates/commit/push/PR sequence from the
+worktree — that violates the doctrine and accumulates Claude-as-impl
+work that isn't audit-traced to the implementer contract.
+
+The CORRECT response:
+1. Confirm the codex worker fully exited (`exit_code.txt` present).
+2. Re-dispatch a fresh `implementer` subagent with a continuation prompt
+   that points at the worktree, names the completed codex run id(s),
+   says "the codex worker for `voi-N-rK` exited successfully — your job
+   starts at step 3 of the Impl Contract (run gates, stage, commit,
+   notify Claude)", and references the spec.
+3. The fresh impl runs gates, commits, and notifies — exactly the
+   contract path. The audit trail stays intact (only impl-driven
+   commits within the allowlist).
+
+Do NOT manually run `uv run pytest` + `git add` + `git commit` + `git
+push` from Claude as a shortcut. The pattern is the failure mode, not
+the speed-up. Re-dispatch costs ~30s of overhead; protects the
+delegation-first contract. The `.claude/agents/implementer.md`
+subagent contract documents the continuation prompt shape.
 
 **The flywheel.** A subagent miss is a *system* signal, not just a patch.
 Every recurring fan-in fix → generalize the rule and fold it into

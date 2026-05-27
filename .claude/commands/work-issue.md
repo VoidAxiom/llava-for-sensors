@@ -34,7 +34,7 @@ Steps:
    the primary's port), packet allowlist file path.
 4. **Wait for the impl's "notify-done"** message. The impl runs the Impl
    Contract (`.claude/agents/implementer.md`): inner loop of codex-run →
-   gates → `/codex:review` until VERDICT: correct → stage within allowlist
+   gates → `/code-review` until VERDICT: correct → stage within allowlist
    → `impl-precommit-scope.sh --cached` → commit. Impl does NOT push or
    open PR yet.
 5. **Pre-PR scope check.**
