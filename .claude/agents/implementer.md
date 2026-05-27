@@ -4,7 +4,7 @@ description: >-
   Per-packet worker subagent. Runs in its own filesystem worktree with NO
   Edit/Write/MultiEdit tools — code writes go through `codex exec` only.
   Dispatches workers via `scripts/codex-run.sh`, runs local gates and the
-  `/codex:review` loop until clean, commits within the packet allowlist,
+  `/code-review` loop until clean, commits within the packet allowlist,
   pushes, opens the PR, drives the `@codex review` eye-emoji loop including
   thread resolution, and notifies the parent Claude on REVIEWED-CLEAN or
   CLEAN-COMMENT-MANUAL. Spawned per packet via the Task tool.
@@ -59,7 +59,7 @@ If your project has a dev server (e.g., Vite), boot it with `--strictPort` so it
 ## Doctrine
 
 A correct mechanical write is the floor, not the ceiling. Your job ends only when:
-1. **`/codex:review` (local)** returns VERDICT: correct (or "NO BLOCKING ISSUES") against the codex-exec-produced diff,
+1. **`/code-review` (local Claude reviewer)** returns VERDICT: correct (or "NO BLOCKING ISSUES") against the codex-exec-produced diff,
 2. **Claude approves** the diff via the pre-PR mechanical scope check + audit-trail check,
 3. **the GitHub codex bot** returns a head-pinned clean verdict against your PR head, and
 4. **Claude reruns the final-head packet+role scope gate + audit-trail check** at merge time.
@@ -172,47 +172,38 @@ TODO
 
 Any failure → write a fix task.md describing the failing gate output, re-dispatch codex-run (new `$RUN_ID`), re-verify. Loop until all gates pass.
 
-### 4. Self-run two local reviewers (cross-family gate)
+### 4. Self-run local /code-review (Claude cross-family gate)
 
-Two local reviewers run against the working-tree diff before commit;
-each must verdict clean on `[P0]`/`[P1]`. Cross-family adversarial: one
-is OpenAI Codex (gpt-5.5), the other is Claude Code (Opus 4.7). Run
-them in parallel via Bash background jobs:
+One local reviewer runs against the working-tree diff before commit:
+the built-in Claude Code `/code-review` slash command (Opus 4.7).
+Cross-family vs the codex worker that wrote the code; subscription-
+covered via OAuth (not metered API spend).
 
 ```bash
-# Reviewer 1 — Codex, cross-family vs the gpt-5.5-codex worker
-node "$CLAUDE_PLUGIN_ROOT/scripts/codex-companion.mjs" review --wait > /tmp/codex-review.out 2>&1 &
-CODEX_PID=$!
-
-# Reviewer 2 — Claude Code built-in /code-review
-claude --print --model claude-opus-4-7 /code-review --effort high > /tmp/code-review.out 2>&1 &
-CLAUDE_PID=$!
-
-wait $CODEX_PID $CLAUDE_PID
-
-# Read both verdicts
-cat /tmp/codex-review.out
-cat /tmp/code-review.out
+claude --print --model claude-opus-4-7 /code-review --effort high
 ```
-
-If the Codex Code plugin is not installed, the in-repo fallback is
-`bash scripts/codex-review.sh "$RUN_ID"`. The Claude Code `/code-review`
-command is built-in (no install).
 
 In addition, the **`/security-review` plugin** runs silently in the
 background per-edit and on each commit if installed
 (`claude plugin install security-guidance@claude-plugins-official`). No
 invocation needed; treated as background hygiene.
 
-Read each reviewer's verdict. Three outcomes:
-- **BOTH return VERDICT: correct** (or `NO BLOCKING ISSUES`) → proceed to step 5.
-- **Either returns findings** (`[P0..P3]` entries with file:line refs) → write a fix `task.md` that quotes the findings verbatim, dispatch a new codex-run worker on it, then re-run gates (step 3) and re-run BOTH local reviewers (step 4). Loop until both clean.
-- **Reviewers disagree** (one CLEAN, one finds [P0/P1]) → trust the finder. Cross-family disagreement is signal; never silence one reviewer to align with the other.
+Read the verdict. Two outcomes:
+- **VERDICT: correct** (or `NO BLOCKING ISSUES`) → proceed to step 5.
+- **Findings** (`[P0..P3]` entries with file:line refs) → write a fix `task.md` that quotes the findings verbatim, dispatch a new codex-run worker on it, then re-run gates (step 3) and re-run `/code-review` (step 4). Loop until clean.
 
-Anti-gate-gaming rules (YOUR responsibility — reviewers will not enforce them):
+Codex's verdict comes later on the PR (`@codex review` after push, step
+7) and is the official PR-level second reviewer (cross-family vs
+Claude's local). **The previous local `/codex:review` reviewer is
+deprecated** — `scripts/codex-review.sh` and the Codex Code plugin's
+`codex-companion.mjs` review subcommand remain installed for ad-hoc
+use, but the impl loop no longer runs them. See CLAUDE.md §"Internal
+review loop" for the rationale.
+
+Anti-gate-gaming rules (YOUR responsibility — `/code-review` will not enforce them):
 - **Tests you cannot weaken.** If a fix task makes codex delete, skip, `xfail`, or shrink a test to pass a gate, REJECT codex's output and notify Claude. The bytes of tracked test files (`**/*.test.*`, `**/*.spec.*`) must not shrink across iterations.
-- **Review tooling you cannot touch.** If either reviewer flags something and the proposed fix edits `scripts/codex-{review,run}.sh`, `hooks/write-scope-guard.mjs`, `scripts/impl-precommit-scope.sh`, or any local reviewer's prompt/config, REJECT and notify Claude. The gate cannot be self-modified.
-- **Out-of-scope classes you cannot fix.** If either reviewer raises taste / architecture / domain / redesign / product-decision: STOP, notify Claude. Don't ask codex to guess.
+- **Review tooling you cannot touch.** If `/code-review` flags something and the proposed fix edits `scripts/codex-{review,run}.sh`, `hooks/write-scope-guard.mjs`, `scripts/impl-precommit-scope.sh`, or any local reviewer's prompt/config, REJECT and notify Claude. The gate cannot be self-modified.
+- **Out-of-scope classes you cannot fix.** If `/code-review` raises taste / architecture / domain / redesign / product-decision: STOP, notify Claude. Don't ask codex to guess.
 
 ### 5. Commit + notify Claude (pre-PR review loop, your side)
 
@@ -251,7 +242,7 @@ Then notify Claude with:
 - the commit SHA(s) on your branch
 - the diff-vs-main (`git diff --stat origin/main...HEAD` output)
 - final gate output (`TODO` / `TODO` / `TODO` if defined)
-- final local `/codex:review` verdict
+- final local `/code-review` verdict
 - the branch name + worktree location
 - the list of codex-run packet IDs in `.codex-runs/` for this branch (so Claude can audit the worker transcripts)
 - explicit statement: "git status is clean; the committed diff vs origin/main IS the diff I want Claude to review."
@@ -259,7 +250,7 @@ Then notify Claude with:
 Do NOT push and do NOT open the PR yet. Claude runs the authoritative pre-PR scope check and audit-trail check next.
 
 Claude will return one of:
-- **REQUEST CHANGES** — Claude found something out-of-packet-scope or an audit-trail miss. You go back to step 2, run the FULL loop again (steps 2 → 3 → 4 → 5). `/codex:review` local re-runs each time; no shortcuts.
+- **REQUEST CHANGES** — Claude found something out-of-packet-scope or an audit-trail miss. You go back to step 2, run the FULL loop again (steps 2 → 3 → 4 → 5). `/code-review` local re-runs each time; no shortcuts.
 - **APPROVE** — proceed to step 6.
 
 ### 6. Push + create the PR

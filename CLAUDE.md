@@ -45,7 +45,7 @@ source spec.
    ```
    Otherwise the verbatim block IS the spec — no implicit refinement.
 
-**The escalation signal.** When an impl `/codex:review` or `@codex review`
+**The escalation signal.** When an impl `/code-review` or `@codex review`
 flags a contradiction between the packet spec and the source, that is a
 CRITICAL signal. Claude (a) reads the source file immediately,
 (b) determines who's wrong (almost always Claude's packet spec),
@@ -100,7 +100,7 @@ What we DO care about: schema correctness, simulator/fixture fidelity,
 algorithmic quality, latency under load, observability. Those are
 production-realistic; they're the whole point.
 
-Codex `/codex:review` findings about "this won't be portable to other
+Codex `@codex review` (or local `/code-review`) findings about "this won't be portable to other
 envs" or "this hardcodes a value" or "no rollback path" can be closed
 by citing this section — they're not bugs in this project. The impl
 should add the rationale inline per the implementer.md § 8e re-review
@@ -186,7 +186,7 @@ Per packet, Claude spawns an `implementer` subagent (Task tool,
 implementer's tools list omits `Edit`/`Write`/`MultiEdit`; it dispatches
 `codex exec` workers via `scripts/codex-run.sh worker <run-id> <task-file>`
 to produce code changes. **Codex is the only writer of production code.** The
-implementer also runs local gates, drives the `/codex:review` loop until
+implementer also runs local gates, drives the `/code-review` loop until
 clean, commits within the packet allowlist, pushes, opens the PR, and drives
 the `@codex review` eye-emoji loop including thread resolution. See
 `.claude/agents/implementer.md` for the full Impl Contract.
@@ -251,7 +251,7 @@ Linear is the planning ledger. GitHub is the delivery ledger. Per packet:
 5. **Wait for the impl's "notify-done — ready for pre-PR check" message.**
    The impl runs the Impl Contract entirely in its worktree
    (see `.claude/agents/implementer.md`): inner loop of codex-run → gates →
-   `/codex:review` until VERDICT: correct → stage within allowlist →
+   `/code-review` until VERDICT: correct → stage within allowlist →
    `impl-precommit-scope.sh --cached` → commit. The impl does NOT push or
    open a PR before notifying you.
 
@@ -389,34 +389,31 @@ Per change:
 
 ## Internal review loop
 
-Three local reviewers run on the impl's working-tree diff before any
-push. Cross-family adversarial coverage is the goal: each reviewer has
-a different model family (and a different lens) than the codex worker
-that wrote the code, so each catches things the others miss.
+One local reviewer + one PR reviewer = cross-family adversarial
+coverage with minimum friction. Claude (Opus 4.7 via the built-in
+`/code-review` slash command) is the local reviewer; Codex
+(`@codex review` after push) is the PR reviewer. Different families,
+different surfaces (local diff vs PR commit), different lenses. One
+plugin runs silently in the background for security hygiene.
 
-**1. `/codex:review` (primary, blocking).** Default model `gpt-5.5`,
-cross-family vs the `gpt-5.5-codex` worker. Invoke via the Codex Code
-plugin:
+**1. `/code-review --effort high` (Claude Code built-in, blocking,
+local).** Runs on the impl's working-tree diff BEFORE commit.
+Subscription-covered via OAuth (not metered API spend). Posts
+severity-tagged findings in the P0/P1/P2/P3 scheme. The impl reads
+the verdict, fixes `[P0]`/`[P1]` mandatory, judges `[P2]`. Iterate
+until VERDICT: correct (or `NO BLOCKING ISSUES`). Pushing first and
+letting the PR `@codex` bot find what local review would have caught
+is the exact failure this rail prevents.
 
-```bash
-node "$CLAUDE_PLUGIN_ROOT/scripts/codex-companion.mjs" review --wait
-```
+The impl's own `/code-review` is the load-bearing local gate for
+production code; the rule extends to Claude when Claude is in the
+implementer role for its own scope (rails / scripts / hooks / docs).
 
-Or the in-repo fallback `bash scripts/codex-review.sh <run-id>` if the
-plugin is not installed. Read the verdict. Fix `[P0]`/`[P1]` mandatory;
-judge `[P2]`. Iterate until VERDICT: correct (or `NO BLOCKING ISSUES`).
-Pushing first and letting the GH `@codex` bot find what local review
-would have caught is the exact failure this rail prevents.
-
-**2. `/code-review --effort high` (Claude Code built-in, blocking).**
-Local Claude reviewer running Opus 4.7 against the same diff.
-Subscription-covered (OAuth-backed; not metered API spend). Posts
-severity-tagged findings in the same scheme. The impl reads the
-verdict, fixes `[P0]`/`[P1]`, judges `[P2]`. Iterate until clean. This
-replaces the previous GH-Actions `@claude review` PR-level pattern —
-PR-level Claude reviewer is disabled at the workflow level (kept on
-`main` as `on: workflow_dispatch` for documentation; never fires
-automatically).
+**2. `@codex review` on the PR (gpt-5.5, blocking via the merge gate).**
+Cross-family vs Claude's local reviewer. Runs after push as the
+official PR-level reviewer; its head-pinned verdict is part of the
+merge gate. The impl drives the eye-emoji loop per § 7 + § 8e of
+`.claude/agents/implementer.md`.
 
 **3. `/security-review` (Claude Code plugin, auto-running,
 non-blocking).** Install once via
@@ -425,13 +422,15 @@ Runs silently per-edit + on commit / push; auto-fixes flagged
 vulnerabilities in the same session. No invocation needed; treated as
 background hygiene.
 
-The impl's own `/codex:review` + `/code-review` are the load-bearing
-gates for production code; the rule extends to Claude when Claude is
-in the implementer role for its own scope (rails / scripts / hooks /
-docs). GitHub `@codex review` that runs after PR open is the
-**backstop**, never the primary. There is **no** PR-level `@claude
-review` in this project — Claude's PR-reviewer GH-Actions workflow is
-disabled.
+**Deprecated:** the previous local-codex reviewer (`/codex:review`,
+`scripts/codex-review.sh`, `codex-companion.mjs`) is deprecated as
+of this section. The script + plugin stay installed for anyone who
+wants to run codex locally on demand, but the impl loop no longer
+requires it — codex review happens once, on the PR, via `@codex review`.
+Same logic on the PR side: there is **no** PR-level `@claude review`
+in this project — Claude's PR-reviewer GH-Actions workflow is
+disabled at the trigger level (kept on `main` as `on: workflow_dispatch`
+for documentation; never fires automatically).
 
 **GH connector hygiene (avoid phantom cloud tasks).** ANY `@codex` PR
 comment that is not EXACTLY `@codex review` spawns a Codex cloud task
@@ -603,7 +602,7 @@ entry, reconciled by rebase at fan-in. If work isn't genuinely disjoint, it
 isn't a parallel packet — engineer the seam (Claude-owned arch) first.
 
 **Fan-in = Claude judgement only.** Mechanical (typecheck/tests/build,
-local /codex:review, eye-emoji loop) lives inside the implementer's Impl
+local /code-review, eye-emoji loop) lives inside the implementer's Impl
 Contract. Claude's serial time is the pre-PR scope check + audit-trail
 check, the merge-time re-gate, and the squash-merge.
 
