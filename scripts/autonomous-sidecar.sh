@@ -55,9 +55,22 @@ except Exception:
 # Usage: _paginate_json <url> → one merged JSON array on stdout (or "[]"
 # on any error). Caller can pipe through `python3 -c` for filtering.
 _paginate_json() {
-  gh api --paginate "$1" 2>/dev/null | python3 -c '
+  # Capture gh output to a temp file so a gh failure doesn't get fed
+  # to python (which would still print `[]` on empty input AND let the
+  # outer `|| echo "[]"` fire too — producing `[]\n[]` on the caller's
+  # stdin and breaking the downstream `json.load` parse). One round-trip
+  # through a temp file lets us check `gh`'s exit code before parsing
+  # and emit exactly one `[]` on any failure.
+  local tmp
+  tmp=$(mktemp 2>/dev/null) || { echo "[]"; return 0; }
+  if ! gh api --paginate "$1" >"$tmp" 2>/dev/null; then
+    rm -f "$tmp"
+    echo "[]"
+    return 0
+  fi
+  python3 -c '
 import json, sys
-text = sys.stdin.read().strip()
+text = open(sys.argv[1]).read().strip()
 if not text:
     print("[]"); sys.exit(0)
 decoder = json.JSONDecoder()
@@ -76,7 +89,8 @@ while idx < len(text):
         merged.append(obj)
     idx += end
 print(json.dumps(merged))
-' 2>/dev/null || echo "[]"
+' "$tmp" 2>/dev/null || echo "[]"
+  rm -f "$tmp"
 }
 
 # ── ALWAYS fetch latest main from origin (every tick, no exception) ──
@@ -140,8 +154,16 @@ if [ -n "$prev_main_sha" ] && [ "$prev_main_sha" != "$cur_main_sha" ]; then
     done <<< "$new_merges"
   fi
 fi
-# Update marker for next tick (even if unchanged, so first-run captures).
-echo "$cur_main_sha" > "$LAST_MAIN_MARKER"
+# Update marker for next tick — but only when there's nothing new to act
+# on. If we just emitted ACT-NOW for newly-merged PRs and the turn dies
+# before Claude dispatches the unblocked work, advancing the marker now
+# would hide those merges on the backup tick and defeat the retry path
+# (the success-marker skip wouldn't fire either because Claude never
+# wrote it). Leave the marker on the old SHA so the next tick re-detects
+# the merges; advance it only on a quiet tick (no new merges this turn).
+if [ -z "$merged_voi_list" ]; then
+  echo "$cur_main_sha" > "$LAST_MAIN_MARKER"
+fi
 echo
 
 # ── packets (per-worktree + per-PR, condensed) ──
