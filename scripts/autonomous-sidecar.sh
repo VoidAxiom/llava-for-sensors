@@ -156,7 +156,22 @@ for p in json.load(sys.stdin):
     last_commit=$(git -C "$wt" log -1 --format=%ct 2>/dev/null || echo 0)
     newest_run=0
     if [ -d "$wt/.codex-runs" ]; then
-      newest_run=$(find "$wt/.codex-runs" -type f -print0 2>/dev/null | xargs -0 stat -f '%m' 2>/dev/null | sort -nr | head -1)
+      # Portable mtime via python3 — BSD `stat -f %m` and GNU `stat -c %Y`
+      # differ in flag conventions, and the prior `stat -f %m` path silently
+      # emitted filesystem-status text on GNU stat, breaking the numeric
+      # comparison and mis-classifying active impls as stalled.
+      newest_run=$(find "$wt/.codex-runs" -type f -print0 2>/dev/null \
+        | python3 -c 'import os, sys
+chunks = sys.stdin.buffer.read().split(b"\0")
+best = 0
+for p in chunks:
+    if not p: continue
+    try:
+        m = int(os.path.getmtime(p.decode("utf-8", "surrogateescape")))
+        if m > best: best = m
+    except Exception:
+        pass
+print(best)' 2>/dev/null || echo 0)
       newest_run=${newest_run:-0}
     fi
     last_local=$last_commit
