@@ -7,37 +7,51 @@
 // container that emits class logits.
 //
 // Source of truth alignment:
-//   - models/encoder.py::ToyTSEncoder    (Phase 1 toy 1D-CNN)
+//   - models/encoder.py::ToyTSEncoder    (Phase 2 PatchTST — class name kept
+//                                          for caller stability; internals
+//                                          swapped per PLAN.md §"Phase 2 —
+//                                          Real time-series encoder")
 //   - models/fusion.py::FusionAdapter    (cross-attention adapter)
 //   - models/vlm.py::load_frozen_vlm_with_lora  (Qwen2-VL-2B + LoRA)
 //
-// Phase 2 swaps the toy encoder for PatchTST/Moment-small; the *interface
-// contract* (sensor window → (B, 32, 512) patches) stays the same so the
-// fusion adapter is unaffected.
+// Phase 1 used a toy 1D-CNN (Conv1d stack + Linear projection). Phase 2
+// swapped that for hand-rolled minimal PatchTST per spec at
+// `.codex-runs/voi-203/spec.md` — the (B, 32, 512) interface contract
+// consumed by the fusion adapter is preserved verbatim; only the
+// internals changed. See https://arxiv.org/abs/2211.14730 for the
+// PatchTST paper.
 
 model {
   extend llava.ts_encoder {
-    conv_stack = component 'Conv Stack' {
+    patch_embed = component 'Patch Embedding' {
       description '
-        Three Conv1d layers with GELU activations downsample the
-        2048-sample mono window to 32 patches of d=256:
-        Conv1d(1→64, k=8, s=8) → GELU → Conv1d(64→128, k=4, s=4)
-        → GELU → Conv1d(128→256, k=2, s=2) → GELU. All trainable.
-        Phase 2 replaces this with PatchTST or Moment-small while
-        preserving the (B, 32, 256) intermediate shape.
+        Patchify the 2048-sample mono window into 32 non-overlapping
+        64-sample patches and embed each to d_model = 512:
+        reshape (B, 2048) → (B, 32, 64), then `nn.Linear(64 → 512)`.
+        Output: (B, 32, 512). Trainable.
       '
     }
 
-    patch_proj = component 'Patch Linear Projection' {
+    pos_embed = component 'Positional Embedding' {
       description '
-        Linear(256 → 512) projection mapping conv-stack patches into the
-        encoder output dim. Output: (B, 32, 512) — 32 sensor patches at
-        d_enc=512. Pinned interface contract consumed by the fusion
-        adapter. Trainable.
+        Learned positional embedding `nn.Parameter` of shape
+        (1, 32, 512), zero-initialised, added to the patch-embedded
+        tokens to encode patch order along the time axis. Trainable.
       '
     }
 
-    conv_stack -> patch_proj '(B, 32, 256)'
+    transformer_stack = component 'Transformer Encoder · 2 layers, 8 heads' {
+      description '
+        Two `nn.TransformerEncoderLayer` blocks (d_model=512, n_heads=8,
+        d_ff=2048, dropout=0.1) over the 32 patch tokens. Per-patch
+        hidden state at d_model=512 is the encoder output: (B, 32, 512).
+        Pinned interface contract consumed by the fusion adapter.
+        Trainable.
+      '
+    }
+
+    patch_embed -> pos_embed '(B, 32, 512) patch tokens'
+    pos_embed -> transformer_stack '(B, 32, 512) + learned positions'
   }
 
   extend llava.fusion {
@@ -133,7 +147,7 @@ model {
   //   ts_encoder -> fusion -> vlm
   // at the container granularity. The component-level edges below trace
   // the same flow at finer resolution.
-  patch_proj -> kv_proj_layer 'encoder patches (B, 32, 512)'
+  transformer_stack -> kv_proj_layer 'encoder patches (B, 32, 512)'
   fusion_mlp -> llm_backbone 'sensor tokens (B, 16, 1536) prepended to inputs_embeds'
 }
 

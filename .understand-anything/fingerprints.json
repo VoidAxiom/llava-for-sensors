@@ -1,16 +1,16 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "bae8e0b68edf392fe2ee9bf540163338f35e3816",
-  "generatedAt": "2026-05-27T04:42:48.394Z",
+  "gitCommitHash": "e9f476b76c52a80dfc4cf701f4588ca8184a3fb3",
+  "generatedAt": "2026-05-27T10:11:37.566Z",
   "files": {
     ".claude/agents/implementer.md": {
       "filePath": ".claude/agents/implementer.md",
-      "contentHash": "c91dc78b5ad34a7274ef26342ca795db81fd8b2f4d7e4341b016c1a34ceb08c9",
+      "contentHash": "d45e0a3d1a0a9385b9afa8668bf9e5755ee6a14cd95f7a717dce5607c3a3ead7",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 384,
+      "totalLines": 400,
       "hasStructuralAnalysis": true
     },
     ".claude/commands/review-gate.md": {
@@ -25,7 +25,7 @@
     },
     ".claude/commands/work-issue.md": {
       "filePath": ".claude/commands/work-issue.md",
-      "contentHash": "b4d3e2f172053e4a172771b4f5e052f127f57edce4808742062c074d9d3d45e9",
+      "contentHash": "c5b6090a06e8fe56f51f94033dfae5bf60f417c10bbd486246f6311b40841fc9",
       "functions": [],
       "classes": [],
       "imports": [],
@@ -35,12 +35,12 @@
     },
     ".claude/settings.json": {
       "filePath": ".claude/settings.json",
-      "contentHash": "af7f455937ceb2df72672936a166612a8a84fe32874f527300d033f804dbbbe5",
+      "contentHash": "abeb363f3c16a92cae9c4e9780a8bdfb42e38f2ac7f754e0d00aa3d6251624a0",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 147,
+      "totalLines": 148,
       "hasStructuralAnalysis": true
     },
     ".codex/DELEGATION.md": {
@@ -95,12 +95,12 @@
     },
     "architecture/component.c4": {
       "filePath": "architecture/component.c4",
-      "contentHash": "395204379ccc31cc7ed271e707e9b280c018cf2aed582b726d92a7bff2f5a7e9",
+      "contentHash": "bc81e328e8970ef0d0b1bbbbf31caa469f682d8337db433e276b9b20de4db9e6",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 168,
+      "totalLines": 182,
       "hasStructuralAnalysis": false
     },
     "architecture/container.c4": {
@@ -125,12 +125,12 @@
     },
     "CLAUDE.md": {
       "filePath": "CLAUDE.md",
-      "contentHash": "ab049f18898d5cb236556ea7cb39bbe4052a56dff9a7c71b9bb38bf8c8a1404c",
+      "contentHash": "7250a83ee1d3d8d179d234ededefab2f36bb5933f4ac1a6ccd9636163c5e727d",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 578,
+      "totalLines": 710,
       "hasStructuralAnalysis": true
     },
     "data/__init__.py": {
@@ -580,22 +580,22 @@
     },
     "docs/architecture/component_models.mmd": {
       "filePath": "docs/architecture/component_models.mmd",
-      "contentHash": "40ee273ffd1aa38bc357a89c49d5942354418c2cb24350322dad45305531d36b",
+      "contentHash": "b8c86fd63d48827de8d35a39eaabacd6ceef5922301b1b86481627fedf80af62",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 32,
+      "totalLines": 34,
       "hasStructuralAnalysis": false
     },
     "docs/architecture/component_ts_encoder.mmd": {
       "filePath": "docs/architecture/component_ts_encoder.mmd",
-      "contentHash": "e44ba79a4920c57cfc98a208a05a730e91e358c8a6e2bb2c75c882b6aaca18a4",
+      "contentHash": "951a17293ca1ea9f393f8d65b43469f80ce3206c93c947a4c66aa507e1b5275c",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 12,
+      "totalLines": 14,
       "hasStructuralAnalysis": false
     },
     "docs/architecture/component_vlm.mmd": {
@@ -1563,7 +1563,7 @@
     },
     "hooks/delegation-sidecar.sh": {
       "filePath": "hooks/delegation-sidecar.sh",
-      "contentHash": "c5ecd37c00e4bcb97c890ea2e1f59ecbf38ba69f1072402587983f87fa05b825",
+      "contentHash": "a2ae57ef4ada54a291a1a82f1d6a3ca23f5de84f312478298f0bdf75bb850e99",
       "functions": [],
       "classes": [],
       "imports": [],
@@ -1790,7 +1790,7 @@
     },
     "models/encoder.py": {
       "filePath": "models/encoder.py",
-      "contentHash": "eec3b328fc9efe144d333eb2faad71561fba593ac412b8a4b3b9e4aff52ad713",
+      "contentHash": "f16f6f543e07fdc8d52fefc174dd0c1a398c68410ec7a9f326d7d16156f7614b",
       "functions": [],
       "classes": [
         {
@@ -1801,10 +1801,16 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 22
+          "lineCount": 35
         }
       ],
       "imports": [
+        {
+          "source": "torch",
+          "specifiers": [
+            "torch"
+          ]
+        },
         {
           "source": "torch.nn",
           "specifiers": [
@@ -1821,7 +1827,7 @@
       "exports": [
         "ToyTSEncoder"
       ],
-      "totalLines": 34,
+      "totalLines": 48,
       "hasStructuralAnalysis": true
     },
     "models/fusion.py": {
@@ -1868,7 +1874,7 @@
     },
     "models/test_encoder.py": {
       "filePath": "models/test_encoder.py",
-      "contentHash": "b4012e7a59cc129623e65bda7b3c90e756aef23a97a339ac070dd8cf8c3256ea",
+      "contentHash": "e192eac969370ed527424abc5d72825d557e5bdac1aa56da9cb17551dc0b6621",
       "functions": [
         {
           "name": "enc",
@@ -1922,6 +1928,33 @@
           "returnType": "None",
           "exported": true,
           "lineCount": 5
+        },
+        {
+          "name": "test_patchtst_uses_attention",
+          "params": [
+            "enc"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "test_patchtst_param_count",
+          "params": [
+            "enc"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "test_patchtst_gradients_flow",
+          "params": [
+            "enc"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 7
         }
       ],
       "classes": [],
@@ -1939,6 +1972,12 @@
           ]
         },
         {
+          "source": "torch",
+          "specifiers": [
+            "nn"
+          ]
+        },
+        {
           "source": "models.encoder",
           "specifiers": [
             "ToyTSEncoder"
@@ -1951,9 +1990,12 @@
         "test_encoder_output_shape",
         "test_encoder_param_budget",
         "test_encoder_no_nan",
-        "test_encoder_backward"
+        "test_encoder_backward",
+        "test_patchtst_uses_attention",
+        "test_patchtst_param_count",
+        "test_patchtst_gradients_flow"
       ],
-      "totalLines": 43,
+      "totalLines": 65,
       "hasStructuralAnalysis": true
     },
     "models/test_fusion.py": {

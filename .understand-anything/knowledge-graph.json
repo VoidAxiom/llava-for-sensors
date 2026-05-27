@@ -24,8 +24,8 @@
       "uv"
     ],
     "description": "Multimodal fault-prediction model fusing time-series sensor data with vision and language on a frozen Qwen2-VL-2B (LLaVA-for-sensors), trained locally on M2 Max.",
-    "analyzedAt": "2026-05-27T04:42:48Z",
-    "gitCommitHash": "bae8e0b68edf392fe2ee9bf540163338f35e3816"
+    "analyzedAt": "2026-05-27T10:29:15Z",
+    "gitCommitHash": "3ece215951d73c422c2177acf3a4bd81d3ec3cf0"
   },
   "nodes": [
     {
@@ -191,16 +191,17 @@
       "type": "file",
       "name": "encoder.py",
       "filePath": "models/encoder.py",
-      "summary": "Toy 1D-CNN time-series encoder that turns a 2048-sample sensor window into 32 patches of dimension 512 via three strided Conv1d-GELU blocks plus a linear projection.",
+      "summary": "Minimal PatchTST time-series encoder. Patchifies a 2048-sample mono sensor window into 32 non-overlapping 64-sample patches (reshape \u2192 nn.Linear(64\u2192512)), adds a learned zero-initialized positional embedding nn.Parameter(1,32,512), and runs 2 nn.TransformerEncoderLayer blocks (8 heads, d_ff=2048, dropout=0.1). Output: (B, 32, 512). Pinned interface contract consumed by FusionAdapter. All trainable. Replaces the Phase 1 toy 1D-CNN; preserves the encoder's input/output shape so models/fusion.py is unchanged.",
       "tags": [
         "encoder",
         "torch-module",
-        "cnn",
+        "patchtst",
+        "transformer",
         "time-series",
         "tested"
       ],
       "complexity": "simple",
-      "languageNotes": "Stride 8 then 4 then 2 reduces 2048 samples to 32 patches; final Linear lifts channel dim 256 to 512."
+      "languageNotes": "Reshape (B, 2048) \u2192 (B, 32, 64) using torch view semantics, then nn.Linear(64\u2192512) embeds each non-overlapping 64-sample patch. A learned nn.Parameter(1,32,512) positional embedding is added before two nn.TransformerEncoderLayer blocks (batch_first=True, 8 heads, d_ff=2048, dropout=0.1). The Conv-stride decomposition from Phase 1 is gone \u2014 Phase 2 swapped the 1D-CNN backbone for hand-rolled minimal PatchTST while preserving the (B, 32, 512) output contract that FusionAdapter consumes."
     },
     {
       "id": "class:models/encoder.py:ToyTSEncoder",
@@ -211,11 +212,12 @@
         12,
         33
       ],
-      "summary": "1D-CNN encoder mapping (B, 2048) mono sensor windows to (B, 32, 512) patch embeddings via three strided Conv1d-GELU blocks and a linear projection.",
+      "summary": "PatchTST encoder mapping (B, 2048) mono sensor windows to (B, 32, 512) patch embeddings. Class name kept for caller stability across the Phase 1\u21922 swap; internals are now the hand-rolled minimal PatchTST per .codex-runs/voi-203/spec.md. Forward path: reshape into 32 patches of 64 \u2192 patch_embed Linear(64\u2192512) \u2192 pos_embed addition \u2192 2-layer TransformerEncoder (8 heads, d_ff=2048, dropout=0.1).",
       "tags": [
         "encoder",
         "torch-module",
-        "cnn"
+        "patchtst",
+        "transformer"
       ],
       "complexity": "simple"
     },
@@ -292,7 +294,7 @@
       "type": "file",
       "name": "test_encoder.py",
       "filePath": "models/test_encoder.py",
-      "summary": "Pytest suite for ToyTSEncoder covering output shape (B,32,512), parameter budget, NaN/Inf absence on forward, and gradient flow on backward.",
+      "summary": "Pytest suite for ToyTSEncoder (PatchTST after Phase 2). Covers output shape (B,32,512), trainable-parameter budget, NaN/Inf absence on forward, gradient backflow through every named parameter, and the PatchTST-specific invariants: positional-embedding shape (1,32,512), transformer-stack layer count = 2.",
       "tags": [
         "test",
         "pytest",
@@ -2341,7 +2343,7 @@
       "type": "file",
       "name": "component_ts_encoder.mmd",
       "filePath": "docs/architecture/component_ts_encoder.mmd",
-      "summary": "Mermaid component diagram of the time-series encoder (Conv1d stack downsampling a 2048-sample window into 32 patches of d=256).",
+      "summary": "Mermaid component diagram of the time-series encoder. Post-Phase-2: Patch Embedding (reshape + nn.Linear(64\u2192512)) \u2192 Positional Embedding (learned nn.Parameter(1,32,512), zero-init) \u2192 Transformer Encoder (2 layers, 8 heads, d_ff=2048). Output (B, 32, 512) feeds the fusion adapter. Replaces the Phase 1 Conv stack + Patch Linear Projection diagram.",
       "tags": [
         "documentation",
         "mermaid-diagram",
@@ -4430,7 +4432,7 @@
     {
       "order": 6,
       "title": "Time-Series Encoder & Fusion Adapter",
-      "description": "These are the two trainable modules on top of the frozen VLM. models/encoder.py is a toy 1D-CNN that turns a 2048-sample sensor window into 32 patches of dimension 512 (three strided Conv1d-GELU blocks plus a linear projection \u2014 Phase 2 swaps this for PatchTST). models/fusion.py is a cross-attention fusion adapter that maps those (B,32,512) sensor patches into (B,16,1536) fixed sensor tokens at the Qwen2-VL-2B hidden dim. Together they are the seam where time-series enters the VLM's token space \u2014 the central architectural bet of the project.",
+      "description": "These are the two trainable modules on top of the frozen VLM. models/encoder.py is the minimal PatchTST encoder (Phase 2 swap from the original toy 1D-CNN): reshape 2048 samples into 32 patches of 64, nn.Linear(64\u2192512) per-patch, learned positional embedding, two nn.TransformerEncoderLayer blocks. Output shape (B, 32, 512). models/fusion.py is the cross-attention fusion adapter that compresses those 32 sensor patches into 16 query tokens at the VLM hidden dim. Both are trainable.",
       "nodeIds": [
         "file:models/encoder.py",
         "file:models/fusion.py"
@@ -4469,7 +4471,7 @@
     {
       "order": 10,
       "title": "Three-Condition Ablation",
-      "description": "This is the heart of the experiment. eval/models.py defines the three ablation model variants \u2014 SensorsOnly, VisionText, AllThree \u2014 that share the toy encoder and a 4-class classification head over the frozen Qwen2-VL backbone. eval/ablation.py is the driver that generates data, trains each condition across 5 seeds, and writes a results CSV. eval/test_ablation.py stubs the Qwen-VL submodules so the integration test runs offline and asserts both 4-class logit shape and end-to-end CSV output \u2014 the path from 'model variants exist' to 'we have empirical numbers to act on'.",
+      "description": "This is the heart of the experiment. eval/models.py defines the three ablation model variants \u2014 SensorsOnly, VisionText, AllThree \u2014 that share the PatchTST encoder (still imported as ToyTSEncoder by class name) and a 4-class classification head over the frozen Qwen2-VL backbone. eval/ablation.py is the driver that generates data, trains each condition across 5 seeds, and writes a results CSV. eval/test_ablation.py stubs the Qwen-VL submodules so the integration test runs offline and asserts both 4-class logit shape and end-to-end CSV output \u2014 the path from 'model variants exist' to 'we have empirical numbers to act on'.",
       "nodeIds": [
         "file:eval/models.py",
         "file:eval/ablation.py",

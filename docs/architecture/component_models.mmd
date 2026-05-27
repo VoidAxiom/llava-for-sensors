@@ -3,8 +3,9 @@ title: "Component View — Model Internals"
 ---
 graph TB
   subgraph LlavaTs_encoder["`Time-Series Encoder`"]
-    LlavaTs_encoder.Conv_stack@{ shape: rectangle, label: "Conv Stack" }
-    LlavaTs_encoder.Patch_proj@{ shape: rectangle, label: "Patch Linear Projection" }
+    LlavaTs_encoder.Patch_embed@{ shape: rectangle, label: "Patch Embedding" }
+    LlavaTs_encoder.Pos_embed@{ shape: rectangle, label: "Positional Embedding" }
+    LlavaTs_encoder.Transformer_stack@{ shape: rectangle, label: "Transformer Encoder · 2 layers, 8 heads" }
   end
   subgraph LlavaFusion["`Fusion Adapter`"]
     LlavaFusion.Kv_proj_layer@{ shape: rectangle, label: "KV Projection" }
@@ -18,8 +19,9 @@ graph TB
     LlavaVlm.Lora_adapters@{ shape: rectangle, label: "LoRA Adapters (trainable)" }
     LlavaVlm.Classification_head@{ shape: rectangle, label: "4-Class Head" }
   end
-  LlavaTs_encoder.Conv_stack -. "`(B, 32, 256)`" .-> LlavaTs_encoder.Patch_proj
-  LlavaTs_encoder.Patch_proj -. "`encoder patches (B, 32, 512)`" .-> LlavaFusion.Kv_proj_layer
+  LlavaTs_encoder.Patch_embed -. "`(B, 32, 512) patch tokens`" .-> LlavaTs_encoder.Pos_embed
+  LlavaTs_encoder.Pos_embed -. "`(B, 32, 512) + learned positions`" .-> LlavaTs_encoder.Transformer_stack
+  LlavaTs_encoder.Transformer_stack -. "`encoder patches (B, 32, 512)`" .-> LlavaFusion.Kv_proj_layer
   LlavaFusion.Kv_proj_layer -. "`K, V (B, 32, 1536)`" .-> LlavaFusion.Cross_attn_block
   LlavaFusion.Learned_queries -. "`Q (B, 16, 1536)`" .-> LlavaFusion.Cross_attn_block
   LlavaFusion.Cross_attn_block -. "`attn_out (B, 16, 1536)`" .-> LlavaFusion.Fusion_mlp

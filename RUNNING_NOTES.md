@@ -168,7 +168,61 @@ Phase 2 packets:
 
 Specs drafted in `.codex-runs/voi-203/spec.md` and `.codex-runs/voi-204/spec.md`.
 
-## Phase 2 — _(queued — real time-series encoder swap)_
+## Phase 2 — Real time-series encoder swap (PatchTST)
+
+### Decisions
+
+- **Encoder choice: hand-rolled minimal PatchTST.** Path (1) from `.codex-runs/voi-203/spec.md` (reshape → `nn.Linear(64→512)` + learned positional embedding + 2-layer `nn.TransformerEncoderLayer` stack, 8 heads, d_ff=2048, dropout=0.1). Picked over the reference-repo PatchTST fork for minimum dependency surface, predictable MPS behavior, and easy adaptation for Phase 3 CWRU.
+- **Class name unchanged.** `models/encoder.py::ToyTSEncoder` keeps its original name; only the internals were swapped. `models/fusion.py` and `eval/models.py` are untouched — the `(B, 2048) → (B, 32, 512)` interface contract held verbatim across the swap.
+- **No Moment-small fallback needed.** PatchTST ran on MPS without portability issues. No `torch.compile`-related friction; default precision (fp32 for the encoder; the VLM remains fp16 with LoRA).
+
+### Phase 2 (e) acceptance — re-running the Phase 1 ablation gate with the real encoder
+
+Same 5 seeds × 3 modality conditions × 5 epochs, 250 samples-per-class, identical to Phase 1 — only the encoder backbone differs:
+
+| Condition | mean macro-F1 | std | notes |
+|---|---|---|---|
+| `sensors-only` | 0.4485 | 0.0331 | PatchTST alone — bounded by within-pair ambiguity (matches Phase 1 ceiling) |
+| `vision+text` | 0.4161 | 0.0453 | redundant axes; ceiling unchanged |
+| `all-three` | **1.0000** | 0.0000 | **all 5 seeds at 1.000** — no dead-init outliers (vs Phase 1 where seed-4 stuck at 0.333) |
+
+Paired bootstrap `all-three` vs `vision+text`: **t=25.78, paired p < 0.05** (critical t(df=4)=2.776). gap_vt = **0.5839 = 58.4 pp** (Phase 1 was 45.1 pp on the toy 1D-CNN). Both above the >15 pp PLAN.md §Phase 1 (e) gate. `verdict = fusion_wins`, `acceptance = passed`.
+
+**Delta vs Phase 1 toy 1D-CNN:**
+- `sensors-only`: 0.4485 vs 0.436 → +1.25 pp (within noise — same ceiling as expected, both bounded by the toy dataset's redundant axes).
+- `vision+text`: 0.4161 vs 0.416 → +0.01 pp (identical — vision+text path didn't change).
+- `all-three`: **1.0000 vs 0.867 → +13.3 pp** (PatchTST eliminates the seed-4 0.333 stuck-init outlier; all 5 seeds now hit 1.000).
+- Gap widened from 45.1 pp → 58.4 pp; statistical significance strengthened from p=0.0002 to p≪0.05 with t=25.78.
+
+The PatchTST upgrade improves training stability on the toy data (no dead inits) while preserving the headline contract.
+
+### Decisions & near-misses (worth remembering)
+
+- **`nn.Linear(64 → 512)` over `Conv1d(1→512, k=64, s=64)` for patch embedding.** Mathematically equivalent given non-overlapping patches and our reshape-then-Linear path, but `nn.Linear` is one fewer dimension-juggle and reads more like the PatchTST paper's "patch as token" framing.
+- **Zero-init `nn.Parameter(1, 32, 512)` for positional embedding (not N(0, 0.02²)).** PyTorch's `nn.TransformerEncoderLayer` includes layer norms that wash out the initial scale anyway; zero-init produced the same final F1 and stability.
+- **`batch_first=True` everywhere.** Saved a transpose in the forward path; downstream `models/fusion.py` already expected `(B, N, D)`.
+
+### Phase 2 memory / timing
+
+- Wall-time of the re-run ablation: ~3h on M2 Max (5 seeds × 3 conditions × 5 epochs × 250 samples/class). Identical envelope to Phase 1 — PatchTST is slightly heavier per-step but converges in fewer effective steps.
+- Peak memory: instrumented (`train/loop.py::_memory_bytes` via `torch.mps.driver_allocated_memory()`) but not aggregated into the ablation CSV in this run. Phase 3 carry-forward ticket still open: `eval/ablation.py` should propagate `peak_memory_bytes` per (condition, seed) row.
+
+### Phase 2 — DONE (2026-05-27)
+
+| Packet | Linear | PR | Type | Notes |
+| -- | -- | -- | -- | -- |
+| P2.1 PatchTST encoder swap + ablation re-run | VOI-203 | #29 | impl | 44 lines encoder.py + 24 lines tests; gate re-passed at all-three=1.000, gap_vt=0.584 |
+| P2.2 architecture + /understand + Phase 2 rollup | VOI-204 | _(this commit)_ | Claude | `architecture/component.c4` (`patch_embed` + `pos_embed` + `transformer_stack`), 2 mermaid renders, /understand graph + meta.json + fingerprints regen, this entry |
+
+### Phase 2 → Phase 3 — ready to dispatch
+
+Phase 3 packets (CWRU integration):
+- **VOI-205 (P3.1)** — `data/cwru.py`: download + preprocess CWRU drive-end accelerometer data into 2048-sample windows.
+- **VOI-206 (P3.2)** — `data/images.py` + `data/notes.py`: image pairing per class + synthetic technician notes (deterministic template, no metered API).
+- **VOI-207 (P3.3)** — Updated `data/dataset.py` with CWRU mode + smoke training run.
+- **VOI-208 (P3.4)** — `architecture/container.c4` update (data pipeline now reads CWRU) + /understand re-run + Phase 3 RUNNING_NOTES.
+
+P3.1-3.3 are impl-dispatchable in parallel where surfaces are disjoint (data/cwru.py vs data/images.py vs data/dataset.py).
 
 ## Phase 3 — _(scheduled — CWRU integration)_
 

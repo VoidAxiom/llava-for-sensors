@@ -3,9 +3,11 @@ title: "Component View — Time-Series Encoder"
 ---
 graph LR
   subgraph LlavaTs_encoder["`Time-Series Encoder`"]
-    LlavaTs_encoder.Conv_stack@{ shape: rectangle, label: "Conv Stack" }
-    LlavaTs_encoder.Patch_proj@{ shape: rectangle, label: "Patch Linear Projection" }
+    LlavaTs_encoder.Patch_embed@{ shape: rectangle, label: "Patch Embedding" }
+    LlavaTs_encoder.Pos_embed@{ shape: rectangle, label: "Positional Embedding" }
+    LlavaTs_encoder.Transformer_stack@{ shape: rectangle, label: "Transformer Encoder · 2 layers, 8 heads" }
   end
   LlavaFusion@{ shape: rectangle, label: "Fusion Adapter" }
-  LlavaTs_encoder.Conv_stack -. "`(B, 32, 256)`" .-> LlavaTs_encoder.Patch_proj
-  LlavaTs_encoder.Patch_proj -. "`encoder patches (B, 32, 512)`" .-> LlavaFusion
+  LlavaTs_encoder.Patch_embed -. "`(B, 32, 512) patch tokens`" .-> LlavaTs_encoder.Pos_embed
+  LlavaTs_encoder.Pos_embed -. "`(B, 32, 512) + learned positions`" .-> LlavaTs_encoder.Transformer_stack
+  LlavaTs_encoder.Transformer_stack -. "`encoder patches (B, 32, 512)`" .-> LlavaFusion
