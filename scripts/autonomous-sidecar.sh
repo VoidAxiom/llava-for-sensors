@@ -113,14 +113,34 @@ echo
 
 # ── packets (per-worktree + per-PR, condensed) ──
 WTS=$(git worktree list --porcelain | awk '/^worktree / {print $2}' | grep "^$WT_ROOT" || true)
-PRS_JSON=$(gh pr list --state open --json number,headRefName,headRefOid,title 2>/dev/null || echo '[]')
-PR_COUNT=$(echo "$PRS_JSON" | python3 -c 'import json,sys; print(len(json.load(sys.stdin)))')
+# Don't silently coalesce `gh` failures (no auth, rate-limit, `gh`
+# unavailable, transient API error) into `[]` — that would make the
+# "between packets" branch fire and tell Claude to dispatch new work
+# while open PRs may still need action. Capture stderr separately and
+# flag PR_COUNT=? so the decision branch can route to ACT-NOW [verify]
+# instead of the empty-queue path.
+PRS_STDERR=$(mktemp)
+PRS_JSON=$(gh pr list --state open --json number,headRefName,headRefOid,title 2>"$PRS_STDERR")
+gh_rc=$?
+if [ $gh_rc -ne 0 ] || [ -z "$PRS_JSON" ]; then
+  PR_COUNT="?"
+  PRS_JSON='[]'
+  PRS_ERR=$(head -c 200 < "$PRS_STDERR" 2>/dev/null || true)
+else
+  PR_COUNT=$(echo "$PRS_JSON" | python3 -c 'import json,sys; print(len(json.load(sys.stdin)))')
+  PRS_ERR=""
+fi
+rm -f "$PRS_STDERR"
 
 actions_now=0
 verify_owed=0
 in_flight=0
 
-if [ -z "$WTS" ] && [ "$PR_COUNT" = "0" ]; then
+if [ "$PR_COUNT" = "?" ]; then
+  echo "packets: (gh pr list FAILED rc=$gh_rc — ${PRS_ERR:-no stderr captured})"
+  echo "  → ACT-NOW: verify gh auth / network / rate-limit; do NOT dispatch new packets until PR queue is observable"
+  actions_now=1
+elif [ -z "$WTS" ] && [ "$PR_COUNT" = "0" ]; then
   echo "packets: (none in flight — between packets)"
   echo "  → ACT-NOW: read $COMMAND_CENTER (command center) + active phase issue, dispatch next packet"
   actions_now=1
