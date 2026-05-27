@@ -407,7 +407,7 @@
       "type": "file",
       "name": "dataset.py",
       "filePath": "data/dataset.py",
-      "summary": "Torch Dataset wrapper that yields (sensor, image, text, label) tuples in one of two modes. mode='synthetic' (Phase 1) delegates to data.synthetic.generate. mode='cwru' (Phase 3) loads CWRU windows from data/cwru.build_split, pairs each window with the procedural class image from data.images.render_class_image and a deterministic technician note from data.notes.render_class_note. Returns images as torch.Tensor (H,W,C uint8) for torch.stack collation parity across modes. Raises on present-but-invalid raw data (no silent fixture fallback).",
+      "summary": "Module that defines two distinct Dataset classes. (1) ToyDataset (Phase 1) wraps the synthetic generator from data.synthetic. (2) BearingFaultDataset (Phase 3) is the new mode-dispatching class: mode='synthetic' delegates to data.synthetic.generate; mode='cwru' loads CWRU windows from data.cwru.build_split, pairs each window with the procedural class image from data.images.get_image_for_label and a deterministic technician note from data.notes.synthesize_note (load_hp=1, fault_diameter_in=0.007 hardcoded at the call site). Returns images as torch.Tensor (H,W,C uint8) for torch.stack collation parity across modes. Raises on present-but-invalid raw data (no silent fixture fallback; the fixture-vs-raw choice itself is made by checking _has_usable_cwru_raw(_RAW_ROOT) at __init__).",
       "tags": [
         "dataset",
         "torch",
@@ -424,16 +424,36 @@
       "name": "ToyDataset",
       "filePath": "data/dataset.py",
       "lineRange": [
-        13,
-        31
+        32,
+        51
       ],
-      "summary": "Map-style PyTorch Dataset that takes a mode parameter ('synthetic' or 'cwru') and dispatches to the corresponding loader. The class name is preserved for caller stability across the Phase 1\u21923 transition; new code prefers the BearingFaultDataset alias exported alongside it.",
+      "summary": "Phase 1 synthetic-only PyTorch Dataset that wraps a list of SyntheticSample dicts (or a seed). Predates Phase 3's BearingFaultDataset and remains synthetic-only for back-compat with the Phase 1/2 ablation runner; new code should prefer BearingFaultDataset(mode='synthetic' | 'cwru').",
       "tags": [
         "data-model",
         "torch-dataset",
-        "tensor-conversion"
+        "tensor-conversion",
+        "phase-1"
       ],
       "complexity": "simple"
+    },
+    {
+      "id": "class:data/dataset.py:BearingFaultDataset",
+      "type": "class",
+      "name": "BearingFaultDataset",
+      "filePath": "data/dataset.py",
+      "lineRange": [
+        53,
+        110
+      ],
+      "summary": "Phase 3 mode-dispatching PyTorch Dataset. __init__ accepts mode in {'synthetic','cwru'}; when mode='cwru', checks _has_usable_cwru_raw(_RAW_ROOT) and falls back to _FIXTURE_ROOT (data/test_assets/cwru/) if the raw root is absent or incomplete (no silent catch on a present-but-invalid raw \u2014 that raises). build_split() (from data.cwru) is called once at __init__; __getitem__ then assembles each (sensor, image, text, label) tuple by indexing the precomputed split and calling data.images.get_image_for_label(label) + data.notes.synthesize_note(label, load_hp=1, fault_diameter_in=0.007). Returns image as torch.Tensor (H,W,C uint8) \u2014 same as ToyDataset for collation parity.",
+      "tags": [
+        "data-model",
+        "torch-dataset",
+        "multimodal",
+        "cwru",
+        "phase-3"
+      ],
+      "complexity": "moderate"
     },
     {
       "id": "file:data/synthetic.py",
