@@ -264,10 +264,15 @@ When Claude approves:
 
 **No `Co-Authored-By`, no "🤖", no "Generated with Claude Code", no Claude/Anthropic credit footer anywhere** in commit messages, PR title, or PR body.
 
-### 7. Request initial codex review + run the eye-emoji loop
+### 7. Request initial review (dual-bot) + run the eye-emoji loop
+
+Both reviewers MUST be requested on every PR — codex and the GH Actions
+Claude reviewer in parallel. The initial request can omit the rationale
+block since there are no prior findings; subsequent re-requests MUST
+carry the rationale block per step 8e.
 
 ```bash
-gh pr comment <PR#> --body "@codex review"
+gh pr comment <PR#> --body "$(printf '@codex review\n@claude review')"
 ```
 
 Then drive the eye-emoji loop. `scripts/review-gate.sh wait` runs a two-phase loop anchored on codex's 👀 reaction to the latest `@codex review` request comment: it auto-posts a fresh `@codex review` if no 👀 lands within `ackWaitSec` (default 120s = 2 min), and once 👀 lands it stops re-triggering and waits up to `verdictMaxSec` (default 1800s = 30 min) for a terminal verdict. **You call `wait` ONCE per pushed head** — the helper owns the entire post → ack → verdict cycle.
@@ -322,19 +327,20 @@ d. **Resolve the prior codex review threads** that you just addressed. The merge
    bash scripts/review-gate.sh resolve <thread_id>
    ```
 
-e. Post a **new** review-request comment that LEADS with `@codex review` and then briefly tells the reviewer what changed and what was deliberately not changed. Codex parses the leading `@codex review` as the trigger; the rationale that follows is read by the reviewer as context for the re-review. This is the only `@codex` mention pattern allowed beyond a bare `@codex review` — see format below.
+e. Post a **new dual-trigger re-review request** that LEADS with `@codex review` then `@claude review` (each on its own line) and then briefly tells both reviewers what changed and what was deliberately not changed. Codex parses the leading `@codex review` as the trigger; the GH Actions Claude reviewer scans the body for `@claude review`; the rationale that follows is read by BOTH reviewers as context. **Both bots are requested on every re-review — no single-bot exceptions, no "the other already reviewed" exception.** This is the only `@codex` mention pattern allowed beyond a bare `@codex review` — see format below.
 
    Format (in this exact order; use a HEREDOC with quoted `'EOF'` to preserve newlines and Markdown):
    ```bash
    gh pr comment <PR#> --body "$(cat <<'EOF'
    @codex review
+   @claude review
 
    **Changes since the last review (head <new-SHA-short>):**
 
    - <thread-id-or-summary>: <one-line description of the fix>
    - <thread-id-or-summary>: <one-line description of the fix>
 
-   **Not changed (deliberate — explanation for the reviewer):**
+   **Not changed (deliberate — explanation for the reviewers):**
 
    - <thread-id-or-summary>: <one-line rationale — usually "spec design;
      accepted by Claude (director). See <file>:<line> for the inline
@@ -347,13 +353,13 @@ e. Post a **new** review-request comment that LEADS with `@codex review` and the
    )"
    ```
 
-   Why this matters: a bare `@codex review` after a fix iteration makes the reviewer re-derive what changed from the diff alone, often re-raising the same architectural finding for the third time. A short "what changed / what didn't and why" block lets the reviewer focus on whether the NEW diff introduced regressions and skip the deliberately-accepted findings.
+   Why this matters: a bare dual-trigger after a fix iteration makes the reviewers re-derive what changed from the diff alone, often re-raising the same architectural finding for the third time. A short "what changed / what didn't and why" block lets each reviewer focus on whether the NEW diff introduced regressions and skip the deliberately-accepted findings. Requesting both reviewers every time keeps their verdicts pinned to the same commit, so the merge gate has a coherent two-bot signal.
 
 f. Re-run the eye-emoji loop on the new comment: `bash scripts/review-gate.sh wait <PR#>`.
 
 g. Repeat steps a–f until codex returns REVIEWED-CLEAN.
 
-**Codex connector hygiene** (CRITICAL): ANY `@codex` PR comment that is not EXACTLY `@codex review` spawns a phantom Codex cloud task that narrates work which does NOT land in this repo. Fix narration → comment with NO `@codex` mention; resolve threads; trigger re-review with a bare standalone `@codex review` and nothing else.
+**Codex connector hygiene** (CRITICAL): ANY `@codex` PR comment that is not the dual-trigger pattern above (or a bare `@codex review` on the first request) spawns a phantom Codex cloud task that narrates work which does NOT land in this repo. Fix narration → comment with NO `@codex` mention; resolve threads; trigger re-review with the dual-trigger format above. Occasional phantom narration happens even on the canonical dual-trigger — treat the codex bot as an adversarial reader only; act on its findings text and verify repo state via `gh`, never on its self-reported commits.
 
 Login form differs by API: REST = `chatgpt-codex-connector[bot]`; GraphQL = `chatgpt-codex-connector`. Match both forms when checking for codex activity.
 

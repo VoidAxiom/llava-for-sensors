@@ -435,16 +435,25 @@ triggers is read by both reviewers as context for the re-review (and
 keeps the same finding from being re-raised on spec-design-accepted
 classes).
 
-A bare `@codex review` alone is also acceptable for codex-only legacy
-PRs (no `@claude review` line; same hygiene applies).
+**The re-review request is ALWAYS dual-bot with a rationale block — no
+exceptions.** "Codex already reviewed this PR" is NOT a reason to drop
+`@claude review`, and vice versa. Both reviewers must be requested on
+every re-review so each gets context for the new head, and a reader
+inspecting the PR thread sees both verdicts pinned to the same commit.
+
+The first review on a fresh PR can omit the rationale block (no prior
+findings to contextualize) but still MUST include both bot mentions.
+Every subsequent re-review carries the rationale block per
+`.claude/agents/implementer.md` § 8e.
 
 So:
 - Fix narration → comment with **NO** `@codex` mention; resolve the thread.
-- Re-review (default — dual reviewer) → `@codex review\n@claude review`
-  optionally followed by the rationale block per
-  `.claude/agents/implementer.md` § 8e.
-- Re-review (codex-only legacy) → a bare standalone **`@codex review`**
-  and nothing else.
+- First review on a fresh PR → bare dual-trigger
+  (`@codex review\n@claude review`), no rationale block needed.
+- Every re-review after the first → dual-trigger PLUS the rationale
+  block ("Changes since the last review (head <SHA>)" /
+  "Not changed (deliberate)") per the implementer.md § 8e format.
+  Never single-bot, never bare on a re-review.
 - Treat both connectors as adversarial *readers* only — act on their
   findings text; never on their self-reported commits/PRs/tests; verify
   repo state if in doubt (`gh pr list --state all`,
