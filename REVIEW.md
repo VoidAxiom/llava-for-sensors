@@ -63,10 +63,10 @@ The reviewer-side translation of CLAUDE.md §"Recurring failure classes" and §"
   **Rationale:** AGENTS.md §UI/styling — "no nondeterministic source in logic or render — use the project's seeded RNG; same seed ⇒ same output."
   **Suggested action:** Thread a seeded RNG / accept a `seed` kwarg / sort the keys before iteration.
 
-- **Pattern:** A `@codex review` / `@claude review` comment body is anything other than the bare standalone trigger (per the GH-connector hygiene rule).
+- **Pattern:** A `@codex review` comment whose body is NEITHER (a) bare standalone for an initial review NOR (b) `@codex review` on its first line followed by an implementer.md §8e rationale block ("Changes since last review" + "Not changed deliberately") for a re-review. Free-form `@codex …` mentions in prose, thread replies, or fix-narration comments are NOT trigger forms and spawn phantom cloud tasks.
   **Severity:** [P2].
-  **Rationale:** CLAUDE.md §GH connector hygiene — non-bare `@codex` mentions spawn phantom cloud tasks that narrate work which doesn't land in this repo.
-  **Suggested action:** Move the rationale into a separate comment with NO `@<bot>` mention; the trigger comment stays bare.
+  **Rationale:** CLAUDE.md §GH connector hygiene defines exactly two accepted trigger forms (first-review-bare and re-review-with-rationale-block); everything else spawns phantom cloud tasks that narrate work which doesn't land in this repo. The re-review rationale block exists specifically to prevent the reviewer from re-raising findings the impl already addressed.
+  **Suggested action:** If it's a fix-narration / acknowledgement, drop the `@<bot>` mention and resolve the thread. If it's a re-review, keep `@codex review` as the first line and add (or keep) the rationale block per implementer.md §8e — don't move the rationale to a separate comment.
 
 - **Pattern:** A new automated gate added without a prior real failure motivating it.
   **Severity:** [P2].
