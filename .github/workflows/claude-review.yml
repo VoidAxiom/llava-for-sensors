@@ -19,7 +19,8 @@ jobs:
     if: |
       github.event.issue.pull_request &&
       contains(github.event.comment.body, '@claude review') &&
-      github.event.comment.user.type != 'Bot'
+      github.event.comment.user.type != 'Bot' &&
+      contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
