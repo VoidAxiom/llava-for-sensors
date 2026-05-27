@@ -287,7 +287,7 @@ graph TB
   Sensor["sensor window<br/>(B, 2048)"] --> Conv
   Proj --> KV
   MLP --> LLM
-  Image["image<br/>(B, 3, H, W)"] --> Vis
+  Image["image<br/>(B, 224, 224, 3) NHWC"] --> Vis
   Text["text tokens"] --> LLM
   LLM --> Head
           </pre>
@@ -300,6 +300,7 @@ graph TB
             <thead><tr><th>Stage</th><th>Shape</th><th>Source of truth</th></tr></thead>
             <tbody>
               <tr><td>Sensor window in</td><td><code>(B, 2048)</code> float32</td><td><code>data/synthetic.py</code></td></tr>
+              <tr><td>Image in (toy)</td><td><code>(B, 224, 224, 3)</code> NHWC uint8 — fed to <code>Image.fromarray</code> per-sample via the VLM processor</td><td><code>data/synthetic.py</code> (<code>IMAGE_SHAPE = (224, 224, 3)</code>)</td></tr>
               <tr><td>Encoder output (patches)</td><td><code>(B, 32, 512)</code></td><td><code>models/encoder.py</code></td></tr>
               <tr><td>Fusion adapter output</td><td><code>(B, 16, 1536)</code></td><td><code>models/fusion.py</code></td></tr>
               <tr><td>VLM hidden state</td><td><code>(B, S, 1536)</code></td><td>Qwen2-VL-2B config</td></tr>
