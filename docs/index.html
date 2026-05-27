@@ -38,7 +38,7 @@
     <!-- HERO -->
     <section id="hero" class="hero">
       <div class="container hero-grid">
-        <div class="hero-copy">
+        <div>
           <p class="eyebrow">Research portfolio · local-dev on M2 Max</p>
           <h1>Teaching a frozen VLM<br/>to read industrial sensors.</h1>
           <p class="lede">
@@ -62,15 +62,19 @@
           </dl>
         </div>
         <figure class="headline-figure" id="headline-figure">
-          <img src="figures/headline.svg" alt="Headline ablation: macro-F1 across modality conditions on the toy bearing-fault task." />
+          <img src="figures/headline.svg" alt="Headline ablation prototype: macro-F1 across the three pre-registered modality conditions on the toy bearing-fault task." />
           <figcaption>
-            <strong>Headline figure</strong> — macro-F1 across 3 modality conditions on the
-            <a href="#phase-1">Phase&nbsp;1 toy set</a>. 5 seeds, 95% percentile-bootstrap CI,
-            paired bootstrap p&nbsp;=&nbsp;0.0002. <strong>all-three</strong> beats
-            <strong>vision+text</strong> by 45&nbsp;pp — the Phase 1
-            <a href="#algorithms">load-bearing gate</a> passed by a wide margin.
-            Regenerated from <code>eval/results_toy.csv</code> via
-            <code>uv run python -m eval.headline</code>.
+            <strong>Headline figure</strong> — pre-registered bar layout for
+            macro-F1 across 3 modality conditions on the
+            <a href="#phase-1">Phase&nbsp;1 toy set</a>: 5 seeds per
+            condition, 95% percentile-bootstrap CI, paired-bootstrap
+            <em>p</em> for <code>all-three</code> vs <code>vision+text</code>.
+            <em>The SVG is the deterministic mock from <code>eval/headline_figure.py</code></em>
+            (Phase 0.7 — verifies the rendering contract before live data
+            exists). Live numbers from the Phase 1 toy ablation live in
+            <a href="https://github.com/VoidAxiom/llava-for-sensors/blob/main/RUNNING_NOTES.md">RUNNING_NOTES.md</a>
+            once Phase 1 closes; Phase 4 will route real CWRU results
+            through the same renderer.
           </figcaption>
         </figure>
       </div>
@@ -766,10 +770,16 @@ def forward(self, x):                # x: (B, 2048)
                 percentiles.</li>
               <li><strong>Significance star</strong> — a <em>paired</em>
                 bootstrap p-value comparing <code>all-three</code> against
-                <code>vision+text</code>: same 5 seeds, same data split,
-                resample the per-seed difference 10,000× and take the
-                fraction of resamples where the mean difference is ≤ 0
-                (two-sided).</li>
+                <code>vision+text</code>: same 5 seeds, same data split.
+                Compute the per-seed differences, then for
+                <code>b = 1, …, 10,000</code> resample those 5 differences
+                with replacement and take their mean. Center the
+                resampled means at zero (subtract their grand mean), and
+                report the fraction of resamples where
+                <code>|centered resample| ≥ |observed mean diff|</code>.
+                That gives a <em>two-sided</em> tail probability that
+                matches what <code>eval/headline_figure.py</code>
+                computes verbatim.</li>
             </ul>
             <p>
               The <em>pre-registered</em> acceptance is:
@@ -1040,7 +1050,7 @@ def forward(self, x):                # x: (B, 2048)
     </div>
   </footer>
 
-  <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@11.15.0/dist/mermaid.min.js" integrity="sha384-yQ4mmBBT+vhTAwjFH0toJXNYJ6O4usWnt6EPIdWwrRvx2V/n5lXuDZQwQFeSFydF" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" integrity="sha384-43gviWU0YVjaDtb/GhzOouOXtZMP/7XUzwPTstBeZFe/+rCMvRwr4yROQP43s0Xk" crossorigin="anonymous"></script>
   <script src="script.js" defer></script>

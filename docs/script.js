@@ -11,6 +11,29 @@
 (function () {
   'use strict';
 
+  /* ---------------- Mermaid: pre-init + raw-text capture ----------------
+   *
+   * Do this BEFORE applyTheme runs, so we (a) suppress mermaid's
+   * startOnLoad auto-init (which would replace each .mermaid block's
+   * innerHTML with rendered SVG) and (b) snapshot every block's raw
+   * graph definition exactly once. The prior implementation captured
+   * lazily on first toggle, which only worked because mermaid's
+   * startOnLoad hadn't fired yet — fragile w.r.t. script ordering and
+   * any future change to mermaid's auto-init timing.
+   */
+  if (window.mermaid) {
+    try {
+      window.mermaid.initialize({ startOnLoad: false });
+    } catch (err) {
+      console.warn('mermaid.initialize failed:', err);
+    }
+  }
+  document.querySelectorAll('.mermaid').forEach((node) => {
+    if (!node.dataset.original) {
+      node.dataset.original = node.innerHTML;
+    }
+  });
+
   /* ---------------- Theme toggle ---------------- */
 
   const root        = document.documentElement;
@@ -36,7 +59,6 @@
       );
     }
     if (window.mermaid) {
-      // Re-render Mermaid diagrams in the new theme.
       try {
         window.mermaid.initialize({
           startOnLoad: false,
@@ -50,14 +72,12 @@
         nodes.forEach((node) => {
           if (node.dataset.original) {
             node.innerHTML = node.dataset.original;
-          } else {
-            node.dataset.original = node.innerHTML;
           }
           node.removeAttribute('data-processed');
         });
         window.mermaid.run({ nodes });
       } catch (err) {
-        // Mermaid not loaded yet; ignore.
+        console.warn('mermaid theme re-render failed:', err);
       }
     }
   }
@@ -119,6 +139,8 @@
 
   /* ---------------- KaTeX auto-render ---------------- */
 
+  let mathAttempts = 0;
+  const MATH_MAX_ATTEMPTS = 50; // ~5 s @ 100 ms — give up rather than poll forever
   function tryRenderMath() {
     if (window.renderMathInElement) {
       window.renderMathInElement(document.body, {
@@ -129,10 +151,17 @@
         ],
         throwOnError: false,
       });
-    } else {
-      // KaTeX hasn't loaded yet; try again shortly.
-      setTimeout(tryRenderMath, 100);
+      return;
     }
+    if (++mathAttempts >= MATH_MAX_ATTEMPTS) {
+      console.warn(
+        'KaTeX never loaded after',
+        MATH_MAX_ATTEMPTS * 100,
+        'ms; math will not render.'
+      );
+      return;
+    }
+    setTimeout(tryRenderMath, 100);
   }
   // Defer until after the page settles.
   if (document.readyState === 'loading') {
