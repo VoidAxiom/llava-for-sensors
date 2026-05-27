@@ -10,6 +10,8 @@ dependencies = [
     "peft",
     "accelerate",
     "numpy",
+    "scipy>=1.11",
+    "scikit-learn>=1.3",
     "pandas",
     "matplotlib",
     "gradio>=4.0",

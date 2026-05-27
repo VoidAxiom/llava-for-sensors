@@ -46,3 +46,49 @@ bash scripts/check-prereqs.sh   # node ≥18, npm, uv, python ≥3.11, git-lfs, 
 ```
 
 Detailed install steps and verified-tooling notes live in [`RUNNING_NOTES.md`](./RUNNING_NOTES.md). The headline ablation must fit ≤40 GB peak memory and ≤24h total wall time on M2 Max per [`PLAN.md` §4 Phase 4](./PLAN.md).
+
+## CWRU dataset — manual fetch
+
+The CWRU Bearing Data Center provides bearing vibration recordings used in Phase 3.
+The dataset requires manual download due to a registration wall (scripted downloads are brittle).
+
+**Step 1 — Register and download**
+
+Visit https://engineering.case.edu/bearingdatacenter and download the drive-end
+accelerometer `.mat` files for the following conditions:
+
+| Class | Suggested files |
+|-------|----------------|
+| Normal | 97.mat, 98.mat, 99.mat, 100.mat |
+| Inner Race Fault | 105.mat, 106.mat, 107.mat, 108.mat |
+| Outer Race Fault | 130.mat, 131.mat, 132.mat, 133.mat |
+| Ball Fault | 118.mat, 119.mat, 120.mat, 121.mat |
+
+**Step 2 — Place files under `data/raw/cwru/`**
+
+```text
+data/raw/cwru/
+  normal/
+    97.mat
+    ...
+  inner_race/
+    105.mat
+    ...
+  outer_race/
+    130.mat
+    ...
+  ball/
+    118.mat
+    ...
+```
+
+**Step 3 — Build the split**
+
+```bash
+uv run python -m data.cwru build-split
+```
+
+This writes `data/processed/cwru/{train,val,test}.pt` — torch tensors loaded by
+`data/dataset.py` (Phase 3, VOI-207).
+
+The `data/raw/cwru/` directory is gitignored (too large; licensing prevents redistribution).
