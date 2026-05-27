@@ -145,13 +145,13 @@ Headline figure rendered to `docs/figures/headline.svg` (referenced from the pro
 
 ### Phase 1 memory / timing — partially instrumented (carry to Phase 2)
 
-PLAN.md §1.4(e) calls for: _"Memory & timing measurements logged: peak RAM, time-per-epoch, time-per-condition."_ Reporting honest gap per CLAUDE.md §"Anti-rot" (rather than silently skipping a row of the exit gate):
+PLAN.md §1.4(e) calls for: _"Memory & timing measurements logged: peak RAM, time-per-epoch, time-per-condition."_ Reporting honestly per CLAUDE.md §"Anti-rot" — what's in the code, what's missing, what to surface where:
 
-- **time-per-condition:** ~3 h total ablation wall time / (3 conditions × 5 seeds) ≈ 12 min mean per (condition, seed) on M2 Max. Per-(condition, seed) elapsed is captured in `eval/ablation.py`'s per-row CSV output but not aggregated into a roll-up table here.
-- **time-per-epoch:** _not instrumented._ No `time.perf_counter()` around the epoch loop in `train/loop.py`. Carry to Phase 2 if the real-encoder swap (PatchTST) makes per-epoch cost interesting.
-- **peak RAM:** _not instrumented._ No `torch.mps.max_memory_allocated()` / `torch.mps.driver_allocated_memory()` calls anywhere. Phase 1's toy data + tiny encoder + frozen-VLM-with-LoRA pattern is far below the M2 Max's 64GB budget; the measurement only starts to matter once Phase 3 ingests real CWRU at full resolution. Carry to Phase 3 if so.
+- **time-per-condition:** ~3 h total ablation wall time / (3 conditions × 5 seeds) ≈ 12 min mean per (condition, seed) on M2 Max. **Instrumented:** `eval/ablation.py:39,49` writes `wall_time_s` per (condition, seed) row into the output CSV. Not aggregated into a roll-up table in this entry — the raw CSV is the source of truth.
+- **time-per-epoch:** _not instrumented._ No `time.perf_counter()` / `time.time()` calls around the epoch loop in `train/loop.py`. Carry to Phase 2 — the PatchTST encoder swap will change per-epoch cost materially and per-epoch wall time becomes useful.
+- **peak RAM:** **already instrumented**, just not surfaced here. `train/loop.py:250` defines `_memory_bytes()` which calls `torch.mps.driver_allocated_memory()`; `train/loop.py:131-132` updates `peak_memory_bytes` per training step; `train/loop.py:173` returns it in `TrainResult`. **Gap:** `eval/ablation.py` doesn't propagate `result.peak_memory_bytes` into the ablation CSV, so the per-condition peak isn't visible in the Phase 1 rollup. Carry to Phase 2 — add a `peak_memory_mb` column to the ablation CSV writer so the per-condition peak appears alongside the per-condition wall time.
 
-Tickets to file at Phase 2 entry: `train/loop.py` epoch-timing instrumentation; `eval/ablation.py` peak-RAM snapshot per condition. Not blocking Phase 1 closure (the headline gate is what closes the phase); flagging so the next phase doesn't re-discover the gap.
+Tickets to file at Phase 2 entry: `train/loop.py` epoch-timing instrumentation; `eval/ablation.py` propagation of `peak_memory_bytes` from `TrainResult` into the per-row CSV (don't re-add instrumentation — surface what's already there). Not blocking Phase 1 closure (the headline gate is what closes the phase); flagging so the next phase doesn't re-discover the gap.
 
 ### Decisions & near-misses (worth remembering)
 

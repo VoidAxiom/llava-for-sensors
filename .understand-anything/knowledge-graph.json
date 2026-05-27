@@ -2,11 +2,30 @@
   "version": "1.0.0",
   "project": {
     "name": "llava-for-sensors",
-    "languages": [],
-    "frameworks": [],
-    "description": "",
-    "analyzedAt": "2026-05-27T00:31:50Z",
-    "gitCommitHash": "3dc4181f36f17fdef69dacbce0b48cedb7edaed4"
+    "languages": [
+      "c4",
+      "javascript",
+      "json",
+      "markdown",
+      "mermaid",
+      "python",
+      "shell",
+      "toml"
+    ],
+    "frameworks": [
+      "PyTorch",
+      "Transformers",
+      "PEFT",
+      "Accelerate",
+      "Gradio",
+      "pytest",
+      "Ruff",
+      "LikeC4",
+      "uv"
+    ],
+    "description": "Multimodal fault-prediction model fusing time-series sensor data with vision and language on a frozen Qwen2-VL-2B (LLaVA-for-sensors), trained locally on M2 Max.",
+    "analyzedAt": "2026-05-27T04:42:48Z",
+    "gitCommitHash": "bae8e0b68edf392fe2ee9bf540163338f35e3816"
   },
   "nodes": [
     {

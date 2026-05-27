@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "920039a10d11412f94ad46c9844d341d1d356746",
-  "generatedAt": "2026-05-27T04:29:26.052Z",
+  "gitCommitHash": "bae8e0b68edf392fe2ee9bf540163338f35e3816",
+  "generatedAt": "2026-05-27T04:42:48.394Z",
   "files": {
     ".claude/agents/implementer.md": {
       "filePath": ".claude/agents/implementer.md",
@@ -82,46 +82,6 @@
       "exports": [],
       "totalLines": 36,
       "hasStructuralAnalysis": false
-    },
-    ".understand-anything/.understandignore": {
-      "filePath": ".understand-anything/.understandignore",
-      "contentHash": "29e3b2a48b5a3bde79ad1013c8e6d4a1f4ef2de184389f189e8108c05d4c1400",
-      "functions": [],
-      "classes": [],
-      "imports": [],
-      "exports": [],
-      "totalLines": 35,
-      "hasStructuralAnalysis": false
-    },
-    ".understand-anything/fingerprints.json": {
-      "filePath": ".understand-anything/fingerprints.json",
-      "contentHash": "e50bf261cb26669044ac6cdb2da3394d8f2d24ac2d4efff17d3062de0c1824a2",
-      "functions": [],
-      "classes": [],
-      "imports": [],
-      "exports": [],
-      "totalLines": 2901,
-      "hasStructuralAnalysis": true
-    },
-    ".understand-anything/knowledge-graph.json": {
-      "filePath": ".understand-anything/knowledge-graph.json",
-      "contentHash": "d5f37a8a938852d7ab4a458893d1ecec0d1e5a40666a07936fbacc2926a93b56",
-      "functions": [],
-      "classes": [],
-      "imports": [],
-      "exports": [],
-      "totalLines": 4568,
-      "hasStructuralAnalysis": true
-    },
-    ".understand-anything/meta.json": {
-      "filePath": ".understand-anything/meta.json",
-      "contentHash": "55611b95ed1725331fd58df5f72de088d8b79a3d3f3cbfb3cfdc296606e45332",
-      "functions": [],
-      "classes": [],
-      "imports": [],
-      "exports": [],
-      "totalLines": 6,
-      "hasStructuralAnalysis": true
     },
     "AGENTS.md": {
       "filePath": "AGENTS.md",
@@ -2295,7 +2255,7 @@
     },
     "RUNNING_NOTES.md": {
       "filePath": "RUNNING_NOTES.md",
-      "contentHash": "c5b8a89c6738ef874140d3c1d35e90ff34b1621f43406871a746a55c5dd8681e",
+      "contentHash": "5ad2a90bef7628c7dc9288165dfcf2afcc87e679bf813ba9a0a8a0e625b8af8d",
       "functions": [],
       "classes": [],
       "imports": [],
