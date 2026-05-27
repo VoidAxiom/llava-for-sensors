@@ -2689,7 +2689,7 @@
       "type": "file",
       "name": "cwru.py",
       "filePath": "data/cwru.py",
-      "summary": "CWRU Bearing Data Center loader, preprocessor, and stratified splitter. Probes X*_DE_time keys in each .mat file, downsamples 48 kHz normal/ recordings to the 12 kHz fault sample rate, slices each recording into non-overlapping 2048-sample windows, then file-groups the windows so all windows from one recording stay in the same train/val/test bucket (prevents within-recording leakage). Falls back to data/test_assets/cwru/ fixtures when data/raw/cwru/ is absent (CI path).",
+      "summary": "CWRU Bearing Data Center loader, preprocessor, and stratified splitter. Probes X*_DE_time keys in each .mat file, downsamples 48 kHz normal/ recordings to the 12 kHz fault sample rate, slices each recording into non-overlapping 2048-sample windows, then file-groups the windows so all windows from one recording stay in the same train/val/test bucket (prevents within-recording leakage). load_class_windows() and build_split() raise on missing class directories or empty .mat sets; the fixture-vs-raw choice is made one layer up in data/dataset.py::BearingFaultDataset, which swaps _RAW_ROOT for _FIXTURE_ROOT when _has_usable_cwru_raw(_RAW_ROOT) is False.",
       "tags": [
         "data-loader",
         "preprocessing",
@@ -2711,14 +2711,14 @@
         "deterministic"
       ],
       "complexity": "simple",
-      "languageNotes": "Wraps PIL.Image + PIL.ImageDraw; no numpy in this module. Exports render_class_image(class_name) -> PIL.Image and save_class_images(out_dir) to materialize the four PNGs under data/assets/images/."
+      "languageNotes": "Wraps PIL.Image + PIL.ImageDraw; no numpy in this module. Exports render_class_image(class_name) -> PIL.Image, get_image_for_label(label) -> PIL.Image (the dataset-side accessor), and write_class_images_to_disk(out_dir=ASSETS_DIR) to materialize the four PNGs under data/assets/images/."
     },
     {
       "id": "file:data/notes.py",
       "type": "file",
       "name": "notes.py",
       "filePath": "data/notes.py",
-      "summary": "Deterministic template-based technician-note generator for the four CWRU fault classes. One template per class with {load_hp} and {fault_diameter_in} placeholders filled from per-sample CWRU metadata; templates encode the real vibration-signature vocabulary (BPFI, BPFO, BSF, FTF) so the text modality carries information the fusion adapter can actually exploit. No metered LLM call \u2014 pure string formatting.",
+      "summary": "Deterministic template-based technician-note generator for the four CWRU fault classes. One template per class with {load_hp} and {fault_diameter_in} placeholders; templates encode the real vibration-signature vocabulary (BPFI, BPFO, BSF, FTF) so the text modality carries information the fusion adapter can actually exploit. At call time data/dataset.py::BearingFaultDataset.__getitem__ passes hardcoded defaults load_hp=1 and fault_diameter_in=0.007 \u2014 the per-sample metadata path is not wired up in Phase 3 (intentional: keeps the text modality identical across samples within a class so its information content is purely the class-level signature). No metered LLM call \u2014 pure string formatting.",
       "tags": [
         "data-generation",
         "text-templates",
@@ -2726,7 +2726,7 @@
         "no-llm"
       ],
       "complexity": "simple",
-      "languageNotes": "Pure-stdlib (collections.abc.Mapping for type hints). Exports render_class_note(class_name, metadata) -> str with default metadata values."
+      "languageNotes": "Pure-stdlib. Exports synthesize_note(label, *, load_hp=1, fault_diameter_in=0.007) -> str (the dataset-side entry point, takes an integer label) and synthesize_note_for_class(class_name, *, load_hp, fault_diameter_in) -> str (the class-name-keyed variant)."
     },
     {
       "id": "file:scripts/run_cwru_smoke.py",
