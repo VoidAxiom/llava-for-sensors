@@ -24,6 +24,17 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
+      - name: Verify PR is from same repo (not a fork)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_HEAD_REPO="$(gh api repos/${{ github.repository }}/pulls/${{ github.event.issue.number }} --jq '.head.repo.full_name')"
+          if [ "$PR_HEAD_REPO" != "${{ github.repository }}" ]; then
+            echo "::error::Fork PR detected (head=$PR_HEAD_REPO). Refusing to run with secrets."
+            exit 1
+          fi
+          echo "PR head is same-repo: $PR_HEAD_REPO"
+
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
