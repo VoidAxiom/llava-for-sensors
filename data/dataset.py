@@ -24,7 +24,7 @@ _CWRU_CLASS_NAMES = ("normal", "inner_race", "outer_race", "ball")
 def _has_usable_cwru_raw(root: Path) -> bool:
     for class_name in _CWRU_CLASS_NAMES:
         class_dir = root / class_name
-        if not class_dir.is_dir() or len(list(class_dir.glob("*.mat"))) < 2:
+        if not class_dir.is_dir() or not any(class_dir.glob("*.mat")):
             return False
     return True
 
@@ -74,9 +74,16 @@ class BearingFaultDataset(Dataset):
                 self._x = data["x"].numpy()
                 self._y = data["y"].numpy()
             else:
-                raw_root = _RAW_ROOT if _has_usable_cwru_raw(_RAW_ROOT) else _FIXTURE_ROOT
-                all_splits = build_split(raw_root, seed=0)
-                self._x, self._y = all_splits[split]
+                if _has_usable_cwru_raw(_RAW_ROOT):
+                    try:
+                        all_splits = build_split(_RAW_ROOT, seed=0)
+                        self._x, self._y = all_splits[split]
+                    except (ValueError, FileNotFoundError):
+                        all_splits = build_split(_FIXTURE_ROOT, seed=0)
+                        self._x, self._y = all_splits[split]
+                else:
+                    all_splits = build_split(_FIXTURE_ROOT, seed=0)
+                    self._x, self._y = all_splits[split]
         elif mode == "synthetic":
             seed = int(kwargs.get("seed", 0))
             n = int(kwargs.get("n", 1000))
