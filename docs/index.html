@@ -62,19 +62,21 @@
           </dl>
         </div>
         <figure class="headline-figure" id="headline-figure">
-          <img src="figures/headline.svg" alt="Headline ablation prototype: macro-F1 across the three pre-registered modality conditions on the toy bearing-fault task." />
+          <img src="figures/headline.svg" alt="Phase 1 toy ablation headline: macro-F1 across sensors-only, vision+text, and all-three conditions. all-three reaches ~0.87 while the two unimodal-pair conditions stay near 0.42." />
           <figcaption>
-            <strong>Headline figure</strong> — pre-registered bar layout for
+            <strong>Headline figure</strong> — Phase 1 toy ablation result:
             macro-F1 across 3 modality conditions on the
-            <a href="#phase-1">Phase&nbsp;1 toy set</a>: 5 seeds per
-            condition, 95% percentile-bootstrap CI, paired-bootstrap
-            <em>p</em> for <code>all-three</code> vs <code>vision+text</code>.
-            <em>The SVG is the deterministic mock from <code>eval/headline_figure.py</code></em>
-            (Phase 0.7 — verifies the rendering contract before live data
-            exists). Live numbers from the Phase 1 toy ablation live in
-            <a href="https://github.com/VoidAxiom/llava-for-sensors/blob/main/RUNNING_NOTES.md">RUNNING_NOTES.md</a>
-            once Phase 1 closes; Phase 4 will route real CWRU results
-            through the same renderer.
+            <a href="#phase-1">toy set</a>, 5 seeds per condition,
+            95% percentile-bootstrap CI, paired-bootstrap two-sided
+            <em>p</em> = <strong>0.0002</strong> for <code>all-three</code>
+            vs <code>vision+text</code>. <code>all-three</code> beats
+            both <code>vision+text</code> AND <code>sensors-only</code>
+            by &gt;15 pp (the load-bearing gate, passed by <strong>45
+            pp</strong>). Rendered by
+            <code>eval/headline_figure.py</code> from the 5-seed × 3-condition
+            ablation grid; per-seed scores in
+            <a href="https://github.com/VoidAxiom/llava-for-sensors/blob/main/RUNNING_NOTES.md">RUNNING_NOTES.md §Phase 1</a>.
+            Phase 4 will route real CWRU results through the same renderer.
           </figcaption>
         </figure>
       </div>
@@ -366,7 +368,7 @@ graph TB
               gradients.
             </p>
             <ul>
-              <li><strong>Rank <code>r = 8</code></strong>: small enough that 4 LLM attention layers add ~0.1M params, large enough to capture task signal.</li>
+              <li><strong>Rank <code>r = 8</code></strong>: small enough that <code>q_proj</code>+<code>v_proj</code> across all 28 Qwen2-VL LM layers add only ~1.4M trainable params, large enough to capture task signal. (LoRA's <code>r=8</code> per-linear cost is <code>2·r·d = 2·8·1536 = 24,576</code>; two modules per layer × 28 layers = 1,376,256.)</li>
               <li><strong>Scaling <code>α = 16</code></strong>: per the original paper, "tuning α is roughly equivalent to tuning the learning rate," so the practical default of α = 2r works.</li>
               <li><strong>Target modules</strong> <code>q_proj</code> + <code>v_proj</code>: empirically the highest-signal targets for transformer adaptation; <code>k_proj</code>/<code>o_proj</code>/MLP gain marginal F1 at significant parameter cost.</li>
               <li><strong>Init</strong>: <code>A ~ N(0, σ²)</code>, <code>B = 0</code>, so the adapter starts as a no-op and the original model output is unchanged at step 0.</li>
