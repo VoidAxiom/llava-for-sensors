@@ -56,3 +56,7 @@ logs/
 # docs/architecture/*.mmd via the documented workflow.
 /index.mmd
 /likec4.json
+
+# CWRU raw recordings — manual fetch required; see README.md § "CWRU dataset — manual fetch"
+data/raw/cwru/
+data/processed/cwru/
