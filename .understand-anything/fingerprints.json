@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "7c4dccfe0c42e4e27d5c6ed8eaaba45f3b06ae08",
-  "generatedAt": "2026-05-26T03:58:05.353Z",
+  "gitCommitHash": "3dc4181f36f17fdef69dacbce0b48cedb7edaed4",
+  "generatedAt": "2026-05-27T00:32:06.454Z",
   "files": {
     ".claude/agents/implementer.md": {
       "filePath": ".claude/agents/implementer.md",
@@ -93,6 +93,36 @@
       "totalLines": 35,
       "hasStructuralAnalysis": false
     },
+    ".understand-anything/fingerprints.json": {
+      "filePath": ".understand-anything/fingerprints.json",
+      "contentHash": "5e32d43475bfbc7c20045210152d9681cbf4edda3c98f7c4516c528fb0cdf422",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 606,
+      "hasStructuralAnalysis": true
+    },
+    ".understand-anything/knowledge-graph.json": {
+      "filePath": ".understand-anything/knowledge-graph.json",
+      "contentHash": "48898218aab7fe825c397e4e30e83d2c43336c30e7c84dff44201c6839a13442",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 4566,
+      "hasStructuralAnalysis": true
+    },
+    ".understand-anything/meta.json": {
+      "filePath": ".understand-anything/meta.json",
+      "contentHash": "cb743bde365edcfca4d5de9b215f3870f928303289138db9563ce428d8d381a1",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 6,
+      "hasStructuralAnalysis": true
+    },
     "AGENTS.md": {
       "filePath": "AGENTS.md",
       "contentHash": "3969d27c3d39cc6b1f71d69b89b5fff98dec3728768d88b80fabf2bed56c305b",
@@ -102,6 +132,16 @@
       "exports": [],
       "totalLines": 83,
       "hasStructuralAnalysis": true
+    },
+    "architecture/component.c4": {
+      "filePath": "architecture/component.c4",
+      "contentHash": "395204379ccc31cc7ed271e707e9b280c018cf2aed582b726d92a7bff2f5a7e9",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 168,
+      "hasStructuralAnalysis": false
     },
     "architecture/container.c4": {
       "filePath": "architecture/container.c4",
@@ -115,12 +155,12 @@
     },
     "architecture/landscape.c4": {
       "filePath": "architecture/landscape.c4",
-      "contentHash": "e4ae1927f9cb167fdb4995bb01d9c3fb24d365739eccfa01abe891f846122c2c",
+      "contentHash": "84946bf067141a153006bd0484306b00fd7a786aedb39fe3b6030ffe8ac83bd6",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 70,
+      "totalLines": 71,
       "hasStructuralAnalysis": false
     },
     "CLAUDE.md": {
@@ -143,6 +183,421 @@
       "totalLines": 1,
       "hasStructuralAnalysis": true
     },
+    "data/dataset.py": {
+      "filePath": "data/dataset.py",
+      "contentHash": "12e6a92402a29b26ac3bc41ad8a9b694fc3cfb684b8d5be4041c246773aa8e68",
+      "functions": [],
+      "classes": [
+        {
+          "name": "ToyDataset",
+          "methods": [
+            "__init__",
+            "__len__",
+            "__getitem__"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 19
+        }
+      ],
+      "imports": [
+        {
+          "source": "collections.abc",
+          "specifiers": [
+            "Sequence"
+          ]
+        },
+        {
+          "source": "torch",
+          "specifiers": [
+            "torch"
+          ]
+        },
+        {
+          "source": "torch.utils.data",
+          "specifiers": [
+            "Dataset"
+          ]
+        },
+        {
+          "source": "data.synthetic",
+          "specifiers": [
+            "SyntheticSample",
+            "generate"
+          ]
+        }
+      ],
+      "exports": [
+        "ToyDataset"
+      ],
+      "totalLines": 32,
+      "hasStructuralAnalysis": true
+    },
+    "data/synthetic.py": {
+      "filePath": "data/synthetic.py",
+      "contentHash": "86199c6ba9f04aefd39c874e2b5e596dfc9708fb1644332ba85959ea6ddcb820",
+      "functions": [
+        {
+          "name": "_validate_class_id",
+          "params": [
+            "class_id"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "_sample_sensor",
+          "params": [
+            "class_id",
+            "rng"
+          ],
+          "returnType": "np.ndarray",
+          "exported": true,
+          "lineCount": 12
+        },
+        {
+          "name": "_sample_image",
+          "params": [
+            "class_id"
+          ],
+          "returnType": "np.ndarray",
+          "exported": true,
+          "lineCount": 12
+        },
+        {
+          "name": "_sample_text",
+          "params": [
+            "class_id",
+            "rng"
+          ],
+          "returnType": "str",
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "_balanced_labels",
+          "params": [
+            "n"
+          ],
+          "returnType": "list[int]",
+          "exported": true,
+          "lineCount": 9
+        },
+        {
+          "name": "generate",
+          "params": [
+            "n",
+            "seed"
+          ],
+          "returnType": "list[SyntheticSample]",
+          "exported": true,
+          "lineCount": 23
+        }
+      ],
+      "classes": [
+        {
+          "name": "SyntheticSample",
+          "methods": [],
+          "properties": [
+            "sensor",
+            "image",
+            "text",
+            "label"
+          ],
+          "exported": true,
+          "lineCount": 7
+        }
+      ],
+      "imports": [
+        {
+          "source": "typing",
+          "specifiers": [
+            "TypedDict"
+          ]
+        },
+        {
+          "source": "numpy",
+          "specifiers": [
+            "np"
+          ]
+        }
+      ],
+      "exports": [
+        "SyntheticSample",
+        "_validate_class_id",
+        "_sample_sensor",
+        "_sample_image",
+        "_sample_text",
+        "_balanced_labels",
+        "generate"
+      ],
+      "totalLines": 124,
+      "hasStructuralAnalysis": true
+    },
+    "data/test_synthetic.py": {
+      "filePath": "data/test_synthetic.py",
+      "contentHash": "f35626a6fef459ba8411ddf55cf18e09b5eeab633fc6f89f48a2a80bf436a281",
+      "functions": [
+        {
+          "name": "test_generate_default_shapes_and_types",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 14
+        },
+        {
+          "name": "test_generate_is_deterministic_for_seed",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 17
+        },
+        {
+          "name": "test_class_balance",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "test_modal_ambiguity_patterns",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 8
+        },
+        {
+          "name": "test_toy_dataset_wraps_samples",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 16
+        },
+        {
+          "name": "test_toy_dataset_can_generate_from_seed",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 10
+        },
+        {
+          "name": "test_cross_modal_required_property",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 14
+        },
+        {
+          "name": "test_vision_text_pair_remains_ambiguous",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 35
+        },
+        {
+          "name": "_labels",
+          "params": [
+            "samples"
+          ],
+          "returnType": "np.ndarray",
+          "exported": true,
+          "lineCount": 2
+        },
+        {
+          "name": "_stratified_split",
+          "params": [
+            "samples",
+            "test_size",
+            "seed"
+          ],
+          "returnType": "tuple[np.ndarray, np.ndarray]",
+          "exported": true,
+          "lineCount": 25
+        },
+        {
+          "name": "_sensor_features",
+          "params": [
+            "samples"
+          ],
+          "returnType": "np.ndarray",
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "_image_features",
+          "params": [
+            "samples"
+          ],
+          "returnType": "np.ndarray",
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "_text_features",
+          "params": [
+            "samples",
+            "train_idx",
+            "test_idx"
+          ],
+          "returnType": "np.ndarray",
+          "exported": true,
+          "lineCount": 13
+        },
+        {
+          "name": "_manual_text_features",
+          "params": [
+            "texts",
+            "train_idx",
+            "test_idx"
+          ],
+          "returnType": "np.ndarray",
+          "exported": true,
+          "lineCount": 18
+        },
+        {
+          "name": "_fit_score",
+          "params": [
+            "features",
+            "y",
+            "train_idx",
+            "test_idx"
+          ],
+          "returnType": "float",
+          "exported": true,
+          "lineCount": 19
+        },
+        {
+          "name": "_standardize_train_test",
+          "params": [
+            "x_train",
+            "x_test"
+          ],
+          "returnType": "tuple[np.ndarray, np.ndarray]",
+          "exported": true,
+          "lineCount": 7
+        },
+        {
+          "name": "_softmax",
+          "params": [
+            "x"
+          ],
+          "returnType": "np.ndarray",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "_fit_lr",
+          "params": [
+            "x",
+            "y",
+            "n_classes",
+            "lr",
+            "n_iter"
+          ],
+          "returnType": "tuple[np.ndarray, np.ndarray]",
+          "exported": true,
+          "lineCount": 18
+        },
+        {
+          "name": "_predict_lr",
+          "params": [
+            "x",
+            "weights",
+            "bias"
+          ],
+          "returnType": "np.ndarray",
+          "exported": true,
+          "lineCount": 2
+        },
+        {
+          "name": "_macro_f1",
+          "params": [
+            "y_true",
+            "y_pred",
+            "n_classes"
+          ],
+          "returnType": "float",
+          "exported": true,
+          "lineCount": 15
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "collections.abc",
+          "specifiers": [
+            "Sequence"
+          ]
+        },
+        {
+          "source": "re",
+          "specifiers": [
+            "re"
+          ]
+        },
+        {
+          "source": "numpy",
+          "specifiers": [
+            "np"
+          ]
+        },
+        {
+          "source": "pytest",
+          "specifiers": [
+            "pytest"
+          ]
+        },
+        {
+          "source": "torch",
+          "specifiers": [
+            "torch"
+          ]
+        },
+        {
+          "source": "data.dataset",
+          "specifiers": [
+            "ToyDataset"
+          ]
+        },
+        {
+          "source": "data.synthetic",
+          "specifiers": [
+            "IMAGE_SHAPE",
+            "N_CLASSES",
+            "SENSOR_LENGTH",
+            "TEXT_TEMPLATES",
+            "SyntheticSample",
+            "_sample_image",
+            "generate"
+          ]
+        }
+      ],
+      "exports": [
+        "test_generate_default_shapes_and_types",
+        "test_generate_is_deterministic_for_seed",
+        "test_class_balance",
+        "test_modal_ambiguity_patterns",
+        "test_toy_dataset_wraps_samples",
+        "test_toy_dataset_can_generate_from_seed",
+        "test_cross_modal_required_property",
+        "test_vision_text_pair_remains_ambiguous",
+        "_labels",
+        "_stratified_split",
+        "_sensor_features",
+        "_image_features",
+        "_text_features",
+        "_manual_text_features",
+        "_fit_score",
+        "_standardize_train_test",
+        "_softmax",
+        "_fit_lr",
+        "_predict_lr",
+        "_macro_f1"
+      ],
+      "totalLines": 323,
+      "hasStructuralAnalysis": true
+    },
     "demo/__init__.py": {
       "filePath": "demo/__init__.py",
       "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
@@ -153,9 +608,49 @@
       "totalLines": 1,
       "hasStructuralAnalysis": true
     },
+    "docs/architecture/component_fusion.mmd": {
+      "filePath": "docs/architecture/component_fusion.mmd",
+      "contentHash": "e7c41460db854656b56590af1e91c04cb6f773c8d875325485486ce2e862b11c",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 19,
+      "hasStructuralAnalysis": false
+    },
+    "docs/architecture/component_models.mmd": {
+      "filePath": "docs/architecture/component_models.mmd",
+      "contentHash": "40ee273ffd1aa38bc357a89c49d5942354418c2cb24350322dad45305531d36b",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 32,
+      "hasStructuralAnalysis": false
+    },
+    "docs/architecture/component_ts_encoder.mmd": {
+      "filePath": "docs/architecture/component_ts_encoder.mmd",
+      "contentHash": "e44ba79a4920c57cfc98a208a05a730e91e358c8a6e2bb2c75c882b6aaca18a4",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 12,
+      "hasStructuralAnalysis": false
+    },
+    "docs/architecture/component_vlm.mmd": {
+      "filePath": "docs/architecture/component_vlm.mmd",
+      "contentHash": "3eb20e2338552f6dc34ab19d72c11f6657d6182daf0ca65d5249f5b20cb59c59",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 18,
+      "hasStructuralAnalysis": false
+    },
     "docs/architecture/container.mmd": {
       "filePath": "docs/architecture/container.mmd",
-      "contentHash": "c17cdfc802ba32327c6d211843dddfc332812bf7060ff93322b226b03afccf11",
+      "contentHash": "5a619319c9f38b99d01f9048a0cb80fde57512865dbbb47af8bef9715b8ab55d",
       "functions": [],
       "classes": [],
       "imports": [],
@@ -183,6 +678,919 @@
       "totalLines": 1,
       "hasStructuralAnalysis": true
     },
+    "eval/ablation.py": {
+      "filePath": "eval/ablation.py",
+      "contentHash": "7c0d891c5fad6188d48bb6971a4e60ed3b91a4de48ea4e11acf01d5f32f54010",
+      "functions": [
+        {
+          "name": "run_ablation",
+          "params": [
+            "n_seeds",
+            "n_epochs",
+            "out_csv",
+            "samples_per_class",
+            "device"
+          ],
+          "returnType": "pathlib.Path",
+          "exported": true,
+          "lineCount": 37
+        },
+        {
+          "name": "_build_model",
+          "params": [
+            "condition"
+          ],
+          "returnType": "torch.nn.Module",
+          "exported": true,
+          "lineCount": 8
+        },
+        {
+          "name": "_stratified_split",
+          "params": [
+            "samples"
+          ],
+          "returnType": "tuple[list[SyntheticSample], list[SyntheticSample]]",
+          "exported": true,
+          "lineCount": 15
+        },
+        {
+          "name": "_interleave",
+          "params": [
+            "groups"
+          ],
+          "returnType": "list[SyntheticSample]",
+          "exported": true,
+          "lineCount": 8
+        },
+        {
+          "name": "_main",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 16
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "argparse",
+          "specifiers": [
+            "argparse"
+          ]
+        },
+        {
+          "source": "csv",
+          "specifiers": [
+            "csv"
+          ]
+        },
+        {
+          "source": "pathlib",
+          "specifiers": [
+            "pathlib"
+          ]
+        },
+        {
+          "source": "time",
+          "specifiers": [
+            "time"
+          ]
+        },
+        {
+          "source": "typing",
+          "specifiers": [
+            "Optional"
+          ]
+        },
+        {
+          "source": "torch",
+          "specifiers": [
+            "torch"
+          ]
+        },
+        {
+          "source": "data.dataset",
+          "specifiers": [
+            "ToyDataset"
+          ]
+        },
+        {
+          "source": "data.synthetic",
+          "specifiers": [
+            "N_CLASSES",
+            "SyntheticSample",
+            "generate"
+          ]
+        },
+        {
+          "source": "eval.models",
+          "specifiers": [
+            "AllThreeModel",
+            "SensorsOnlyModel",
+            "VisionTextModel"
+          ]
+        },
+        {
+          "source": "train.loop",
+          "specifiers": [
+            "train_one_run"
+          ]
+        }
+      ],
+      "exports": [
+        "run_ablation",
+        "_build_model",
+        "_stratified_split",
+        "_interleave",
+        "_main"
+      ],
+      "totalLines": 118,
+      "hasStructuralAnalysis": true
+    },
+    "eval/headline_figure.py": {
+      "filePath": "eval/headline_figure.py",
+      "contentHash": "02f6cdbf6cf36f76f2b301815ca5093c59aa4320e689830b54bcec5ff73a6852",
+      "functions": [
+        {
+          "name": "_validate_results",
+          "params": [
+            "results"
+          ],
+          "returnType": "np.ndarray",
+          "exported": true,
+          "lineCount": 12
+        },
+        {
+          "name": "_validate_n_resamples",
+          "params": [
+            "n_resamples"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "_bootstrap_ci",
+          "params": [
+            "values",
+            "rng",
+            "n_resamples"
+          ],
+          "returnType": "tuple[float, float]",
+          "exported": true,
+          "lineCount": 14
+        },
+        {
+          "name": "_paired_bootstrap_p",
+          "params": [
+            "values",
+            "rng",
+            "n_resamples"
+          ],
+          "returnType": "float",
+          "exported": true,
+          "lineCount": 17
+        },
+        {
+          "name": "_cis_dont_fully_overlap",
+          "params": [
+            "vision_lo",
+            "vision_hi",
+            "fusion_lo",
+            "fusion_hi"
+          ],
+          "returnType": "bool",
+          "exported": true,
+          "lineCount": 9
+        },
+        {
+          "name": "compute_headline",
+          "params": [
+            "results",
+            "n_resamples",
+            "rng_seed",
+            "strict"
+          ],
+          "returnType": "dict",
+          "exported": true,
+          "lineCount": 61
+        },
+        {
+          "name": "_ensure_svg_rect_markers",
+          "params": [
+            "out_path",
+            "expected_count"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 25
+        },
+        {
+          "name": "render_svg",
+          "params": [
+            "headline",
+            "out_path"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 49
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "pathlib",
+          "specifiers": [
+            "Path"
+          ]
+        },
+        {
+          "source": "xml.etree.ElementTree",
+          "specifiers": [
+            "ET"
+          ]
+        },
+        {
+          "source": "matplotlib",
+          "specifiers": [
+            "matplotlib"
+          ]
+        },
+        {
+          "source": "numpy",
+          "specifiers": [
+            "np"
+          ]
+        }
+      ],
+      "exports": [
+        "_validate_results",
+        "_validate_n_resamples",
+        "_bootstrap_ci",
+        "_paired_bootstrap_p",
+        "_cis_dont_fully_overlap",
+        "compute_headline",
+        "_ensure_svg_rect_markers",
+        "render_svg"
+      ],
+      "totalLines": 243,
+      "hasStructuralAnalysis": true
+    },
+    "eval/headline.py": {
+      "filePath": "eval/headline.py",
+      "contentHash": "0948a8f900bac32f2f8d832721e0cea6ae8d4cb55e501b5e4ba36f22037ca2dc",
+      "functions": [
+        {
+          "name": "run_headline_from_csv",
+          "params": [
+            "csv_path",
+            "out_svg"
+          ],
+          "returnType": "dict",
+          "exported": true,
+          "lineCount": 44
+        },
+        {
+          "name": "_read_results_csv",
+          "params": [
+            "csv_path"
+          ],
+          "returnType": "np.ndarray",
+          "exported": true,
+          "lineCount": 44
+        },
+        {
+          "name": "_main",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 7
+        }
+      ],
+      "classes": [
+        {
+          "name": "PhaseAcceptanceError",
+          "methods": [],
+          "properties": [],
+          "exported": true,
+          "lineCount": 2
+        }
+      ],
+      "imports": [
+        {
+          "source": "argparse",
+          "specifiers": [
+            "argparse"
+          ]
+        },
+        {
+          "source": "csv",
+          "specifiers": [
+            "csv"
+          ]
+        },
+        {
+          "source": "pathlib",
+          "specifiers": [
+            "Path"
+          ]
+        },
+        {
+          "source": "numpy",
+          "specifiers": [
+            "np"
+          ]
+        },
+        {
+          "source": "eval.headline_figure",
+          "specifiers": [
+            "compute_headline",
+            "render_svg"
+          ]
+        }
+      ],
+      "exports": [
+        "PhaseAcceptanceError",
+        "run_headline_from_csv",
+        "_read_results_csv",
+        "_main"
+      ],
+      "totalLines": 124,
+      "hasStructuralAnalysis": true
+    },
+    "eval/models.py": {
+      "filePath": "eval/models.py",
+      "contentHash": "62a45899ecfc2a2a2f33be38d7eaaca291f02a185c6a1e78cf0967236185ec91",
+      "functions": [
+        {
+          "name": "_load_qwen_processor",
+          "params": [
+            "model_id"
+          ],
+          "returnType": "object",
+          "exported": true,
+          "lineCount": 2
+        },
+        {
+          "name": "_build_qwen_chat_prompt",
+          "params": [
+            "text"
+          ],
+          "returnType": "str",
+          "exported": true,
+          "lineCount": 8
+        },
+        {
+          "name": "_prepare_processor_inputs",
+          "params": [
+            "processor",
+            "image",
+            "text",
+            "device"
+          ],
+          "returnType": "dict[str, Any]",
+          "exported": true,
+          "lineCount": 16
+        },
+        {
+          "name": "_tensor_batch_to_pil",
+          "params": [
+            "image"
+          ],
+          "returnType": "list[Image.Image]",
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "_move_batch_to_device",
+          "params": [
+            "inputs",
+            "device"
+          ],
+          "returnType": "dict[str, Any]",
+          "exported": true,
+          "lineCount": 14
+        },
+        {
+          "name": "_module_device",
+          "params": [
+            "module",
+            "fallback"
+          ],
+          "returnType": "torch.device",
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "_pool_vlm_output",
+          "params": [
+            "output",
+            "attention_mask"
+          ],
+          "returnType": "Tensor",
+          "exported": true,
+          "lineCount": 16
+        },
+        {
+          "name": "_masked_mean",
+          "params": [
+            "hidden_state",
+            "attention_mask"
+          ],
+          "returnType": "Tensor",
+          "exported": true,
+          "lineCount": 10
+        }
+      ],
+      "classes": [
+        {
+          "name": "ClassificationHead",
+          "methods": [
+            "__init__",
+            "forward"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 11
+        },
+        {
+          "name": "SensorsOnlyModel",
+          "methods": [
+            "__init__",
+            "forward"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 13
+        },
+        {
+          "name": "VisionTextModel",
+          "methods": [
+            "__init__",
+            "forward",
+            "save_pretrained"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 34
+        },
+        {
+          "name": "AllThreeModel",
+          "methods": [
+            "__init__",
+            "forward",
+            "save_pretrained"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 101
+        }
+      ],
+      "imports": [
+        {
+          "source": "collections.abc",
+          "specifiers": [
+            "Mapping"
+          ]
+        },
+        {
+          "source": "typing",
+          "specifiers": [
+            "Any"
+          ]
+        },
+        {
+          "source": "torch",
+          "specifiers": [
+            "torch"
+          ]
+        },
+        {
+          "source": "torch.nn",
+          "specifiers": [
+            "nn"
+          ]
+        },
+        {
+          "source": "PIL",
+          "specifiers": [
+            "Image"
+          ]
+        },
+        {
+          "source": "torch",
+          "specifiers": [
+            "Tensor"
+          ]
+        },
+        {
+          "source": "models.encoder",
+          "specifiers": [
+            "ToyTSEncoder"
+          ]
+        },
+        {
+          "source": "models.fusion",
+          "specifiers": [
+            "D_VLM",
+            "T_SENSOR_TOKENS",
+            "FusionAdapter"
+          ]
+        },
+        {
+          "source": "models.vlm",
+          "specifiers": [
+            "VLMProcessor",
+            "load_frozen_vlm_with_lora"
+          ]
+        }
+      ],
+      "exports": [
+        "ClassificationHead",
+        "SensorsOnlyModel",
+        "VisionTextModel",
+        "AllThreeModel",
+        "_load_qwen_processor",
+        "_build_qwen_chat_prompt",
+        "_prepare_processor_inputs",
+        "_tensor_batch_to_pil",
+        "_move_batch_to_device",
+        "_module_device",
+        "_pool_vlm_output",
+        "_masked_mean"
+      ],
+      "totalLines": 276,
+      "hasStructuralAnalysis": true
+    },
+    "eval/test_ablation.py": {
+      "filePath": "eval/test_ablation.py",
+      "contentHash": "f478f4efe488eeb9e626ff83bebe98f7c520c4aab88de079310a55e7e33d7918",
+      "functions": [
+        {
+          "name": "_register_local_markers",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 9
+        },
+        {
+          "name": "test_models_have_4class_logits",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 20
+        },
+        {
+          "name": "test_all_three_pixel_values_forwarded",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 43
+        },
+        {
+          "name": "test_run_ablation_writes_csv",
+          "params": [
+            "tmp_path"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 18
+        },
+        {
+          "name": "test_headline_gate_rejects_failing_results",
+          "params": [
+            "tmp_path"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 12
+        },
+        {
+          "name": "test_headline_gate_rejects_no_significance",
+          "params": [
+            "tmp_path"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 25
+        },
+        {
+          "name": "test_headline_gate_rejects_wrong_seed_count",
+          "params": [
+            "tmp_path"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "test_headline_gate_rejects_duplicate_seeds",
+          "params": [
+            "tmp_path"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 17
+        },
+        {
+          "name": "test_headline_gate_rejects_duplicate_seed_ids_per_condition",
+          "params": [
+            "tmp_path"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 15
+        },
+        {
+          "name": "test_headline_gate_accepts_passing_results",
+          "params": [
+            "tmp_path"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 15
+        },
+        {
+          "name": "_write_fake_csv",
+          "params": [
+            "tmp_path",
+            "results"
+          ],
+          "returnType": "pathlib.Path",
+          "exported": true,
+          "lineCount": 10
+        }
+      ],
+      "classes": [
+        {
+          "name": "_StubEmbedding",
+          "methods": [
+            "__init__",
+            "forward"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 8
+        },
+        {
+          "name": "_StubVLM",
+          "methods": [
+            "__init__",
+            "get_input_embeddings",
+            "forward"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 29
+        },
+        {
+          "name": "_StubProcessor",
+          "methods": [
+            "__call__"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 15
+        },
+        {
+          "name": "_StubProcessorWithPixelValues",
+          "methods": [
+            "__call__"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 28
+        },
+        {
+          "name": "_StubVLMWithPixelValues",
+          "methods": [
+            "__init__",
+            "get_input_embeddings",
+            "forward"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 37
+        }
+      ],
+      "imports": [
+        {
+          "source": "csv",
+          "specifiers": [
+            "csv"
+          ]
+        },
+        {
+          "source": "os",
+          "specifiers": [
+            "os"
+          ]
+        },
+        {
+          "source": "pathlib",
+          "specifiers": [
+            "pathlib"
+          ]
+        },
+        {
+          "source": "types",
+          "specifiers": [
+            "SimpleNamespace"
+          ]
+        },
+        {
+          "source": "typing",
+          "specifiers": [
+            "Any"
+          ]
+        },
+        {
+          "source": "numpy",
+          "specifiers": [
+            "np"
+          ]
+        },
+        {
+          "source": "pytest",
+          "specifiers": [
+            "pytest"
+          ]
+        },
+        {
+          "source": "torch",
+          "specifiers": [
+            "torch"
+          ]
+        },
+        {
+          "source": "torch.nn",
+          "specifiers": [
+            "nn"
+          ]
+        },
+        {
+          "source": "PIL",
+          "specifiers": [
+            "PILImage"
+          ]
+        },
+        {
+          "source": "eval.ablation",
+          "specifiers": [
+            "run_ablation"
+          ]
+        },
+        {
+          "source": "eval.headline",
+          "specifiers": [
+            "PhaseAcceptanceError",
+            "run_headline_from_csv"
+          ]
+        },
+        {
+          "source": "eval.models",
+          "specifiers": [
+            "AllThreeModel",
+            "SensorsOnlyModel",
+            "VisionTextModel"
+          ]
+        }
+      ],
+      "exports": [
+        "_register_local_markers",
+        "_StubEmbedding",
+        "_StubVLM",
+        "_StubProcessor",
+        "test_models_have_4class_logits",
+        "_StubProcessorWithPixelValues",
+        "_StubVLMWithPixelValues",
+        "test_all_three_pixel_values_forwarded",
+        "test_run_ablation_writes_csv",
+        "test_headline_gate_rejects_failing_results",
+        "test_headline_gate_rejects_no_significance",
+        "test_headline_gate_rejects_wrong_seed_count",
+        "test_headline_gate_rejects_duplicate_seeds",
+        "test_headline_gate_rejects_duplicate_seed_ids_per_condition",
+        "test_headline_gate_accepts_passing_results",
+        "_write_fake_csv"
+      ],
+      "totalLines": 366,
+      "hasStructuralAnalysis": true
+    },
+    "eval/test_headline.py": {
+      "filePath": "eval/test_headline.py",
+      "contentHash": "3ed78fb4dc11b44c9f4067d9aeb93c14b3c414a0f846f217026719bbd304b8d4",
+      "functions": [
+        {
+          "name": "test_known_good_fusion_wins",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 17
+        },
+        {
+          "name": "test_known_flat_no_difference",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 11
+        },
+        {
+          "name": "test_single_seed_returns_no_significant_difference",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "test_strict_mode_rejects_non_3x5",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "test_negative_result_protocol",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 12
+        },
+        {
+          "name": "test_bootstrap_ci_numerical_correctness",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 26
+        },
+        {
+          "name": "test_svg_output",
+          "params": [
+            "tmp_path"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 35
+        },
+        {
+          "name": "test_non_finite_input_rejected",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 11
+        },
+        {
+          "name": "test_svg_render_is_deterministic",
+          "params": [
+            "tmp_path"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 16
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "xml.etree.ElementTree",
+          "specifiers": [
+            "ET"
+          ]
+        },
+        {
+          "source": "numpy",
+          "specifiers": [
+            "np"
+          ]
+        },
+        {
+          "source": "pytest",
+          "specifiers": [
+            "pytest"
+          ]
+        },
+        {
+          "source": "eval.headline_figure",
+          "specifiers": [
+            "compute_headline",
+            "render_svg"
+          ]
+        }
+      ],
+      "exports": [
+        "test_known_good_fusion_wins",
+        "test_known_flat_no_difference",
+        "test_single_seed_returns_no_significant_difference",
+        "test_strict_mode_rejects_non_3x5",
+        "test_negative_result_protocol",
+        "test_bootstrap_ci_numerical_correctness",
+        "test_svg_output",
+        "test_non_finite_input_rejected",
+        "test_svg_render_is_deterministic"
+      ],
+      "totalLines": 171,
+      "hasStructuralAnalysis": true
+    },
     "hooks/compaction-sidecar.sh": {
       "filePath": "hooks/compaction-sidecar.sh",
       "contentHash": "d444ea3e0c383df6b0663a39f54fc62312007920e5e779bcd1cde082c84c4d8d",
@@ -201,6 +1609,35 @@
       "imports": [],
       "exports": [],
       "totalLines": 77,
+      "hasStructuralAnalysis": true
+    },
+    "hooks/schedule-wakeup-guard.mjs": {
+      "filePath": "hooks/schedule-wakeup-guard.mjs",
+      "contentHash": "fcba077030cc39013e7493d6b5fc826b14b6f63a629b55c64eed94535176e27a",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "node:child_process",
+          "specifiers": [
+            "execFileSync"
+          ]
+        },
+        {
+          "source": "node:path",
+          "specifiers": [
+            "path"
+          ]
+        },
+        {
+          "source": "node:fs",
+          "specifiers": [
+            "fs"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 101,
       "hasStructuralAnalysis": true
     },
     "hooks/session-recovery.py": {
@@ -391,6 +1828,431 @@
       "totalLines": 1,
       "hasStructuralAnalysis": true
     },
+    "models/encoder.py": {
+      "filePath": "models/encoder.py",
+      "contentHash": "eec3b328fc9efe144d333eb2faad71561fba593ac412b8a4b3b9e4aff52ad713",
+      "functions": [],
+      "classes": [
+        {
+          "name": "ToyTSEncoder",
+          "methods": [
+            "__init__",
+            "forward"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 22
+        }
+      ],
+      "imports": [
+        {
+          "source": "torch.nn",
+          "specifiers": [
+            "nn"
+          ]
+        },
+        {
+          "source": "torch",
+          "specifiers": [
+            "Tensor"
+          ]
+        }
+      ],
+      "exports": [
+        "ToyTSEncoder"
+      ],
+      "totalLines": 34,
+      "hasStructuralAnalysis": true
+    },
+    "models/fusion.py": {
+      "filePath": "models/fusion.py",
+      "contentHash": "232df54244a5c6aba7ddbf333e56ac25f4ded7c68c285aa630487c4d40a0297e",
+      "functions": [],
+      "classes": [
+        {
+          "name": "FusionAdapter",
+          "methods": [
+            "__init__",
+            "forward"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 36
+        }
+      ],
+      "imports": [
+        {
+          "source": "torch",
+          "specifiers": [
+            "torch"
+          ]
+        },
+        {
+          "source": "torch.nn",
+          "specifiers": [
+            "nn"
+          ]
+        },
+        {
+          "source": "torch",
+          "specifiers": [
+            "Tensor"
+          ]
+        }
+      ],
+      "exports": [
+        "FusionAdapter"
+      ],
+      "totalLines": 53,
+      "hasStructuralAnalysis": true
+    },
+    "models/test_encoder.py": {
+      "filePath": "models/test_encoder.py",
+      "contentHash": "b4012e7a59cc129623e65bda7b3c90e756aef23a97a339ac070dd8cf8c3256ea",
+      "functions": [
+        {
+          "name": "enc",
+          "params": [],
+          "returnType": "ToyTSEncoder",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "sample_input",
+          "params": [],
+          "returnType": "torch.Tensor",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "test_encoder_output_shape",
+          "params": [
+            "enc",
+            "sample_input"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "test_encoder_param_budget",
+          "params": [
+            "enc"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "test_encoder_no_nan",
+          "params": [
+            "enc",
+            "sample_input"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "test_encoder_backward",
+          "params": [
+            "enc",
+            "sample_input"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 5
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "pytest",
+          "specifiers": [
+            "pytest"
+          ]
+        },
+        {
+          "source": "torch",
+          "specifiers": [
+            "torch"
+          ]
+        },
+        {
+          "source": "models.encoder",
+          "specifiers": [
+            "ToyTSEncoder"
+          ]
+        }
+      ],
+      "exports": [
+        "enc",
+        "sample_input",
+        "test_encoder_output_shape",
+        "test_encoder_param_budget",
+        "test_encoder_no_nan",
+        "test_encoder_backward"
+      ],
+      "totalLines": 43,
+      "hasStructuralAnalysis": true
+    },
+    "models/test_fusion.py": {
+      "filePath": "models/test_fusion.py",
+      "contentHash": "03ee517ec45405489d12f694e2e27346995e2587d8974423f076587cf0459edf",
+      "functions": [
+        {
+          "name": "fus",
+          "params": [],
+          "returnType": "FusionAdapter",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "enc_out",
+          "params": [],
+          "returnType": "torch.Tensor",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "test_fusion_output_shape",
+          "params": [
+            "fus",
+            "enc_out"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "test_fusion_no_nan",
+          "params": [
+            "fus",
+            "enc_out"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "test_fusion_backward",
+          "params": [
+            "fus",
+            "enc_out"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "test_fusion_gradcheck",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 16
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "pytest",
+          "specifiers": [
+            "pytest"
+          ]
+        },
+        {
+          "source": "torch",
+          "specifiers": [
+            "torch"
+          ]
+        },
+        {
+          "source": "models.fusion",
+          "specifiers": [
+            "FusionAdapter"
+          ]
+        }
+      ],
+      "exports": [
+        "fus",
+        "enc_out",
+        "test_fusion_output_shape",
+        "test_fusion_no_nan",
+        "test_fusion_backward",
+        "test_fusion_gradcheck"
+      ],
+      "totalLines": 57,
+      "hasStructuralAnalysis": true
+    },
+    "models/test_vlm.py": {
+      "filePath": "models/test_vlm.py",
+      "contentHash": "a3a9f03dffe3eaed8347c88febc1405279c7feb26a7ffefdd7a52eecafae9bf3",
+      "functions": [
+        {
+          "name": "_register_local_markers",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 10
+        },
+        {
+          "name": "_resolve_hidden_size",
+          "params": [
+            "model"
+          ],
+          "returnType": "int | None",
+          "exported": true,
+          "lineCount": 29
+        },
+        {
+          "name": "test_expected_hidden_size_constant",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "test_vlm_loads",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "test_vlm_params_frozen",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "test_vlm_lora_trainable",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 7
+        },
+        {
+          "name": "test_vlm_hidden_size",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "test_vlm_forward_oom_budget",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 21
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "os",
+          "specifiers": [
+            "os"
+          ]
+        },
+        {
+          "source": "typing",
+          "specifiers": [
+            "Any"
+          ]
+        },
+        {
+          "source": "pytest",
+          "specifiers": [
+            "pytest"
+          ]
+        },
+        {
+          "source": "torch",
+          "specifiers": [
+            "torch"
+          ]
+        },
+        {
+          "source": "peft",
+          "specifiers": [
+            "PeftModel"
+          ]
+        },
+        {
+          "source": "models.vlm",
+          "specifiers": [
+            "EXPECTED_HIDDEN_SIZE",
+            "load_frozen_vlm_with_lora"
+          ]
+        }
+      ],
+      "exports": [
+        "_register_local_markers",
+        "_resolve_hidden_size",
+        "test_expected_hidden_size_constant",
+        "test_vlm_loads",
+        "test_vlm_params_frozen",
+        "test_vlm_lora_trainable",
+        "test_vlm_hidden_size",
+        "test_vlm_forward_oom_budget"
+      ],
+      "totalLines": 136,
+      "hasStructuralAnalysis": true
+    },
+    "models/vlm.py": {
+      "filePath": "models/vlm.py",
+      "contentHash": "3de222bcbaa6eaab18117335dcae8e0a0eec25742c0661d88ad477acbba31cdb",
+      "functions": [
+        {
+          "name": "load_frozen_vlm_with_lora",
+          "params": [
+            "model_id",
+            "lora_r",
+            "lora_alpha",
+            "lora_dropout"
+          ],
+          "returnType": "\"PeftModel\"",
+          "exported": true,
+          "lineCount": 37
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "torch",
+          "specifiers": [
+            "torch"
+          ]
+        },
+        {
+          "source": "peft",
+          "specifiers": [
+            "LoraConfig",
+            "PeftModel",
+            "TaskType",
+            "get_peft_model"
+          ]
+        },
+        {
+          "source": "transformers",
+          "specifiers": [
+            "VLMProcessor"
+          ]
+        },
+        {
+          "source": "transformers",
+          "specifiers": [
+            "Qwen2VLForConditionalGeneration"
+          ]
+        }
+      ],
+      "exports": [
+        "load_frozen_vlm_with_lora"
+      ],
+      "totalLines": 50,
+      "hasStructuralAnalysis": true
+    },
     "package.json": {
       "filePath": "package.json",
       "contentHash": "ff83c01ed419f7b91df60bbb6498c7f6ab238817b9abd4694ab0a36ed7002091",
@@ -413,12 +2275,12 @@
     },
     "pyproject.toml": {
       "filePath": "pyproject.toml",
-      "contentHash": "f2a48c6fb38b862f967166db69eb58607b2ec71a4df455271f35b2c49e7195dd",
+      "contentHash": "0f1fd3f5ebcd3b91ee2e050cf2d50c895c87e06e6cacef22b3e3921e942af060",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 26,
+      "totalLines": 27,
       "hasStructuralAnalysis": true
     },
     "README.md": {
@@ -433,12 +2295,12 @@
     },
     "RUNNING_NOTES.md": {
       "filePath": "RUNNING_NOTES.md",
-      "contentHash": "0205e4ed5609d2295e43994574c46c813eed3e84dbc42fcc4527575e21e25f19",
+      "contentHash": "5a6c173732b575b470ae75beb1a3e5bdaf1fd3c344717e004e53c26193aff0bc",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 83,
+      "totalLines": 124,
       "hasStructuralAnalysis": true
     },
     "scripts/check-prereqs.sh": {
@@ -562,6 +2424,41 @@
       "totalLines": 382,
       "hasStructuralAnalysis": true
     },
+    "scripts/queue-scan.sh": {
+      "filePath": "scripts/queue-scan.sh",
+      "contentHash": "61fa3dcedb340aa8f489bd528a36beb3c12bb29d84bff4e91975002ed7272e98",
+      "functions": [
+        {
+          "name": "deps_of",
+          "params": [],
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "title_of",
+          "params": [],
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "_extract_dispatch_tokens",
+          "params": [],
+          "exported": false,
+          "lineCount": 4
+        },
+        {
+          "name": "contains",
+          "params": [],
+          "exported": false,
+          "lineCount": 4
+        }
+      ],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 222,
+      "hasStructuralAnalysis": true
+    },
     "scripts/review-gate.sh": {
       "filePath": "scripts/review-gate.sh",
       "contentHash": "801333ff1da0aba620d3c7c5f722fa4e84630b9a52c246cd9d1ca6104086d18d",
@@ -594,12 +2491,410 @@
     },
     "train/__init__.py": {
       "filePath": "train/__init__.py",
-      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "contentHash": "f9be70537da4dba4749deccef9af24ae28a25a45bd40b83afed6ac72982f9288",
       "functions": [],
       "classes": [],
-      "imports": [],
+      "imports": [
+        {
+          "source": "train.loop",
+          "specifiers": [
+            "TrainResult",
+            "train_one_run"
+          ]
+        }
+      ],
       "exports": [],
-      "totalLines": 1,
+      "totalLines": 4,
+      "hasStructuralAnalysis": true
+    },
+    "train/loop.py": {
+      "filePath": "train/loop.py",
+      "contentHash": "184ca423fec1d2201c21f4288fc157193c4bd7c9b9644ce21bb387942f529a18",
+      "functions": [
+        {
+          "name": "train_one_run",
+          "params": [
+            "model",
+            "train_ds",
+            "val_ds",
+            "run_id",
+            "n_epochs",
+            "batch_size",
+            "grad_accum",
+            "lr",
+            "weight_decay",
+            "seed",
+            "log_dir",
+            "ckpt_dir",
+            "device"
+          ],
+          "returnType": "TrainResult",
+          "exported": true,
+          "lineCount": 138
+        },
+        {
+          "name": "_resolve_device",
+          "params": [
+            "device"
+          ],
+          "returnType": "torch.device",
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "_collate_batch",
+          "params": [
+            "batch"
+          ],
+          "returnType": "Batch",
+          "exported": true,
+          "lineCount": 16
+        },
+        {
+          "name": "_evaluate_macro_f1",
+          "params": [
+            "model",
+            "val_loader",
+            "device"
+          ],
+          "returnType": "float",
+          "exported": true,
+          "lineCount": 19
+        },
+        {
+          "name": "_macro_f1",
+          "params": [
+            "preds",
+            "targets"
+          ],
+          "returnType": "float",
+          "exported": true,
+          "lineCount": 23
+        },
+        {
+          "name": "_memory_bytes",
+          "params": [
+            "device"
+          ],
+          "returnType": "int | None",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "_max_optional",
+          "params": [
+            "current",
+            "value"
+          ],
+          "returnType": "int",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "_save_best_checkpoint",
+          "params": [
+            "model",
+            "ckpt_run_dir"
+          ],
+          "returnType": "pathlib.Path",
+          "exported": true,
+          "lineCount": 10
+        },
+        {
+          "name": "_write_jsonl",
+          "params": [
+            "log_file",
+            "payload"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 3
+        }
+      ],
+      "classes": [
+        {
+          "name": "TrainResult",
+          "methods": [],
+          "properties": [
+            "final_val_f1",
+            "best_val_f1",
+            "best_epoch",
+            "loss_per_step",
+            "val_f1_per_epoch",
+            "peak_memory_bytes",
+            "ckpt_path"
+          ],
+          "exported": true,
+          "lineCount": 8
+        }
+      ],
+      "imports": [
+        {
+          "source": "json",
+          "specifiers": [
+            "json"
+          ]
+        },
+        {
+          "source": "math",
+          "specifiers": [
+            "math"
+          ]
+        },
+        {
+          "source": "pathlib",
+          "specifiers": [
+            "pathlib"
+          ]
+        },
+        {
+          "source": "collections.abc",
+          "specifiers": [
+            "Sequence"
+          ]
+        },
+        {
+          "source": "dataclasses",
+          "specifiers": [
+            "dataclass"
+          ]
+        },
+        {
+          "source": "typing",
+          "specifiers": [
+            "TextIO"
+          ]
+        },
+        {
+          "source": "numpy",
+          "specifiers": [
+            "np"
+          ]
+        },
+        {
+          "source": "torch",
+          "specifiers": [
+            "torch"
+          ]
+        },
+        {
+          "source": "torch.nn",
+          "specifiers": [
+            "nn"
+          ]
+        },
+        {
+          "source": "torch.optim",
+          "specifiers": [
+            "AdamW"
+          ]
+        },
+        {
+          "source": "torch.optim.lr_scheduler",
+          "specifiers": [
+            "CosineAnnealingLR"
+          ]
+        },
+        {
+          "source": "torch.utils.data",
+          "specifiers": [
+            "DataLoader"
+          ]
+        }
+      ],
+      "exports": [
+        "TrainResult",
+        "train_one_run",
+        "_resolve_device",
+        "_collate_batch",
+        "_evaluate_macro_f1",
+        "_macro_f1",
+        "_memory_bytes",
+        "_max_optional",
+        "_save_best_checkpoint",
+        "_write_jsonl"
+      ],
+      "totalLines": 277,
+      "hasStructuralAnalysis": true
+    },
+    "train/test_loop.py": {
+      "filePath": "train/test_loop.py",
+      "contentHash": "40f471aa950b437394bfdf954be170fde990476977f2f1f95aeb3517679eeb5b",
+      "functions": [
+        {
+          "name": "test_train_result_dataclass_fields",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 12
+        },
+        {
+          "name": "test_train_one_run_returns_result",
+          "params": [
+            "tmp_path"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 19
+        },
+        {
+          "name": "test_loss_decreases_on_toy_smoke",
+          "params": [
+            "tmp_path"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 27
+        },
+        {
+          "name": "test_checkpoint_saved_on_improvement",
+          "params": [
+            "tmp_path"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 26
+        },
+        {
+          "name": "test_jsonl_logging_emits_step_and_epoch_events",
+          "params": [
+            "tmp_path"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 29
+        },
+        {
+          "name": "test_determinism_same_seed",
+          "params": [
+            "tmp_path"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 46
+        },
+        {
+          "name": "test_grad_accum_steps_optimizer_every_n_batches",
+          "params": [
+            "tmp_path"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 23
+        },
+        {
+          "name": "test_macro_f1_all_classes_averaged",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 2
+        },
+        {
+          "name": "test_scheduler_t_max_is_ceil_not_floor",
+          "params": [
+            "tmp_path",
+            "monkeypatch"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 37
+        }
+      ],
+      "classes": [
+        {
+          "name": "_TinyLinearModel",
+          "methods": [
+            "__init__",
+            "forward"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 12
+        },
+        {
+          "name": "_TinyDataset",
+          "methods": [
+            "__init__",
+            "__len__",
+            "__getitem__"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 11
+        }
+      ],
+      "imports": [
+        {
+          "source": "json",
+          "specifiers": [
+            "json"
+          ]
+        },
+        {
+          "source": "os",
+          "specifiers": [
+            "os"
+          ]
+        },
+        {
+          "source": "dataclasses",
+          "specifiers": [
+            "fields"
+          ]
+        },
+        {
+          "source": "pathlib",
+          "specifiers": [
+            "Path"
+          ]
+        },
+        {
+          "source": "numpy",
+          "specifiers": [
+            "np"
+          ]
+        },
+        {
+          "source": "pytest",
+          "specifiers": [
+            "pytest"
+          ]
+        },
+        {
+          "source": "torch",
+          "specifiers": [
+            "torch"
+          ]
+        },
+        {
+          "source": "torch.nn",
+          "specifiers": [
+            "nn"
+          ]
+        },
+        {
+          "source": "train.loop",
+          "specifiers": [
+            "TrainResult",
+            "_macro_f1",
+            "train_one_run"
+          ]
+        }
+      ],
+      "exports": [
+        "_TinyLinearModel",
+        "_TinyDataset",
+        "test_train_result_dataclass_fields",
+        "test_train_one_run_returns_result",
+        "test_loss_decreases_on_toy_smoke",
+        "test_checkpoint_saved_on_improvement",
+        "test_jsonl_logging_emits_step_and_epoch_events",
+        "test_determinism_same_seed",
+        "test_grad_accum_steps_optimizer_every_n_batches",
+        "test_macro_f1_all_classes_averaged",
+        "test_scheduler_t_max_is_ceil_not_floor"
+      ],
+      "totalLines": 284,
       "hasStructuralAnalysis": true
     }
   }
