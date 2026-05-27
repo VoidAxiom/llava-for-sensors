@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
+import pytest
+from scipy.io import savemat
 import torch
 
 from data.dataset import BearingFaultDataset, ToyDataset
@@ -76,3 +80,19 @@ def test_toy_dataset_still_works() -> None:
     assert sensor.shape == torch.Size([2048])
     assert isinstance(text, str)
     assert isinstance(label, int)
+
+
+def test_cwru_mode_raises_on_invalid_raw(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Present-but-invalid raw CWRU data should not silently fall back to fixtures."""
+    raw_root = tmp_path / "cwru"
+    for class_name in ("normal", "inner_race", "outer_race", "ball"):
+        class_dir = raw_root / class_name
+        class_dir.mkdir(parents=True)
+        savemat(class_dir / "invalid.mat", {"bogus_key": [1.0, 2.0, 3.0]})
+
+    monkeypatch.setattr("data.dataset._RAW_ROOT", raw_root)
+
+    with pytest.raises(ValueError):
+        BearingFaultDataset(mode="cwru", _force_raw=True)

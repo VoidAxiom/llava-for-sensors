@@ -76,12 +76,8 @@ class BearingFaultDataset(Dataset):
                 self._y = data["y"].numpy()
             else:
                 if _has_usable_cwru_raw(_RAW_ROOT):
-                    try:
-                        all_splits = build_split(_RAW_ROOT, seed=0)
-                        self._x, self._y = all_splits[split]
-                    except (ValueError, FileNotFoundError):
-                        all_splits = build_split(_FIXTURE_ROOT, seed=0)
-                        self._x, self._y = all_splits[split]
+                    all_splits = build_split(_RAW_ROOT, seed=0)
+                    self._x, self._y = all_splits[split]
                 else:
                     all_splits = build_split(_FIXTURE_ROOT, seed=0)
                     self._x, self._y = all_splits[split]
