@@ -24,8 +24,8 @@
       "uv"
     ],
     "description": "Multimodal fault-prediction model fusing time-series sensor data with vision and language on a frozen Qwen2-VL-2B (LLaVA-for-sensors), trained locally on M2 Max.",
-    "analyzedAt": "2026-05-27T04:42:48Z",
-    "gitCommitHash": "bae8e0b68edf392fe2ee9bf540163338f35e3816"
+    "analyzedAt": "2026-05-27T10:11:24Z",
+    "gitCommitHash": "e9f476b76c52a80dfc4cf701f4588ca8184a3fb3"
   },
   "nodes": [
     {
@@ -191,7 +191,7 @@
       "type": "file",
       "name": "encoder.py",
       "filePath": "models/encoder.py",
-      "summary": "Toy 1D-CNN time-series encoder that turns a 2048-sample sensor window into 32 patches of dimension 512 via three strided Conv1d-GELU blocks plus a linear projection.",
+      "summary": "Minimal PatchTST time-series encoder. Patchifies a 2048-sample mono sensor window into 32 non-overlapping 64-sample patches (reshape \u2192 nn.Linear(64\u2192512)), adds a learned zero-initialized positional embedding nn.Parameter(1,32,512), and runs 2 nn.TransformerEncoderLayer blocks (8 heads, d_ff=2048, dropout=0.1). Output: (B, 32, 512). Pinned interface contract consumed by FusionAdapter. All trainable. Replaces the Phase 1 toy 1D-CNN; preserves the encoder's input/output shape so models/fusion.py is unchanged.",
       "tags": [
         "encoder",
         "torch-module",
@@ -211,7 +211,7 @@
         12,
         33
       ],
-      "summary": "1D-CNN encoder mapping (B, 2048) mono sensor windows to (B, 32, 512) patch embeddings via three strided Conv1d-GELU blocks and a linear projection.",
+      "summary": "PatchTST encoder mapping (B, 2048) mono sensor windows to (B, 32, 512) patch embeddings. Class name kept for caller stability across the Phase 1\u21922 swap; internals are now the hand-rolled minimal PatchTST per .codex-runs/voi-203/spec.md. Forward path: reshape into 32 patches of 64 \u2192 patch_embed Linear(64\u2192512) \u2192 pos_embed addition \u2192 2-layer TransformerEncoder (8 heads, d_ff=2048, dropout=0.1).",
       "tags": [
         "encoder",
         "torch-module",
@@ -292,7 +292,7 @@
       "type": "file",
       "name": "test_encoder.py",
       "filePath": "models/test_encoder.py",
-      "summary": "Pytest suite for ToyTSEncoder covering output shape (B,32,512), parameter budget, NaN/Inf absence on forward, and gradient flow on backward.",
+      "summary": "Pytest suite for ToyTSEncoder (PatchTST after Phase 2). Covers output shape (B,32,512), trainable-parameter budget, NaN/Inf absence on forward, gradient backflow through every named parameter, and the PatchTST-specific invariants: positional-embedding shape (1,32,512), transformer-stack layer count = 2.",
       "tags": [
         "test",
         "pytest",
@@ -2341,7 +2341,7 @@
       "type": "file",
       "name": "component_ts_encoder.mmd",
       "filePath": "docs/architecture/component_ts_encoder.mmd",
-      "summary": "Mermaid component diagram of the time-series encoder (Conv1d stack downsampling a 2048-sample window into 32 patches of d=256).",
+      "summary": "Mermaid component diagram of the time-series encoder. Post-Phase-2: Patch Embedding (reshape + nn.Linear(64\u2192512)) \u2192 Positional Embedding (learned nn.Parameter(1,32,512), zero-init) \u2192 Transformer Encoder (2 layers, 8 heads, d_ff=2048). Output (B, 32, 512) feeds the fusion adapter. Replaces the Phase 1 Conv stack + Patch Linear Projection diagram.",
       "tags": [
         "documentation",
         "mermaid-diagram",
