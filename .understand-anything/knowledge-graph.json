@@ -24,8 +24,8 @@
       "uv"
     ],
     "description": "Multimodal fault-prediction model fusing time-series sensor data with vision and language on a frozen Qwen2-VL-2B (LLaVA-for-sensors), trained locally on M2 Max.",
-    "analyzedAt": "2026-05-27T14:29:25Z",
-    "gitCommitHash": "3720e5deeb7632e3906bee9c07c6b576abb26b80"
+    "analyzedAt": "2026-05-27T14:56:02Z",
+    "gitCommitHash": "31d08388b890e452c768915c8ee6e2a1d8fff99e"
   },
   "nodes": [
     {
@@ -407,7 +407,7 @@
       "type": "file",
       "name": "dataset.py",
       "filePath": "data/dataset.py",
-      "summary": "Module that defines two distinct Dataset classes. (1) ToyDataset (Phase 1) wraps an inner synthetic generator from data.synthetic with a (seed, n) init signature — does NOT accept a mode parameter. (2) BearingFaultDataset (Phase 3) is the new mode-dispatching class with a three-way data-source dispatch when mode='cwru': first checks for a cached PyTorch split at data/processed/cwru/{split}.pt (loaded via torch.load(weights_only=True) when present and not _force_raw=True); otherwise checks _has_usable_cwru_raw(_RAW_ROOT) and calls build_split(_RAW_ROOT) on the real data; otherwise falls back to build_split(_FIXTURE_ROOT) on data/test_assets/cwru/ fixtures. mode='synthetic' internally instantiates a ToyDataset(seed, n=n) (composition, not inheritance/aliasing). __getitem__ for the CWRU path pairs each window with data.images.get_image_for_label(label) + data.notes.synthesize_note(label, load_hp=1, fault_diameter_in=0.007); both modes return image as torch.Tensor (H,W,C uint8) for torch.stack collation parity.",
+      "summary": "Module that defines two distinct Dataset classes. (1) ToyDataset (Phase 1) wraps an inner synthetic generator from data.synthetic with a (seed, n) init signature \u2014 does NOT accept a mode parameter. (2) BearingFaultDataset (Phase 3) is the new mode-dispatching class with a three-way data-source dispatch when mode='cwru': first checks for a cached PyTorch split at data/processed/cwru/{split}.pt (loaded via torch.load(weights_only=True) when present and not _force_raw=True); otherwise checks _has_usable_cwru_raw(_RAW_ROOT) and calls build_split(_RAW_ROOT) on the real data; otherwise falls back to build_split(_FIXTURE_ROOT) on data/test_assets/cwru/ fixtures. mode='synthetic' internally instantiates a ToyDataset(seed, n=n) (composition, not inheritance/aliasing). __getitem__ for the CWRU path pairs each window with data.images.get_image_for_label(label) + data.notes.synthesize_note(label, load_hp=1, fault_diameter_in=0.007); both modes return image as torch.Tensor (H,W,C uint8) for torch.stack collation parity.",
       "tags": [
         "dataset",
         "torch",
@@ -2781,7 +2781,7 @@
       "type": "file",
       "name": "test_dataset.py",
       "filePath": "data/test_dataset.py",
-      "summary": "Pytest suite for BearingFaultDataset (~8 tests, names start with test_cwru_mode_*). Asserts the 4-tuple shape on the CWRU fixture path, fixture-mode determinism, label range, fixture-fallback when data/raw/cwru/ is absent, split-size non-zero, len consistency, that ToyDataset still works (Phase 1 back-compat), and that present-but-invalid raw data now raises (test_cwru_mode_raises_on_invalid_raw — landed via the codex P1 fix on PR #34).",
+      "summary": "Pytest suite for BearingFaultDataset (~8 tests, names start with test_cwru_mode_*). Asserts the 4-tuple shape on the CWRU fixture path, fixture-mode determinism, label range, fixture-fallback when data/raw/cwru/ is absent, split-size non-zero, len consistency, that ToyDataset still works (Phase 1 back-compat), and that present-but-invalid raw data now raises (test_cwru_mode_raises_on_invalid_raw \u2014 landed via the codex P1 fix on PR #34).",
       "tags": [
         "test",
         "dataset",
