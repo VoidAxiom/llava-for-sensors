@@ -12,7 +12,7 @@ import torch
 import torch.nn as nn
 from PIL import Image as PILImage
 
-from eval.ablation import run_ablation
+from eval.ablation import run_ablation, run_single
 from eval.headline import PhaseAcceptanceError, run_headline_from_csv
 from eval.models import AllThreeModel, SensorsOnlyModel, VisionTextModel
 
@@ -363,3 +363,39 @@ def _write_fake_csv(tmp_path: pathlib.Path, results: np.ndarray) -> pathlib.Path
             for seed_index, value in enumerate(results[condition_index]):
                 writer.writerow([condition, seed_index, float(value), 0.1])
     return csv_path
+
+
+@skip_unless_slow
+@pytest.mark.slow
+def test_run_single_cwru_mode_returns_peak_memory() -> None:
+    result = run_single(
+        condition="sensors-only",
+        seed=0,
+        mode="cwru",
+        n_epochs=1,
+        samples_per_class=2,
+    )
+
+    assert "final_val_f1" in result
+    assert "wall_time_s" in result
+    assert "peak_memory_bytes" in result
+    assert result["peak_memory_bytes"] is None or isinstance(result["peak_memory_bytes"], int)
+
+
+@skip_unless_slow
+@pytest.mark.slow
+def test_run_ablation_synthetic_back_compat(tmp_path: pathlib.Path) -> None:
+    out_csv = run_ablation(
+        n_seeds=1,
+        n_epochs=1,
+        samples_per_class=10,
+        out_csv=str(tmp_path / "toy.csv"),
+    )
+
+    lines = out_csv.read_text(encoding="utf-8").splitlines()
+    assert lines[0] == "condition,seed,final_val_f1,wall_time_s,peak_memory_bytes"
+
+    with out_csv.open("r", encoding="utf-8", newline="") as csv_file:
+        rows = list(csv.DictReader(csv_file))
+
+    assert len(rows) == 3
