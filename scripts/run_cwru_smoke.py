@@ -33,12 +33,18 @@ def _has_usable_cwru_raw(root: Path) -> bool:
 
 
 def main() -> None:
-    if not _has_usable_cwru_raw(_RAW_ROOT):
+    if not _RAW_ROOT.exists():
         print(
-            "WARN: data/raw/cwru/ empty — smoke training deferred until user fetches CWRU;"
+            "WARN: data/raw/cwru/ not present — smoke training deferred until user fetches CWRU;"
             " document in RUNNING_NOTES.md when done"
         )
         return
+    if not _has_usable_cwru_raw(_RAW_ROOT):
+        print(
+            "ERROR: data/raw/cwru/ exists but is incomplete — ensure all 4 class dirs"
+            " (normal, inner_race, outer_race, ball) each have >= 2 .mat recordings"
+        )
+        sys.exit(1)
 
     from data.cwru import build_split as _build_split
 
