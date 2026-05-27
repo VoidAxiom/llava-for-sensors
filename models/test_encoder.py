@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import pytest
 import torch
+from torch import nn
 
 from models.encoder import ToyTSEncoder
 
@@ -26,7 +27,7 @@ def test_encoder_output_shape(enc: ToyTSEncoder, sample_input: torch.Tensor) -> 
 
 def test_encoder_param_budget(enc: ToyTSEncoder) -> None:
     n_params = sum(p.numel() for p in enc.parameters())
-    assert n_params < 2_000_000, f"Encoder has {n_params} params, exceeds 2M budget"
+    assert 2_000_000 < n_params < 10_000_000, f"Encoder has {n_params} params, outside PatchTST budget"
 
 
 def test_encoder_no_nan(enc: ToyTSEncoder, sample_input: torch.Tensor) -> None:
@@ -37,6 +38,27 @@ def test_encoder_no_nan(enc: ToyTSEncoder, sample_input: torch.Tensor) -> None:
 
 def test_encoder_backward(enc: ToyTSEncoder, sample_input: torch.Tensor) -> None:
     out = enc(sample_input)
+    out.sum().backward()
+    for name, p in enc.named_parameters():
+        assert p.grad is not None, f"No gradient for {name}"
+
+
+def test_patchtst_uses_attention(enc: ToyTSEncoder) -> None:
+    has_attention = any(
+        isinstance(module, (nn.TransformerEncoderLayer, nn.MultiheadAttention)) for module in enc.modules()
+    )
+    assert has_attention, "PatchTST encoder must use transformer attention"
+
+
+def test_patchtst_param_count(enc: ToyTSEncoder) -> None:
+    n_params = sum(p.numel() for p in enc.parameters() if p.requires_grad)
+    assert 2_000_000 < n_params < 10_000_000, f"PatchTST has {n_params} trainable params"
+
+
+def test_patchtst_gradients_flow(enc: ToyTSEncoder) -> None:
+    torch.manual_seed(2)
+    batch = torch.randn(2, 2048)
+    out = enc(batch)
     out.sum().backward()
     for name, p in enc.named_parameters():
         assert p.grad is not None, f"No gradient for {name}"
