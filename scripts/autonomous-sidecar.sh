@@ -283,17 +283,31 @@ try:
     print(json.dumps(sorted(f, key=lambda c: c.get("created_at",""))[-1]) if f else "null")
 except Exception:
     print("null")' 2>/dev/null)
+      eyes_age="-"
       if [ -n "$latest_rr" ] && [ "$latest_rr" != "null" ]; then
         rr_id=$(echo "$latest_rr" | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])' 2>/dev/null)
         if [ -n "$rr_id" ]; then
-          eyes=$(gh api "repos/$GH_OWNER/$GH_REPO_NAME/issues/comments/$rr_id/reactions" \
-            --jq '[.[] | select(.content=="eyes") | select(.user.login=="chatgpt-codex-connector[bot]" or .user.login=="chatgpt-codex-connector")] | length' 2>/dev/null)
-          [ "${eyes:-0}" -gt 0 ] && acked="yes" || acked="no"
+          # Fetch the 👀 reaction's created_at (not just count) — the
+          # verdict-wait timer for `acked=yes` must be measured from the
+          # 👀 timestamp, not local/comment activity. Otherwise, if codex
+          # 👀s a long-stale request on a PR with no threads, the
+          # `recent`-based comparison already exceeds STALL_MIN at the
+          # moment of the 👀 and immediately re-dispatches before the
+          # verdict is in flight. Symmetric with the orphan-PR pass.
+          eyes_at=$(gh api "repos/$GH_OWNER/$GH_REPO_NAME/issues/comments/$rr_id/reactions" \
+            --jq '[.[] | select(.content=="eyes") | select(.user.login=="chatgpt-codex-connector[bot]" or .user.login=="chatgpt-codex-connector")] | sort_by(.created_at) | last.created_at // ""' 2>/dev/null)
+          if [ -n "$eyes_at" ] && [ "$eyes_at" != "null" ]; then
+            acked="yes"
+            eyes_epoch=$(_iso_to_epoch "$eyes_at")
+            eyes_age=$(( (now - eyes_epoch) / 60 ))
+          else
+            acked="no"
+          fi
         fi
       fi
     fi
 
-    # most recent activity (local or PR)
+    # most recent activity (local or PR) — used for "no 👀" stall calc.
     recent=$local_age
     [ "$pr_age" != "?" ] && [ "$pr_age" -lt "$recent" ] && recent=$pr_age
 
@@ -306,8 +320,8 @@ except Exception:
         decision="ACT-NOW: CLEAN-COMMENT-MANUAL — judge timeline + merge"
         actions_now=$((actions_now+1))
       elif [ "$threads_open" -gt 0 ]; then
-        if [ "$acked" = "yes" ] && [ "$recent" -lt "$STALL_MIN" ]; then
-          decision="NO-ACTION: codex 👀'd, impl iterating (${recent}min idle)"
+        if [ "$acked" = "yes" ] && [ "$eyes_age" != "-" ] && [ "$eyes_age" -lt "$STALL_MIN" ] 2>/dev/null; then
+          decision="NO-ACTION: codex 👀'd ${eyes_age}min ago, impl iterating (≤ ${STALL_MIN}min)"
           in_flight=$((in_flight+1))
         elif [ "$recent" -lt "$STALL_MIN" ]; then
           decision="VERIFY: ${recent}min idle, no 👀 — TaskList alive? else re-dispatch"
@@ -318,8 +332,8 @@ except Exception:
         fi
       else
         # threads=0, waiting on first review
-        if [ "$acked" = "yes" ] && [ "$recent" -lt "$STALL_MIN" ]; then
-          decision="NO-ACTION: codex 👀'd, verdict in flight (${recent}min)"
+        if [ "$acked" = "yes" ] && [ "$eyes_age" != "-" ] && [ "$eyes_age" -lt "$STALL_MIN" ] 2>/dev/null; then
+          decision="NO-ACTION: codex 👀'd ${eyes_age}min ago, verdict in flight (≤ ${STALL_MIN}min)"
           in_flight=$((in_flight+1))
         elif [ "$recent" -lt "$STALL_MIN" ]; then
           decision="NO-ACTION: ${recent}min idle, in wait helper grace window"
