@@ -1,8 +1,13 @@
 name: Claude Review (on demand)
 
+# DISABLED — Claude's reviewer role is exercised locally in the impl loop
+# via `/code-review --effort high` (see .claude/agents/implementer.md § 4).
+# This workflow is kept on main for documentation and can be triggered
+# manually from the Actions UI for one-off cloud Claude reviews.
+# See CLAUDE.md §"Internal review loop" for the rationale.
+
 on:
-  issue_comment:
-    types: [created]
+  workflow_dispatch:
 
 permissions:
   contents: read
