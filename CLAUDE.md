@@ -389,75 +389,74 @@ Per change:
 
 ## Internal review loop
 
-The impl's local `/codex:review` IS the primary net. Not optional. The
-GitHub `@codex review` that runs after PR open is the **backstop**, never
-the primary. Before any push, the implementer subagent MUST run:
+Three local reviewers run on the impl's working-tree diff before any
+push. Cross-family adversarial coverage is the goal: each reviewer has
+a different model family (and a different lens) than the codex worker
+that wrote the code, so each catches things the others miss.
+
+**1. `/codex:review` (primary, blocking).** Default model `gpt-5.5`,
+cross-family vs the `gpt-5.5-codex` worker. Invoke via the Codex Code
+plugin:
 
 ```bash
 node "$CLAUDE_PLUGIN_ROOT/scripts/codex-companion.mjs" review --wait
 ```
 
-(Or the in-repo fallback `bash scripts/codex-review.sh <run-id>` if the
-Codex Code plugin is not installed.) Read the verdict. Fix `[P0]`/`[P1]`
-mandatory; judge `[P2]`. Iterate until VERDICT: correct (or `NO BLOCKING
-ISSUES`). Pushing first and letting the GH `@codex` bot find what local
-review would have caught is the exact failure this rail prevents.
+Or the in-repo fallback `bash scripts/codex-review.sh <run-id>` if the
+plugin is not installed. Read the verdict. Fix `[P0]`/`[P1]` mandatory;
+judge `[P2]`. Iterate until VERDICT: correct (or `NO BLOCKING ISSUES`).
+Pushing first and letting the GH `@codex` bot find what local review
+would have caught is the exact failure this rail prevents.
 
-The impl's own `/codex:review` is the load-bearing gate for production
-code; this rule extends to Claude when Claude is in the implementer role
-for its own scope (rails / scripts / hooks / docs). `/codex:review` runs
-`gpt-5.5` by default — cross-family relative to the
-`gpt-5.3-codex-spark` worker, so its findings catch what the worker missed.
+**2. `/code-review --effort high` (Claude Code built-in, blocking).**
+Local Claude reviewer running Opus 4.7 against the same diff.
+Subscription-covered (OAuth-backed; not metered API spend). Posts
+severity-tagged findings in the same scheme. The impl reads the
+verdict, fixes `[P0]`/`[P1]`, judges `[P2]`. Iterate until clean. This
+replaces the previous GH-Actions `@claude review` PR-level pattern —
+PR-level Claude reviewer is disabled at the workflow level (kept on
+`main` as `on: workflow_dispatch` for documentation; never fires
+automatically).
 
-**GH connector hygiene (avoid phantom cloud tasks).** Codex's GitHub
-connector spawns a phantom cloud task on free-form `@codex` mentions
-(narrates sandbox commits/PRs that do NOT land in this repo). The
-canonical re-review trigger is a **dual-bot comment, each mention on
-its own line**, optionally followed by a rationale block:
+**3. `/security-review` (Claude Code plugin, auto-running,
+non-blocking).** Install once via
+`claude plugin install security-guidance@claude-plugins-official`.
+Runs silently per-edit + on commit / push; auto-fixes flagged
+vulnerabilities in the same session. No invocation needed; treated as
+background hygiene.
 
-```
-@codex review
-@claude review
+The impl's own `/codex:review` + `/code-review` are the load-bearing
+gates for production code; the rule extends to Claude when Claude is
+in the implementer role for its own scope (rails / scripts / hooks /
+docs). GitHub `@codex review` that runs after PR open is the
+**backstop**, never the primary. There is **no** PR-level `@claude
+review` in this project — Claude's PR-reviewer GH-Actions workflow is
+disabled.
 
-**Changes since the last review (head <new-SHA-short>):**
-- <thread-id-or-summary>: <one-line description of the fix>
-
-**Not changed (deliberate — explanation for the reviewer):**
-- <thread-id-or-summary>: <one-line rationale>
-```
-
-Codex parses the leading `@codex review` on its own line as the
-trigger; the `@claude review` on the next line is read by the GH
-Actions Claude workflow via its `contains()` body scan. Two bots, one
-comment, **no phantom Codex cloud task** — because there's no
-non-`@codex review` `@codex` mention. The rationale block under the
-triggers is read by both reviewers as context for the re-review (and
-keeps the same finding from being re-raised on spec-design-accepted
-classes).
-
-**The re-review request is ALWAYS dual-bot with a rationale block — no
-exceptions.** "Codex already reviewed this PR" is NOT a reason to drop
-`@claude review`, and vice versa. Both reviewers must be requested on
-every re-review so each gets context for the new head, and a reader
-inspecting the PR thread sees both verdicts pinned to the same commit.
-
-The first review on a fresh PR can omit the rationale block (no prior
-findings to contextualize) but still MUST include both bot mentions.
-Every subsequent re-review carries the rationale block per
-`.claude/agents/implementer.md` § 8e.
-
+**GH connector hygiene (avoid phantom cloud tasks).** ANY `@codex` PR
+comment that is not EXACTLY `@codex review` spawns a Codex cloud task
+that narrates sandbox commits/PRs which do **NOT** land in this repo.
 So:
 - Fix narration → comment with **NO** `@codex` mention; resolve the thread.
-- First review on a fresh PR → bare dual-trigger
-  (`@codex review\n@claude review`), no rationale block needed.
-- Every re-review after the first → dual-trigger PLUS the rationale
-  block ("Changes since the last review (head <SHA>)" /
-  "Not changed (deliberate)") per the implementer.md § 8e format.
-  Never single-bot, never bare on a re-review.
-- Treat both connectors as adversarial *readers* only — act on their
-  findings text; never on their self-reported commits/PRs/tests; verify
+- Re-review → a bare standalone **`@codex review`** and nothing else.
+  After a fix iteration, the implementer's re-review comment is
+  formatted per `.claude/agents/implementer.md` § 8e (leading
+  `@codex review`, then a "Changes since the last review" /
+  "Not changed (deliberate)" rationale block) so the reviewer doesn't
+  re-raise the same architectural finding the impl already addressed.
+- Treat the connector as an adversarial *reader* only — act on its
+  findings text; never on its self-reported commits/PRs/tests; verify
   repo state if in doubt (`gh pr list --state all`,
   `gh api …/commits/<sha>`).
+
+**Claude is NOT a PR-level reviewer in this project.** The GH-Actions
+workflow at `.github/workflows/claude-review.yml` is kept on `main`
+for documentation but is disabled (`on: workflow_dispatch`, manual-
+only). Claude's reviewer role is exercised LOCALLY in the impl loop
+via the built-in Claude Code slash command `/code-review --effort
+high` (subscription-covered, runs against the impl's working-tree
+diff). See § "Internal review loop" below for the full local-reviewer
+stack.
 
 **`@codex review` re-trigger guard — the 👍 skip rule.** Codex's no-issues
 verdicts contain `:+1:` (👍) in the review comment body. Before posting
@@ -472,12 +471,25 @@ comment/review on the current PR head:
 - A new commit pushed after a 👍 invalidates the 👍 (it was about the old
   head); the next re-trigger is allowed.
 
-Check before triggering:
+Check before triggering — Codex's no-issues verdict can land in EITHER
+shape (issue comment or PR review body). Query both:
+
 ```bash
-latest=$(gh api repos/$OWNER/$REPO/issues/$PR/comments \
+issue_body=$(gh api repos/$OWNER/$REPO/issues/$PR/comments \
   --jq '[.[] | select(.user.login=="chatgpt-codex-connector[bot]")] | last | .body // ""')
-echo "$latest" | grep -qE ':\+1:|👍' && echo "skip" || echo "ok-to-trigger"
+review_body=$(gh api repos/$OWNER/$REPO/pulls/$PR/reviews \
+  --jq '[.[] | select(.user.login=="chatgpt-codex-connector[bot]")] | last | .body // ""')
+if printf '%s\n%s' "$issue_body" "$review_body" | grep -qE ':\+1:|👍'; then
+  echo "skip"
+else
+  echo "ok-to-trigger"
+fi
 ```
+
+Checking only issue comments fails open on PRs where codex's verdict
+came in as a head-pinned Review (the common shape after a fix
+iteration). The canonical helper `scripts/review-gate.sh` already
+queries both shapes; the one-liner above mirrors that.
 
 **Detecting the Codex verdict — use the canonical tool, never hand-roll.**
 The Codex bot interacts with PRs in two shapes — both must be tracked:
