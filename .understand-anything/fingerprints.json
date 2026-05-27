@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "3dc4181f36f17fdef69dacbce0b48cedb7edaed4",
-  "generatedAt": "2026-05-27T00:32:06.454Z",
+  "gitCommitHash": "920039a10d11412f94ad46c9844d341d1d356746",
+  "generatedAt": "2026-05-27T04:29:26.052Z",
   "files": {
     ".claude/agents/implementer.md": {
       "filePath": ".claude/agents/implementer.md",
@@ -95,27 +95,27 @@
     },
     ".understand-anything/fingerprints.json": {
       "filePath": ".understand-anything/fingerprints.json",
-      "contentHash": "5e32d43475bfbc7c20045210152d9681cbf4edda3c98f7c4516c528fb0cdf422",
+      "contentHash": "e50bf261cb26669044ac6cdb2da3394d8f2d24ac2d4efff17d3062de0c1824a2",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 606,
+      "totalLines": 2901,
       "hasStructuralAnalysis": true
     },
     ".understand-anything/knowledge-graph.json": {
       "filePath": ".understand-anything/knowledge-graph.json",
-      "contentHash": "48898218aab7fe825c397e4e30e83d2c43336c30e7c84dff44201c6839a13442",
+      "contentHash": "d5f37a8a938852d7ab4a458893d1ecec0d1e5a40666a07936fbacc2926a93b56",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 4566,
+      "totalLines": 4568,
       "hasStructuralAnalysis": true
     },
     ".understand-anything/meta.json": {
       "filePath": ".understand-anything/meta.json",
-      "contentHash": "cb743bde365edcfca4d5de9b215f3870f928303289138db9563ce428d8d381a1",
+      "contentHash": "55611b95ed1725331fd58df5f72de088d8b79a3d3f3cbfb3cfdc296606e45332",
       "functions": [],
       "classes": [],
       "imports": [],
@@ -2295,12 +2295,12 @@
     },
     "RUNNING_NOTES.md": {
       "filePath": "RUNNING_NOTES.md",
-      "contentHash": "5a6c173732b575b470ae75beb1a3e5bdaf1fd3c344717e004e53c26193aff0bc",
+      "contentHash": "c5b8a89c6738ef874140d3c1d35e90ff34b1621f43406871a746a55c5dd8681e",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 124,
+      "totalLines": 182,
       "hasStructuralAnalysis": true
     },
     "scripts/check-prereqs.sh": {

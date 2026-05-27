@@ -134,7 +134,7 @@ Per PLAN.md §2.3 step 6: phase boundaries cross only when Claude explicitly tel
 
 Paired bootstrap `all-three` vs `vision+text`: `p = 0.0002`. Gap_vt = **45.1 pp**, gap_so = **43.1 pp**. Both above the >15 pp PLAN.md §Phase 1 (e) gate. `verdict = fusion_wins`, `acceptance = passed`.
 
-Headline figure rendered to `docs/figures/headline.svg` (referenced from the project explainer site at `docs/index.html`).
+Headline figure rendered to `docs/figures/headline.svg` (referenced from the project explainer site at `docs/index.html`). _Forward-reference: `headline.svg` is being added on PR #11 (VOI-193 follow-up) and `index.html` on PR #22 (`sk/docs-project-explainer`); neither is on `origin/main` at the time this rollup is written. If this PR squash-merges before #11 and #22, the path is dangling until those land — preserved here as the historical record of where the Phase 1 deliverables exist locally._
 
 ### Phase 1 timing
 
@@ -142,6 +142,16 @@ Headline figure rendered to `docs/figures/headline.svg` (referenced from the pro
 - Phase 1 close (P1.5 merge): 2026-05-26 ~23:48 UTC.
 - ~13 h wall time. Parallel fan-out at Phase entry (P1.1/1.2/1.3 disjoint surfaces — `data/`, `models/encoder+fusion`, `models/vlm`); serial fan-in through P1.4 → P1.5 → P1.6 → P1.7.
 - The 5-seed × 5-epoch toy ablation itself took ~3 h on M2 Max (10:07 → 13:07 EDT).
+
+### Phase 1 memory / timing — partially instrumented (carry to Phase 2)
+
+PLAN.md §1.4(e) calls for: _"Memory & timing measurements logged: peak RAM, time-per-epoch, time-per-condition."_ Reporting honest gap per CLAUDE.md §"Anti-rot" (rather than silently skipping a row of the exit gate):
+
+- **time-per-condition:** ~3 h total ablation wall time / (3 conditions × 5 seeds) ≈ 12 min mean per (condition, seed) on M2 Max. Per-(condition, seed) elapsed is captured in `eval/ablation.py`'s per-row CSV output but not aggregated into a roll-up table here.
+- **time-per-epoch:** _not instrumented._ No `time.perf_counter()` around the epoch loop in `train/loop.py`. Carry to Phase 2 if the real-encoder swap (PatchTST) makes per-epoch cost interesting.
+- **peak RAM:** _not instrumented._ No `torch.mps.max_memory_allocated()` / `torch.mps.driver_allocated_memory()` calls anywhere. Phase 1's toy data + tiny encoder + frozen-VLM-with-LoRA pattern is far below the M2 Max's 64GB budget; the measurement only starts to matter once Phase 3 ingests real CWRU at full resolution. Carry to Phase 3 if so.
+
+Tickets to file at Phase 2 entry: `train/loop.py` epoch-timing instrumentation; `eval/ablation.py` peak-RAM snapshot per condition. Not blocking Phase 1 closure (the headline gate is what closes the phase); flagging so the next phase doesn't re-discover the gap.
 
 ### Decisions & near-misses (worth remembering)
 

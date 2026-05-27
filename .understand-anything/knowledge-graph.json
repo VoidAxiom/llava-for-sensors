@@ -1858,14 +1858,16 @@
       "type": "document",
       "name": "RUNNING_NOTES.md",
       "filePath": "RUNNING_NOTES.md",
-      "summary": "Append-only lab journal capturing per-phase decisions, dead ends, memory/timing measurements, blockers, and template-defect resolutions \u2014 the raw material distilled into the Phase 6 TECH_REPORT.md.",
+      "summary": "Append-only lab journal: per-phase decisions, dead ends, memory/timing measurements, blockers. Phase 0 done (10 packets + 2 META PRs). Phase 1 done \u2014 the headline ablation gate passed: sensors-only 0.436 / vision+text 0.416 / all-three 0.867 (paired-bootstrap p=0.0002, gap=45.1pp, above the >15pp PLAN.md \u00a71(e) threshold). Captures the r17 false-positive revert (codex bot flagged an XOR error in input_ids+inputs_embeds that doesn't fire \u2014 manual-scatter fix broke the working path), the seed-4 dead-init outlier, the toy dataset's deliberately-redundant vision-text axes, and the GH-private-repo flip. Memory/timing instrumentation gap (peak RAM, time-per-epoch) carried to Phase 2. Phase 2 packets (PatchTST encoder swap + architecture/component.c4 update) staged for dispatch.",
       "tags": [
         "documentation",
         "lab-journal",
         "decisions",
-        "phase-tracking"
+        "phase-tracking",
+        "headline-figure",
+        "ablation-results"
       ],
-      "complexity": "moderate"
+      "complexity": "complex"
     },
     {
       "id": "document:TECH_REPORT.md",
