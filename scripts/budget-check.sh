@@ -205,6 +205,17 @@ END {
     exit 1
   }
 
+  missing = ""
+  if (!("sensors-only" in cond_wall)) { missing = missing " sensors-only" }
+  if (!("vision+text" in cond_wall))  { missing = missing " vision+text" }
+  if (!("all-three" in cond_wall))    { missing = missing " all-three" }
+  if (missing != "") {
+    print "ERROR: CSV missing required condition row(s):" missing > "/dev/stderr"
+    print "ERROR: Phase 3 exit gate requires a complete 3-condition probe" > "/dev/stderr"
+    print "ERROR: re-run scripts/run_full_ablation.py --seeds 1 --epochs 1 --out-csv <path>" > "/dev/stderr"
+    exit 1
+  }
+
   printf "%d\n", row_count
   printf "%.6f\n", sum_wall
   printf "%.6f\n", max_mem

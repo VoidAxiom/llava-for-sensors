@@ -139,6 +139,23 @@ else
   fail_test "CSV validation failure (wrong header)" "exit=$EXIT_CODE stderr='$STDERR_OUT'"
 fi
 
+CSV_INCOMPLETE="$TEST_TMP/incomplete.csv"
+cat > "$CSV_INCOMPLETE" <<'CSV'
+condition,seed,final_val_f1,wall_time_s,peak_memory_bytes
+sensors-only,0,0.85,600,8589934592
+CSV
+
+set +e
+OUTPUT=$(bash "$BUDGET_CHECK" "$CSV_INCOMPLETE" 2>"$TEST_TMP/incomplete.err")
+EXIT_CODE=$?
+set -e
+STDERR_OUT=$(sed -n '1,20p' "$TEST_TMP/incomplete.err")
+if [ "$EXIT_CODE" -eq 1 ] && contains_text "$STDERR_OUT" "missing required condition row(s)" && contains_text "$STDERR_OUT" "vision+text" && contains_text "$STDERR_OUT" "all-three"; then
+  pass_test "CSV validation failure (missing condition rows)"
+else
+  fail_test "CSV validation failure (missing condition rows)" "exit=$EXIT_CODE stdout='$OUTPUT' stderr='$STDERR_OUT'"
+fi
+
 echo "Summary: $PASS passed, $FAIL failed."
 
 if [ "$FAIL" -gt 0 ]; then
