@@ -332,6 +332,9 @@ except Exception:
       elif echo "$gate" | grep -q 'CLEAN ('; then
         decision="ACT-NOW: head-pinned CLEAN — merge"
         actions_now=$((actions_now+1))
+      elif echo "$gate" | grep -q 'CLEAN-COMMENT-MANUAL' && [ "$pushed" = "local-ahead" ]; then
+        decision="ACT-NOW: CLEAN-COMMENT-MANUAL on PR head — but worktree is local-ahead (unpushed). Push first, then re-judge timeline + re-gate"
+        actions_now=$((actions_now+1))
       elif echo "$gate" | grep -q 'CLEAN-COMMENT-MANUAL'; then
         decision="ACT-NOW: CLEAN-COMMENT-MANUAL — judge timeline + merge"
         actions_now=$((actions_now+1))
@@ -378,6 +381,9 @@ except Exception:
           decision="ACT-NOW: $ahead unpushed + ${recent}min silent — pre-PR gate + re-dispatch push"
           actions_now=$((actions_now+1))
         fi
+      elif [ "$ahead" -gt 0 ] && [ "$pushed" = "local-ahead" ]; then
+        decision="ACT-NOW: $ahead commits + worktree is local-ahead (remote branch exists but local HEAD moved) — push first, then open PR (else PR would review/merge the stale remote branch and omit local commits)"
+        actions_now=$((actions_now+1))
       elif [ "$ahead" -gt 0 ]; then
         decision="ACT-NOW: $ahead commits pushed, no PR — re-dispatch impl to open PR"
         actions_now=$((actions_now+1))
