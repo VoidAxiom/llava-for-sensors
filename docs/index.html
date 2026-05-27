@@ -134,7 +134,7 @@
               </ul>
               <p class="live-status-foot">
                 The headline figure above will refresh automatically when
-                <code>eval/headline.py</code> writes the final SVG.
+                <code>eval/headline_figure.py</code> writes the final SVG.
               </p>
             </aside>
           </div>
@@ -806,15 +806,26 @@ def forward(self, x):                # x: (B, 2048)
               Paired test for <code>all-three</code> vs
               <code>vision+text</code> over the same seeds: compute
               per-seed differences
-              <code>dᵢ = f1<sub>all-three,i</sub> − f1<sub>vision+text,i</sub></code>,
-              resample <code>{dᵢ}</code> 10,000× with replacement, and
-              report
-              <code>p = 2 · min(P(mean(d*) ≤ 0), P(mean(d*) ≥ 0))</code>.
+              <code>dᵢ = f1<sub>all-three,i</sub> − f1<sub>vision+text,i</sub></code>;
+              let <code>D̄ = mean({dᵢ})</code> be the observed mean
+              difference. For <code>b = 1, …, B = 10000</code>: draw
+              <code>d*<sub>b</sub></code> with replacement from
+              <code>{dᵢ}</code> and let
+              <code>m*<sub>b</sub> = mean(d*<sub>b</sub>)</code>. Center
+              the resamples at zero by subtracting their grand mean
+              <code>m̄* = mean({m*<sub>b</sub>})</code>, then report the
+              two-sided tail probability
+              <code>p = (1/B) · #{b : |m*<sub>b</sub> − m̄*| ≥ |D̄|}</code>.
+              Floored at <code>1/B</code> to avoid reporting
+              <code>p=0</code>.
             </p>
             <p>
               Implementation: <code>eval/headline_figure.py</code>'s
-              <code>compute_headline()</code>. Deterministic via a fixed
-              <code>rng_seed</code> passed into NumPy's <code>Generator</code>.
+              <code>compute_headline()</code> (the formula above is the
+              verbatim transcription of
+              <code>_paired_bootstrap_p()</code>, lines 56–72).
+              Deterministic via a fixed <code>rng_seed</code> passed
+              into NumPy's <code>Generator</code>.
             </p>
           </div>
 
