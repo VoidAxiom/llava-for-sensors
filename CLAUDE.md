@@ -470,25 +470,26 @@ comment/review on the current PR head:
 - A new commit pushed after a 👍 invalidates the 👍 (it was about the old
   head); the next re-trigger is allowed.
 
-Check before triggering — Codex's no-issues verdict can land in EITHER
-shape (issue comment or PR review body). Query both:
+Check before triggering — delegate to the canonical helper, which
+queries BOTH shapes (issue comments + PR Reviews) AND pins each
+verdict to the current head SHA (`review.commit.oid == headRefOid`):
 
 ```bash
-issue_body=$(gh api repos/$OWNER/$REPO/issues/$PR/comments \
-  --jq '[.[] | select(.user.login=="chatgpt-codex-connector[bot]")] | last | .body // ""')
-review_body=$(gh api repos/$OWNER/$REPO/pulls/$PR/reviews \
-  --jq '[.[] | select(.user.login=="chatgpt-codex-connector[bot]")] | last | .body // ""')
-if printf '%s\n%s' "$issue_body" "$review_body" | grep -qE ':\+1:|👍'; then
-  echo "skip"
-else
-  echo "ok-to-trigger"
-fi
+bash scripts/review-gate.sh status "$PR" | grep -q '^GATE: CLEAN' && echo "skip" || echo "ok-to-trigger"
 ```
 
-Checking only issue comments fails open on PRs where codex's verdict
-came in as a head-pinned Review (the common shape after a fix
-iteration). The canonical helper `scripts/review-gate.sh` already
-queries both shapes; the one-liner above mirrors that.
+`GATE: CLEAN` means a head-pinned 👍 verdict on the current head with
+zero unresolved threads. Anything else (`BLOCKED`, `CLEAN-COMMENT-
+MANUAL`, etc.) is ok-to-trigger.
+
+A hand-rolled one-liner over `issues/<n>/comments` is **not** sufficient:
+- It misses Codex Reviews (the common no-issues shape after a fix
+  iteration) — fails open on stale-Review verdicts.
+- It doesn't pin to head SHA — a new commit after a 👍 still finds the
+  old 👍 in the comments list and skips, contradicting the doctrine bullet
+  above ("a new commit pushed after a 👍 invalidates the 👍").
+
+Always delegate to `scripts/review-gate.sh status`. Don't hand-roll.
 
 **Detecting the Codex verdict — use the canonical tool, never hand-roll.**
 The Codex bot interacts with PRs in two shapes — both must be tracked:

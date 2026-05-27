@@ -369,7 +369,7 @@ f. Re-run the eye-emoji loop on the new comment: `bash scripts/review-gate.sh wa
 
 g. Repeat steps a–f until codex returns REVIEWED-CLEAN.
 
-**Codex connector hygiene** (CRITICAL): ANY `@codex` PR comment that is not the dual-trigger pattern above (or a bare `@codex review` on the first request) spawns a phantom Codex cloud task that narrates work which does NOT land in this repo. Fix narration → comment with NO `@codex` mention; resolve threads; trigger re-review with the dual-trigger format above. Occasional phantom narration happens even on the canonical dual-trigger — treat the codex bot as an adversarial reader only; act on its findings text and verify repo state via `gh`, never on its self-reported commits.
+**Codex connector hygiene** (CRITICAL): ANY `@codex` PR comment that does not lead with `@codex review` on its own line spawns a phantom Codex cloud task that narrates work which does NOT land in this repo. The accepted forms are: (a) a bare standalone `@codex review` comment (first review on a fresh PR), or (b) `@codex review` on the first line followed by the rationale block per § 8e (re-review after fix iteration). Anything else — including free-form prose with `@codex` mentions embedded — risks a phantom task. Fix narration → comment with NO `@codex` mention; resolve threads; trigger re-review with one of the two accepted forms. Occasional phantom narration happens even on the canonical forms — treat the codex bot as an adversarial reader only; act on its findings text and verify repo state via `gh`, never on its self-reported commits.
 
 Login form differs by API: REST = `chatgpt-codex-connector[bot]`; GraphQL = `chatgpt-codex-connector`. Match both forms when checking for codex activity.
 
