@@ -16,19 +16,32 @@ model {
   extend llava {
     data_pipeline = container 'Data Pipeline' {
       description '
-        Loads CWRU windows (2048 samples each); stratified 80/10/10
-        split with seed=0; pairs each window with a representative
-        equipment image and a deterministically synthesized technician
-        note. Also exposes the Phase-1 toy synthetic dataset whose
-        anomaly signature requires fusion by construction.
+        Four cooperating modules under `data/`:
+        `cwru.py` loads CWRU drive-end accelerometer .mat files,
+        preprocesses into non-overlapping 2048-sample windows, and
+        builds a file-grouped stratified 80/10/10 split (seed=0).
+        Manual fetch into `data/raw/cwru/` per registration wall
+        (README.md § "CWRU dataset — manual fetch"); falls back to
+        committed synthetic .mat fixtures under `data/test_assets/cwru/`
+        when raw is absent (CI mode). `images.py` deterministically
+        renders one 224×224 RGB bearing-diagram per class via Pillow
+        primitives. `notes.py` synthesizes technician notes from
+        deterministic templates (no metered API). `dataset.py`
+        exposes `BearingFaultDataset(mode={"synthetic","cwru"})`
+        returning `(sensor, image, text, label)` tuples — Phase 1 toy
+        synthetic mode preserved alongside the Phase 3 CWRU mode.
       '
     }
 
     ts_encoder = container 'Time-Series Encoder' {
       description '
         Encodes a 2048-sample window into token-space embeddings.
-        Phase 1 starts with a toy 1D-CNN to smoke-test the full
-        pipeline; Phase 2 swaps to PatchTST (preferred) or Moment-small.
+        Phase 2 shipped a hand-rolled minimal PatchTST (reshape +
+        `nn.Linear(64→512)` + learned positional embedding +
+        2-layer `nn.TransformerEncoderLayer` stack, 8 heads,
+        d_ff=2048, dropout=0.1). The Phase 1 toy 1D-CNN preceded it;
+        the `(B, 32, 512)` interface contract is preserved verbatim
+        across the swap so `models/fusion.py` is unaffected.
       '
     }
 
