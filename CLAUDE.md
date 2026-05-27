@@ -475,7 +475,7 @@ queries BOTH shapes (issue comments + PR Reviews) AND pins each
 verdict to the current head SHA (`review.commit.oid == headRefOid`):
 
 ```bash
-bash scripts/review-gate.sh status "$PR" | grep -q '^GATE: CLEAN' && echo "skip" || echo "ok-to-trigger"
+bash scripts/review-gate.sh status "$PR" | grep -qE '^GATE: CLEAN( |$)' && echo "skip" || echo "ok-to-trigger"
 ```
 
 `GATE: CLEAN` means a head-pinned 👍 verdict on the current head with
