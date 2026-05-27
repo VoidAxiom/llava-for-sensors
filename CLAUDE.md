@@ -487,9 +487,32 @@ verdict to the current head SHA (`review.commit.oid == headRefOid`):
 bash scripts/review-gate.sh status "$PR" | grep -qE '^GATE: CLEAN( |$)' && echo "skip" || echo "ok-to-trigger"
 ```
 
-`GATE: CLEAN` means a head-pinned 👍 verdict on the current head with
-zero unresolved threads. Anything else (`BLOCKED`, `CLEAN-COMMENT-
-MANUAL`, etc.) is ok-to-trigger.
+`GATE: CLEAN` means there is a head-pinned Codex review on the current
+head, zero unresolved threads, and `mergeStateStatus = CLEAN`. Anything
+else (`BLOCKED`, `CLEAN-COMMENT-MANUAL`, etc.) is ok-to-trigger.
+
+**Caveat — when CLEAN is NOT a real clean verdict** (P1 hole codex
+correctly flagged on PR #23 round 4): Codex posts findings as a
+*Review* (head-pinned, body lists the findings) plus per-line review
+comments. When Claude resolves those threads on a "rationale" /
+"not changed deliberately" basis WITHOUT a fresh codex re-review,
+the gate flips to CLEAN because the mechanical conditions are
+satisfied (review is on head, threads are resolved, mss is CLEAN) —
+but Codex never agreed with the rationale. So:
+
+- If you're skipping changes on a finding ("not changed deliberately"),
+  re-trigger via the §8e re-review format AFTER resolving the threads
+  so Codex gets a chance to reject your rationale. Don't trust
+  `GATE: CLEAN` after pure thread resolution.
+- The mechanically robust path is: push → bare `@codex review`
+  trigger → wait for codex's verdict (findings → fix → re-trigger
+  with §8e block; no findings → CLEAN-COMMENT-MANUAL with a clean
+  comment post-dating the current head).
+
+The one-liner above is sufficient for the "Codex posted no findings
+since the most recent push" case, but always trips through the
+`/code-review` local pass first to surface anything codex might
+not catch.
 
 A hand-rolled one-liner over `issues/<n>/comments` is **not** sufficient:
 - It misses Codex Reviews (the common no-issues shape after a fix
