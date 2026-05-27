@@ -462,16 +462,8 @@ except Exception:
       fi
       actions_now=$((actions_now+1))
     elif [ "$acked" = "yes" ]; then
-      # 👀'd but no verdict yet — usually means codex is processing. But a
-      # dropped/stuck review can keep the 👀 forever. Cap with STALL_MIN
-      # (default 15min): under the cap = waiting; over = act.
-      if [ "$rr_age" -gt "$STALL_MIN" ] 2>/dev/null; then
-        decision="ACT-NOW [$owner]: codex 👀'd ${rr_age}min ago but no verdict (> ${STALL_MIN}min STALL_MIN) — re-trigger (review likely dropped)"
-        actions_now=$((actions_now+1))
-      else
-        decision="NO-ACTION [$owner]: codex 👀'd ${rr_age}min ago — verdict in flight (≤ ${STALL_MIN}min)"
-        in_flight=$((in_flight+1))
-      fi
+      decision="NO-ACTION [$owner]: codex 👀'd ${rr_age}min ago — verdict in flight"
+      in_flight=$((in_flight+1))
     elif [ "$rr_age" = "-" ]; then
       decision="ACT-NOW [$owner]: PR open + no @codex review yet — post bare @codex review"
       actions_now=$((actions_now+1))
