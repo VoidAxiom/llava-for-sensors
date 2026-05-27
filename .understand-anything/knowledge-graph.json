@@ -1767,52 +1767,6 @@
       "complexity": "moderate"
     },
     {
-      "id": "config:.understand-anything/fingerprints.json",
-      "type": "config",
-      "name": "fingerprints.json",
-      "filePath": ".understand-anything/fingerprints.json",
-      "summary": "Per-file fingerprint cache used by the understand-anything knowledge-graph pipeline to detect changed files between runs and skip re-analysis when content hashes match.",
-      "tags": [
-        "configuration",
-        "knowledge-graph",
-        "cache",
-        "fingerprints",
-        "incremental-analysis"
-      ],
-      "complexity": "complex",
-      "languageNotes": "Tracks version, git commit hash, generation timestamp, and a per-file fingerprint map over the 41 analyzed source files."
-    },
-    {
-      "id": "config:.understand-anything/knowledge-graph.json",
-      "type": "config",
-      "name": "knowledge-graph.json",
-      "filePath": ".understand-anything/knowledge-graph.json",
-      "summary": "Committed Understand-Anything knowledge graph for the project \u2014 nodes, edges, layers, and a guided tour produced by the /understand pipeline and rendered by the dashboard.",
-      "tags": [
-        "knowledge-graph",
-        "documentation",
-        "graph-data",
-        "understand-anything",
-        "dashboard-input"
-      ],
-      "complexity": "complex",
-      "languageNotes": "Schema sections: version, project, nodes, edges, layers, tour \u2014 consumed by /understand-dashboard and surfaced as a docs deliverable per CLAUDE.md."
-    },
-    {
-      "id": "config:.understand-anything/meta.json",
-      "type": "config",
-      "name": "meta.json",
-      "filePath": ".understand-anything/meta.json",
-      "summary": "Run metadata for the understand-anything knowledge-graph pipeline \u2014 records the last analysis timestamp, git commit hash, schema version, and analyzed file count.",
-      "tags": [
-        "configuration",
-        "knowledge-graph",
-        "metadata",
-        "understand-anything"
-      ],
-      "complexity": "simple"
-    },
-    {
       "id": "document:AGENTS.md",
       "type": "document",
       "name": "AGENTS.md",
@@ -2280,20 +2234,6 @@
         "init-config",
         "scaffold",
         "regression-fixture"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "config:.understand-anything/.understandignore",
-      "type": "config",
-      "name": ".understandignore",
-      "filePath": ".understand-anything/.understandignore",
-      "summary": "Ignore patterns telling the Understand-Anything scanner which paths to exclude from the knowledge-graph build (build outputs, generated artifacts, .codex-runs).",
-      "tags": [
-        "configuration",
-        "ignore-file",
-        "knowledge-graph",
-        "scanner-config"
       ],
       "complexity": "simple"
     },
@@ -3991,27 +3931,6 @@
       "weight": 0.5
     },
     {
-      "source": "config:.understand-anything/meta.json",
-      "target": "config:.understand-anything/fingerprints.json",
-      "type": "related",
-      "direction": "forward",
-      "weight": 0.5
-    },
-    {
-      "source": "config:.understand-anything/meta.json",
-      "target": "config:.understand-anything/knowledge-graph.json",
-      "type": "related",
-      "direction": "forward",
-      "weight": 0.5
-    },
-    {
-      "source": "config:.understand-anything/fingerprints.json",
-      "target": "config:.understand-anything/knowledge-graph.json",
-      "type": "related",
-      "direction": "forward",
-      "weight": 0.5
-    },
-    {
       "source": "document:README.md",
       "target": "document:PLAN.md",
       "type": "documents",
@@ -4455,15 +4374,11 @@
       "name": "Configuration and Project Metadata",
       "description": "Tooling configs (pyproject.toml, package.json, settings.json), JSON schemas for codex results, the committed knowledge graph, and the scaffolding template answers file.",
       "nodeIds": [
-        "config:.understand-anything/fingerprints.json",
-        "config:.understand-anything/knowledge-graph.json",
-        "config:.understand-anything/meta.json",
         "config:package.json",
         "config:pyproject.toml",
         "config:.claude/settings.json",
         "config:.codex/schemas/codex-result.schema.json",
-        "file:.template.answers",
-        "config:.understand-anything/.understandignore"
+        "file:.template.answers"
       ]
     }
   ],
