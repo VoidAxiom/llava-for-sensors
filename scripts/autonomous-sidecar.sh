@@ -330,16 +330,21 @@ except Exception:
         decision="ACT-NOW: CLEAN-COMMENT-MANUAL — judge timeline + merge"
         actions_now=$((actions_now+1))
       elif [ "$threads_open" -gt 0 ]; then
-        if [ "$acked" = "yes" ] && [ "$eyes_age" != "-" ] && [ "$eyes_age" -lt "$STALL_MIN" ] 2>/dev/null; then
-          decision="NO-ACTION: codex 👀'd ${eyes_age}min ago, impl iterating (≤ ${STALL_MIN}min)"
+        if [ "$acked" = "yes" ] && [ "$eyes_age" != "-" ] && [ "$eyes_age" -lt 30 ] 2>/dev/null; then
+          # Phase 2 of review-gate.sh wait: once 👀 lands, STOP re-triggering
+          # (would queue redundant cloud tasks). Wait until ≤30min (verdictMaxSec
+          # default in review-gate.sh); past that, ESCALATE to operator — do
+          # NOT re-trigger.
+          decision="NO-ACTION: codex 👀'd ${eyes_age}min ago, impl iterating (verdict in flight, ≤30min per review-gate.sh wait)"
           in_flight=$((in_flight+1))
         elif [ "$acked" = "yes" ] && [ "$eyes_age" != "-" ]; then
-          decision="ACT-NOW: codex 👀'd ${eyes_age}min ago, no verdict (> ${STALL_MIN}min STALL_MIN) — re-trigger (review likely dropped)"
+          decision="ESCALATE: codex 👀'd ${eyes_age}min ago, no verdict past 30min verdictMaxSec — notify operator, do NOT re-trigger (would queue redundant cloud task per review-gate.sh §Phase 2)"
           actions_now=$((actions_now+1))
         elif [ "$rr_age" != "-" ] && [ "$rr_age" -ge "$STALL_MIN" ] 2>/dev/null; then
           # Un-acked @codex review request older than STALL_MIN — re-trigger
           # the review itself, regardless of any unrelated recent local
-          # activity that could mask the staleness via `recent`.
+          # activity that could mask the staleness via `recent`. This is
+          # Phase 1 (ack) — re-trigger IS the right action when no 👀.
           decision="ACT-NOW: @codex review ${rr_age}min ago + no 👀 (> ${STALL_MIN}min STALL_MIN) — re-trigger (codex may have missed)"
           actions_now=$((actions_now+1))
         elif [ "$recent" -lt "$STALL_MIN" ]; then
@@ -351,14 +356,14 @@ except Exception:
         fi
       else
         # threads=0, waiting on first review
-        if [ "$acked" = "yes" ] && [ "$eyes_age" != "-" ] && [ "$eyes_age" -lt "$STALL_MIN" ] 2>/dev/null; then
-          decision="NO-ACTION: codex 👀'd ${eyes_age}min ago, verdict in flight (≤ ${STALL_MIN}min)"
+        if [ "$acked" = "yes" ] && [ "$eyes_age" != "-" ] && [ "$eyes_age" -lt 30 ] 2>/dev/null; then
+          decision="NO-ACTION: codex 👀'd ${eyes_age}min ago, verdict in flight (≤30min per review-gate.sh wait)"
           in_flight=$((in_flight+1))
         elif [ "$acked" = "yes" ] && [ "$eyes_age" != "-" ]; then
-          decision="ACT-NOW: codex 👀'd ${eyes_age}min ago, no verdict (> ${STALL_MIN}min STALL_MIN) — re-trigger (review likely dropped)"
+          decision="ESCALATE: codex 👀'd ${eyes_age}min ago, no verdict past 30min verdictMaxSec — notify operator, do NOT re-trigger (would queue redundant cloud task per review-gate.sh §Phase 2)"
           actions_now=$((actions_now+1))
         elif [ "$rr_age" != "-" ] && [ "$rr_age" -ge "$STALL_MIN" ] 2>/dev/null; then
-          # Un-acked @codex review request older than STALL_MIN — re-trigger.
+          # Un-acked @codex review request older than STALL_MIN — re-trigger (Phase 1).
           decision="ACT-NOW: @codex review ${rr_age}min ago + no 👀 (> ${STALL_MIN}min STALL_MIN) — re-trigger (codex may have missed)"
           actions_now=$((actions_now+1))
         elif [ "$recent" -lt "$STALL_MIN" ]; then
@@ -513,18 +518,15 @@ except Exception:
       fi
       actions_now=$((actions_now+1))
     elif [ "$acked" = "yes" ]; then
-      # 👀'd but no verdict yet — usually means codex is processing. Cap
-      # against STALL_MIN (default 15min) so a dropped/stuck Codex review
-      # doesn't leave the PR ignored forever. Mirrors the worktree-pass
-      # STALL_MIN logic. Measured from the 👀 reaction timestamp (eyes_age),
-      # NOT the request timestamp — codex can 👀 a long-stale request, and
-      # request-age would immediately re-trigger before the verdict is
-      # actually in flight.
-      if [ "$eyes_age" != "-" ] && [ "$eyes_age" -gt "$STALL_MIN" ] 2>/dev/null; then
-        decision="ACT-NOW [$owner]: codex 👀'd ${eyes_age}min ago, no verdict (> ${STALL_MIN}min STALL_MIN) — re-trigger (review likely dropped)"
+      # Phase 2 of review-gate.sh wait: once 👀 lands, STOP re-triggering
+      # (would queue redundant cloud tasks). Wait until ≤30min
+      # (verdictMaxSec default); past that, ESCALATE to operator —
+      # do NOT re-trigger.
+      if [ "$eyes_age" != "-" ] && [ "$eyes_age" -ge 30 ] 2>/dev/null; then
+        decision="ESCALATE [$owner]: codex 👀'd ${eyes_age}min ago, no verdict past 30min verdictMaxSec — notify operator, do NOT re-trigger (would queue redundant cloud task per review-gate.sh §Phase 2)"
         actions_now=$((actions_now+1))
       else
-        decision="NO-ACTION [$owner]: codex 👀'd ${eyes_age}min ago — verdict in flight (≤ ${STALL_MIN}min)"
+        decision="NO-ACTION [$owner]: codex 👀'd ${eyes_age}min ago — verdict in flight (≤30min per review-gate.sh wait)"
         in_flight=$((in_flight+1))
       fi
     elif [ "$rr_age" = "-" ]; then
@@ -548,13 +550,16 @@ for p in json.load(sys.stdin):
 ' 2>/dev/null)
 fi
 
-echo
-echo "tick summary: ${actions_now} ACT-NOW, ${verify_owed} VERIFY, ${in_flight} NO-ACTION (in-flight)"
-# Bump ACT-NOW if anything merged this tick — director should enumerate
-# downstream-unblocked issues and spin up impls. Both VOI-tagged merges
-# (phase packets) and PR-only merges (META PRs without VOI IDs) qualify.
+# Bump ACT-NOW if anything merged this tick BEFORE printing the summary,
+# so the compact "X ACT-NOW" line reflects the merge-driven action that
+# wrapper scripts and operators rely on. Both VOI-tagged merges (phase
+# packets) and PR-only merges (META PRs without VOI IDs) qualify.
 if [ -n "$saw_merge" ]; then
   actions_now=$((actions_now+1))
+fi
+echo
+echo "tick summary: ${actions_now} ACT-NOW, ${verify_owed} VERIFY, ${in_flight} NO-ACTION (in-flight)"
+if [ -n "$saw_merge" ]; then
   if [ -n "$merged_voi_list" ]; then
     echo "→ ACT-NOW (newly merged VOI):${merged_voi_list}"
   fi
