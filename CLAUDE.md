@@ -432,21 +432,30 @@ in this project — Claude's PR-reviewer GH-Actions workflow is
 disabled at the trigger level (kept on `main` as `on: workflow_dispatch`
 for documentation; never fires automatically).
 
-**GH connector hygiene (avoid phantom cloud tasks).** ANY `@codex` PR
-comment that is not EXACTLY `@codex review` spawns a Codex cloud task
-that narrates sandbox commits/PRs which do **NOT** land in this repo.
-So:
-- Fix narration → comment with **NO** `@codex` mention; resolve the thread.
-- Re-review → a bare standalone **`@codex review`** and nothing else.
-  After a fix iteration, the implementer's re-review comment is
-  formatted per `.claude/agents/implementer.md` § 8e (leading
-  `@codex review`, then a "Changes since the last review" /
-  "Not changed (deliberate)" rationale block) so the reviewer doesn't
-  re-raise the same architectural finding the impl already addressed.
-- Treat the connector as an adversarial *reader* only — act on its
-  findings text; never on its self-reported commits/PRs/tests; verify
-  repo state if in doubt (`gh pr list --state all`,
-  `gh api …/commits/<sha>`).
+**GH connector hygiene (avoid phantom cloud tasks).** Any `@codex` PR
+comment other than the two accepted trigger forms below spawns a Codex
+cloud task that narrates sandbox commits/PRs which do **NOT** land in
+this repo. The accepted trigger forms:
+
+1. **First review** (initial PR review request): a bare standalone
+   **`@codex review`** and nothing else.
+2. **Re-review** (after a fix iteration on the same PR): a comment
+   whose first line is exactly `@codex review`, followed by the
+   rationale block per `.claude/agents/implementer.md` § 8e —
+   a "Changes since last review" enumeration and a "Not changed
+   deliberately" enumeration. The rationale block prevents the
+   reviewer from re-raising findings the impl already addressed.
+
+Patterns that are NOT trigger forms:
+- Fix narration (acknowledging a finding without re-running review) →
+  comment with **NO** `@codex` mention; resolve the thread.
+- Free-form `@codex …` mentions inside prose, code blocks, or thread
+  replies → phantom-cloud-task vectors. Don't.
+
+Treat the connector as an adversarial *reader* only — act on its
+findings text; never on its self-reported commits/PRs/tests; verify
+repo state if in doubt (`gh pr list --state all`,
+`gh api …/commits/<sha>`).
 
 **Claude is NOT a PR-level reviewer in this project.** The GH-Actions
 workflow at `.github/workflows/claude-review.yml` is kept on `main`
