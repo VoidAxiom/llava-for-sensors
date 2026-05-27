@@ -50,12 +50,16 @@ Detailed install steps and verified-tooling notes live in [`RUNNING_NOTES.md`](.
 ## CWRU dataset — manual fetch
 
 The CWRU Bearing Data Center provides bearing vibration recordings used in Phase 3.
-The dataset requires manual download due to a registration wall (scripted downloads are brittle).
+The dataset requires manual download — files sit behind a click-through page (no
+registration needed in practice, verified 2026-05-27) but scripted bulk downloads
+are still brittle, so we fetch the per-file URLs manually.
 
-**Step 1 — Register and download**
+**Step 1 — Download**
 
 Visit https://engineering.case.edu/bearingdatacenter and download the drive-end
-accelerometer `.mat` files for the following conditions:
+accelerometer `.mat` files for the following conditions. Direct per-file URLs
+follow the pattern `https://engineering.case.edu/sites/default/files/<N>.mat`
+(e.g. `https://engineering.case.edu/sites/default/files/97.mat`).
 
 | Class | Suggested files |
 |-------|----------------|
