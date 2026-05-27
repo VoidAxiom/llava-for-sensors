@@ -113,7 +113,7 @@
               </div>
               <div>
                 <dt>&gt;15 pp gap</dt>
-                <dd>The pre-registered acceptance criterion from <a href="https://github.com/VoidAxiom/llava-for-sensors/blob/main/PLAN.md">PLAN.md §Phase 1 (e)</a>: <strong>all-three</strong> macro-F1 must beat <strong>vision+text</strong> macro-F1 by &gt;15 percentage points on the toy set. If it doesn't, the fusion architecture is broken and Phase 1 halts.</dd>
+                <dd>The pre-registered acceptance criterion from <a href="https://github.com/VoidAxiom/llava-for-sensors/blob/main/PLAN.md">PLAN.md §Phase 1 (e)</a>, enforced verbatim by <code>eval/headline.py::run_headline_from_csv</code>: <strong>all-three</strong> macro-F1 must beat <strong>both</strong> <strong>vision+text</strong> AND <strong>sensors-only</strong> by &gt;15 percentage points on the toy set, paired-bootstrap <code>p &lt; 0.05</code>, 95% CIs of <code>all-three</code> vs <code>vision+text</code> not fully overlapping. If any of those four conditions fails, the fusion architecture is broken and Phase 1 halts.</dd>
               </div>
             </dl>
 
@@ -165,16 +165,16 @@
             </ul>
           </article>
           <article class="phase-card phase-done" id="phase-1">
-            <h3>Phase 1 — Toy synthetic pipeline <span class="badge badge-running">running</span></h3>
-            <p>Smoke-tests the architecture on a synthetic 4-class dataset whose anomaly signature is designed so <em>no single modality is sufficient</em>.</p>
+            <h3>Phase 1 — Toy synthetic pipeline <span class="badge badge-done">done · gate passed 45 pp</span></h3>
+            <p>Smoke-tests the architecture on a synthetic 4-class dataset whose anomaly signature is designed so <em>no single modality is sufficient</em>. The pre-registered load-bearing gate (<code>all-three</code> beats <code>vision+text</code> by &gt;15 pp <em>and</em> beats <code>sensors-only</code> by &gt;15 pp on the toy set) passed at <strong>45.1 pp</strong> with <code>p = 0.0002</code> (paired bootstrap). See <a href="https://github.com/VoidAxiom/llava-for-sensors/blob/main/RUNNING_NOTES.md">RUNNING_NOTES.md §Phase 1</a> for the full ledger.</p>
             <ul>
               <li><strong>P1.1</strong> · <code>data/synthetic.py</code> + <code>data/dataset.py</code> ✓</li>
               <li><strong>P1.2</strong> · <code>models/encoder.py</code> + <code>models/fusion.py</code> ✓</li>
               <li><strong>P1.3</strong> · <code>models/vlm.py</code> (Qwen2-VL + LoRA) ✓</li>
               <li><strong>P1.4</strong> · <code>train/loop.py</code> ✓</li>
-              <li><strong>P1.5</strong> · <code>eval/ablation.py</code> + load-bearing gate · <em>ablation running</em></li>
+              <li><strong>P1.5</strong> · <code>eval/ablation.py</code> + load-bearing gate ✓ (all-three 0.867 / vision+text 0.416 / sensors-only 0.436)</li>
               <li><strong>P1.6</strong> · LikeC4 component view ✓</li>
-              <li><strong>P1.7</strong> · <code>/understand</code> re-run + RUNNING_NOTES · blocked on P1.5</li>
+              <li><strong>P1.7</strong> · <code>/understand</code> re-run + RUNNING_NOTES rollup ✓</li>
             </ul>
           </article>
           <article class="phase-card phase-pending">
@@ -325,7 +325,7 @@ graph TB
         <article class="algo-card" data-algo="lora">
           <header class="algo-head">
             <h3>LoRA · Low-Rank Adaptation</h3>
-            <p class="algo-tagline">Train ~5M parameters; freeze ~2.2B; pretend you fine-tuned the whole thing.</p>
+            <p class="algo-tagline">Train ~1.4M LoRA parameters; freeze ~2.2B; pretend you fine-tuned the whole thing.</p>
           </header>
 
           <div class="depth-tabs" role="tablist" aria-label="Explanation depth">
@@ -782,10 +782,16 @@ def forward(self, x):                # x: (B, 2048)
                 computes verbatim.</li>
             </ul>
             <p>
-              The <em>pre-registered</em> acceptance is:
-              <code>mean(all-three) &gt; mean(vision+text)</code> AND
-              paired-bootstrap p &lt; 0.05 AND the 95% CIs don't fully
-              overlap. Anything else ships as an honest negative result.
+              The <em>pre-registered</em> acceptance — enforced verbatim
+              by <code>eval/headline.py::run_headline_from_csv</code> — is
+              <strong>four conjuncts</strong>:
+              <code>mean(all-three) − mean(vision+text) &gt; 0.15</code> AND
+              <code>mean(all-three) − mean(sensors-only) &gt; 0.15</code> AND
+              paired-bootstrap <code>p &lt; 0.05</code> AND the 95% CIs of
+              <code>all-three</code> vs <code>vision+text</code> don't
+              fully overlap. The two &gt;15 pp gaps are the load-bearing
+              gate; <code>p</code> and the CI overlap are the statistical
+              guardrails. Anything else ships as an honest negative result.
             </p>
           </div>
 
