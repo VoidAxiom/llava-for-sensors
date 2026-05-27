@@ -560,5 +560,13 @@ if [ "$actions_now" = "0" ] && [ "$verify_owed" = "0" ]; then
   echo "→ end turn cleanly; next tick in ~20min"
 fi
 echo
-echo "→ Claude: write the success marker as your LAST action so backup ticks skip:"
+echo "→ Claude: write BOTH end-of-turn markers as your LAST action:"
 echo "    echo $(date +%s) > $MARKER"
+if [ -n "$merged_voi_list" ] && [ -n "$cur_main_sha" ]; then
+  # Also advance LAST_MAIN_MARKER to the current origin/main SHA — we
+  # deferred this advance up-top to keep the backup tick honest, but
+  # if Claude is closing the turn cleanly they must persist the SHA
+  # here so the NEXT normal tick doesn't re-report the same merges
+  # and prompt duplicate packet dispatch.
+  echo "    echo $cur_main_sha > $LAST_MAIN_MARKER"
+fi
