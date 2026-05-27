@@ -525,11 +525,11 @@ except Exception:
     elif [ "$rr_age" = "-" ]; then
       decision="ACT-NOW [$owner]: PR open + no @codex review yet — post bare @codex review"
       actions_now=$((actions_now+1))
-    elif [ "$rr_age" -gt 5 ] 2>/dev/null; then
-      decision="ACT-NOW [$owner]: @codex review posted ${rr_age}min ago + no 👀 — re-trigger (codex may have missed)"
+    elif [ "$rr_age" -ge "$STALL_MIN" ] 2>/dev/null; then
+      decision="ACT-NOW [$owner]: @codex review posted ${rr_age}min ago + no 👀 (≥ ${STALL_MIN}min STALL_MIN) — re-trigger (codex may have missed)"
       actions_now=$((actions_now+1))
     else
-      decision="NO-ACTION [$owner]: @codex review posted ${rr_age}min ago, grace window for 👀 (≤5min)"
+      decision="NO-ACTION [$owner]: @codex review posted ${rr_age}min ago + no 👀, grace window (≤ ${STALL_MIN}min STALL_MIN)"
       in_flight=$((in_flight+1))
     fi
 
