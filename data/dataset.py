@@ -64,12 +64,13 @@ class BearingFaultDataset(Dataset):
         *,
         mode: Literal["synthetic", "cwru"] = "synthetic",
         split: Literal["train", "val", "test"] = "train",
+        _force_raw: bool = False,
         **kwargs: object,
     ) -> None:
         self._mode = mode
         if mode == "cwru":
             processed_path = _PROCESSED_ROOT / f"{split}.pt"
-            if processed_path.exists():
+            if not _force_raw and processed_path.exists():
                 data = torch.load(processed_path, weights_only=True)
                 self._x = data["x"].numpy()
                 self._y = data["y"].numpy()

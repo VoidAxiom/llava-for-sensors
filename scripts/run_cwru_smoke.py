@@ -63,8 +63,8 @@ def main() -> None:
     from train.loop import train_one_run
 
     print("data/raw/cwru/ found — running smoke training on real CWRU data")
-    train_ds = BearingFaultDataset(mode="cwru", split="train")
-    val_ds = BearingFaultDataset(mode="cwru", split="val")
+    train_ds = BearingFaultDataset(mode="cwru", split="train", _force_raw=True)
+    val_ds = BearingFaultDataset(mode="cwru", split="val", _force_raw=True)
 
     model = SensorsOnlyModel()
     t0 = time.perf_counter()
