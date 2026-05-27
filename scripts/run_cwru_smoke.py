@@ -13,31 +13,8 @@ from __future__ import annotations
 import time
 from pathlib import Path
 
-import numpy as np
-import torch
-from torch.utils.data import Dataset
-
 
 _RAW_ROOT = Path("data/raw/cwru")
-
-
-def _make_tensor_dataset(base: Dataset) -> Dataset:
-    """Wrap a BearingFaultDataset to convert PIL images to uint8 Tensors for collation."""
-
-    class TensorWrapper(Dataset):
-        def __init__(self, inner: Dataset) -> None:
-            self._inner = inner
-
-        def __len__(self) -> int:
-            return len(self._inner)
-
-        def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor, str, int]:
-            sensor, image, text, label = self._inner[idx]
-            img_array = np.array(image, dtype=np.uint8)
-            img_tensor = torch.tensor(img_array, dtype=torch.uint8)
-            return sensor, img_tensor, text, label
-
-    return TensorWrapper(base)
 
 
 def main() -> None:
@@ -53,8 +30,8 @@ def main() -> None:
     from train.loop import train_one_run
 
     print("data/raw/cwru/ found — running smoke training on real CWRU data")
-    train_ds = _make_tensor_dataset(BearingFaultDataset(mode="cwru", split="train"))
-    val_ds = _make_tensor_dataset(BearingFaultDataset(mode="cwru", split="val"))
+    train_ds = BearingFaultDataset(mode="cwru", split="train")
+    val_ds = BearingFaultDataset(mode="cwru", split="val")
 
     model = SensorsOnlyModel()
     t0 = time.perf_counter()

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import torch
-from PIL import Image as PILImage
 
 from data.dataset import BearingFaultDataset, ToyDataset
 
@@ -16,9 +15,9 @@ def test_cwru_mode_fixture_shapes() -> None:
     assert isinstance(sensor, torch.Tensor)
     assert sensor.shape == torch.Size([2048])
     assert sensor.dtype == torch.float32
-    assert isinstance(image, PILImage.Image)
-    assert image.size == (224, 224)
-    assert image.mode == "RGB"
+    assert isinstance(image, torch.Tensor)
+    assert image.shape == torch.Size([224, 224, 3])
+    assert image.dtype == torch.uint8
     assert isinstance(text, str)
     assert len(text) > 0
     assert isinstance(label, int)
@@ -43,7 +42,7 @@ def test_cwru_mode_deterministic() -> None:
     assert torch.equal(s1, s2)
     assert txt1 == txt2
     assert lbl1 == lbl2
-    assert list(img1.getdata()) == list(img2.getdata())
+    assert torch.equal(img1, img2)
 
 
 def test_cwru_mode_label_range() -> None:

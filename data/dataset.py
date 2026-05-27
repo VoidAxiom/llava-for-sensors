@@ -6,8 +6,8 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Literal
 
+import numpy as np
 import torch
-from PIL import Image as PILImage
 from torch.utils.data import Dataset
 
 from data.cwru import build_split
@@ -44,8 +44,9 @@ class BearingFaultDataset(Dataset):
     """Dataset returning (sensor_window, image, text, label) for bearing fault data.
 
     mode='cwru': reads from data/raw/cwru/ when present; falls back to
-    data/test_assets/cwru/ fixture path for CI.
-    mode='synthetic': delegates to an inner ToyDataset (legacy; image is Tensor).
+    data/test_assets/cwru/ fixture path for CI. Both modes return image as a
+    torch.Tensor (uint8).
+    mode='synthetic': delegates to an inner ToyDataset.
     """
 
     def __init__(
@@ -72,16 +73,15 @@ class BearingFaultDataset(Dataset):
             return len(self._x)
         return len(self._toy)
 
-    def __getitem__(self, idx: int) -> tuple[torch.Tensor, object, str, int]:
+    def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor, str, int]:
         """Return (sensor, image, text, label).
 
-        CWRU mode: image is PIL.Image.Image (224x224 RGB).
-        Synthetic mode: image is torch.Tensor (uint8, legacy ToyDataset format).
+        Both modes return image as torch.Tensor (uint8, shape 224x224x3).
         """
         if self._mode == "cwru":
             sensor = torch.tensor(self._x[idx], dtype=torch.float32)
             label = int(self._y[idx])
-            image: PILImage.Image = get_image_for_label(label)
+            image = torch.tensor(np.array(get_image_for_label(label)), dtype=torch.uint8)
             text: str = synthesize_note(label, load_hp=1, fault_diameter_in=0.007)
             return sensor, image, text, label
         return self._toy[idx]
