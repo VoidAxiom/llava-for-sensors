@@ -46,6 +46,39 @@ except Exception:
     print(0)' "$1" 2>/dev/null || echo 0
 }
 
+# Fetch all pages of a GitHub list API and merge into one JSON array.
+# `gh api --paginate` emits each page's body in sequence (concatenated
+# JSON arrays); a `gh api --jq` filter applied across that stream would
+# run per-page, breaking `sort_by | last` semantics across pages. We
+# stream the concatenated bodies through python's JSONDecoder.raw_decode
+# to extract each array, then merge them into a single array on stdout.
+# Usage: _paginate_json <url> → one merged JSON array on stdout (or "[]"
+# on any error). Caller can pipe through `python3 -c` for filtering.
+_paginate_json() {
+  gh api --paginate "$1" 2>/dev/null | python3 -c '
+import json, sys
+text = sys.stdin.read().strip()
+if not text:
+    print("[]"); sys.exit(0)
+decoder = json.JSONDecoder()
+merged, idx = [], 0
+while idx < len(text):
+    rest = text[idx:].lstrip()
+    if not rest: break
+    idx += len(text[idx:]) - len(rest)
+    try:
+        obj, end = decoder.raw_decode(rest)
+    except Exception:
+        break
+    if isinstance(obj, list):
+        merged.extend(obj)
+    else:
+        merged.append(obj)
+    idx += end
+print(json.dumps(merged))
+' 2>/dev/null || echo "[]"
+}
+
 # ── ALWAYS fetch latest main from origin (every tick, no exception) ──
 # Without this, the sidecar reads a stale local origin/main and misses
 # merges Claude made in another worktree or that landed via squash-
@@ -204,8 +237,13 @@ print(best)' 2>/dev/null || echo 0)
     threads_open=0
     acked="?"
     if [ -n "$pr_num" ]; then
-      last_comment_iso=$(gh api "repos/$GH_OWNER/$GH_REPO_NAME/issues/$pr_num/comments" \
-        --jq '[.[].updated_at] | max // ""' 2>/dev/null)
+      last_comment_iso=$(_paginate_json "repos/$GH_OWNER/$GH_REPO_NAME/issues/$pr_num/comments" \
+        | python3 -c 'import json,sys
+try:
+    a = json.load(sys.stdin)
+    print(max((c.get("updated_at","") for c in a), default=""))
+except Exception:
+    pass' 2>/dev/null)
       if [ -n "$last_comment_iso" ]; then
         last_comment_epoch=$(_iso_to_epoch "$last_comment_iso")
         pr_age=$(( (now - last_comment_epoch) / 60 ))
@@ -213,9 +251,16 @@ print(best)' 2>/dev/null || echo 0)
       status_out=$(bash "$REPO/scripts/review-gate.sh" status "$pr_num" 2>&1)
       gate=$(echo "$status_out" | grep -oE 'GATE: [A-Z-]+( \(.*\))?' | head -1 || echo "?")
       threads_open=$(echo "$status_out" | grep -oE '[0-9]+ UNRESOLVED' | grep -oE '^[0-9]+' || echo 0)
-      # 👀-ack on latest non-codex @codex review request
-      latest_rr=$(gh api "repos/$GH_OWNER/$GH_REPO_NAME/issues/$pr_num/comments" \
-        --jq '[.[] | select(.body | startswith("@codex review")) | select(.user.login != "chatgpt-codex-connector" and .user.login != "chatgpt-codex-connector[bot]")] | sort_by(.created_at) | last' 2>/dev/null)
+      # 👀-ack on latest non-codex @codex review request (all pages)
+      latest_rr=$(_paginate_json "repos/$GH_OWNER/$GH_REPO_NAME/issues/$pr_num/comments" \
+        | python3 -c 'import json,sys
+try:
+    a = json.load(sys.stdin)
+    f = [c for c in a if (c.get("body","").startswith("@codex review"))
+         and (c.get("user",{}).get("login") not in ("chatgpt-codex-connector","chatgpt-codex-connector[bot]"))]
+    print(json.dumps(sorted(f, key=lambda c: c.get("created_at",""))[-1]) if f else "null")
+except Exception:
+    print("null")' 2>/dev/null)
       if [ -n "$latest_rr" ] && [ "$latest_rr" != "null" ]; then
         rr_id=$(echo "$latest_rr" | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])' 2>/dev/null)
         if [ -n "$rr_id" ]; then
@@ -346,9 +391,16 @@ print(best)' 2>/dev/null || echo 0)
     gate=$(echo "$status_out" | grep -oE 'GATE: [A-Z-]+( \(.*\))?' | head -1 || echo "?")
     threads_open=$(echo "$status_out" | grep -oE '[0-9]+ UNRESOLVED' | grep -oE '^[0-9]+' || echo 0)
 
-    # Latest @codex review request from a non-bot (timestamp + 👀)
-    latest_rr=$(gh api "repos/$GH_OWNER/$GH_REPO_NAME/issues/$pr_num/comments" \
-      --jq '[.[] | select(.body | startswith("@codex review")) | select(.user.login != "chatgpt-codex-connector" and .user.login != "chatgpt-codex-connector[bot]")] | sort_by(.created_at) | last' 2>/dev/null)
+    # Latest @codex review request from a non-bot (all pages, timestamp + 👀)
+    latest_rr=$(_paginate_json "repos/$GH_OWNER/$GH_REPO_NAME/issues/$pr_num/comments" \
+      | python3 -c 'import json,sys
+try:
+    a = json.load(sys.stdin)
+    f = [c for c in a if (c.get("body","").startswith("@codex review"))
+         and (c.get("user",{}).get("login") not in ("chatgpt-codex-connector","chatgpt-codex-connector[bot]"))]
+    print(json.dumps(sorted(f, key=lambda c: c.get("created_at",""))[-1]) if f else "null")
+except Exception:
+    print("null")' 2>/dev/null)
     acked="?"; rr_age="-"
     if [ -n "$latest_rr" ] && [ "$latest_rr" != "null" ]; then
       rr_id=$(echo "$latest_rr" | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])' 2>/dev/null)
