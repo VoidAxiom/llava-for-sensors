@@ -249,8 +249,8 @@ P3.1-3.3 are impl-dispatchable in parallel where surfaces are disjoint (data/cwr
 
 ### Live verification (per CLAUDE.md §"Deliver a working product")
 
-- `uv run pytest data/ -v` → **44/44 passed** at PR #34 merge (`3720e5d`); covers `cwru.py`, `images.py`, `notes.py`, `dataset.py` (both modes) including the within-recording leakage assertion and the present-but-invalid-raise assertion.
-- `uv run python scripts/run_cwru_smoke.py` with `data/raw/cwru/` absent → exits 0 with `WARN: data/raw/cwru/ not populated; smoke skipped.` line (as designed — Phase 3.5 will exercise the real path).
+- `uv run pytest data/ -v` → **44/44 passed** at PR #34 merge (`3720e5d`); covers `cwru.py`, `images.py`, `notes.py`, `dataset.py` (both modes) including the present-but-invalid-raise assertion (`test_cwru_mode_raises_on_invalid_raw`). A direct within-recording leakage assertion is NOT in the suite — the file-grouped split correctness is verified indirectly via determinism + class-proportion tests (see the file-grouped split bullet above); adding a direct leakage assertion is a Phase 4 follow-up candidate.
+- `uv run python scripts/run_cwru_smoke.py` with `data/raw/cwru/` absent → exits 0 with the literal stdout line `WARN: data/raw/cwru/ not present — smoke training deferred until user fetches CWRU; document in RUNNING_NOTES.md when done` (verified verbatim against the head; Phase 3.5 / VOI-223 will exercise the real path once the user fetches CWRU).
 - `python3 -c "from data.dataset import BearingFaultDataset; d = BearingFaultDataset(mode='cwru'); s, i, t, l = d[0]; print(type(s), s.shape, type(i), i.shape, type(t), int(l))"` → real 4-tuple, sensor `(2048,)` float, image `(224, 224, 3)` uint8 tensor, template text, integer label.
 - `likec4 validate architecture` → `✓ Valid (3 files)`.
 - `.understand-anything/knowledge-graph.json` opens cleanly; +10 Phase-3 nodes (`data/cwru.py`, `data/images.py`, `data/notes.py`, four test files, smoke script, `demo/app.py` + `demo/test_app.py` from VOI-213) are present in the data/tests/orchestration layers.
