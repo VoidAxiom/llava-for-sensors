@@ -40,6 +40,18 @@ def main() -> None:
         )
         return
 
+    from data.cwru import build_split as _build_split
+
+    try:
+        _build_split(_RAW_ROOT, seed=0)
+    except (ValueError, FileNotFoundError) as exc:
+        print(
+            f"WARN: data/raw/cwru/ found but split failed ({exc})"
+            " — smoke training deferred; ensure all 4 class dirs have"
+            " enough recordings for stratified split"
+        )
+        return
+
     from data.dataset import BearingFaultDataset
     from eval.models import SensorsOnlyModel
     from train.loop import train_one_run
