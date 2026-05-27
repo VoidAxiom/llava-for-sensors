@@ -409,14 +409,33 @@ for its own scope (rails / scripts / hooks / docs). `/codex:review` runs
 `gpt-5.5` by default — cross-family relative to the
 `gpt-5.3-codex-spark` worker, so its findings catch what the worker missed.
 
-**GH connector hygiene (avoid phantom cloud tasks).** ANY `@codex` PR
-comment that is not EXACTLY `@codex review` spawns a Codex cloud task that
-narrates sandbox commits/PRs which do **NOT** land in this repo. So:
+**GH connector hygiene (avoid phantom cloud tasks).** Codex's GitHub
+connector spawns a phantom cloud task on free-form `@codex` mentions
+(narrates sandbox commits/PRs that do NOT land in this repo). The
+canonical trigger form is:
+
+```
+@codex review, @claude review
+```
+
+A bare `@codex review` alone is also acceptable for codex-only PRs.
+Either form, posted as a standalone comment with no other prose, is
+treated by both bots as a clean trigger; the additional `@claude
+review` mention does not confuse the codex parser (the codex action's
+`contains(body, '@codex review')` trigger is permissive about
+neighboring bot mentions, and the claude-review GH workflow uses the
+same permissive `contains` semantics).
+
+So:
 - Fix narration → comment with **NO** `@codex` mention; resolve the thread.
-- Re-review → a bare standalone **`@codex review`** and nothing else.
-- Treat the connector as an adversarial *reader* only — act on its
-  findings text; never on its self-reported commits/PRs/tests; verify repo
-  state if in doubt (`gh pr list --state all`, `gh api …/commits/<sha>`).
+- Re-review (dual reviewer — the default going forward) → a standalone
+  **`@codex review, @claude review`** and nothing else.
+- Re-review (codex only — legacy path) → a bare standalone
+  **`@codex review`** and nothing else.
+- Treat both connectors as adversarial *readers* only — act on their
+  findings text; never on their self-reported commits/PRs/tests; verify
+  repo state if in doubt (`gh pr list --state all`,
+  `gh api …/commits/<sha>`).
 
 **`@codex review` re-trigger guard — the 👍 skip rule.** Codex's no-issues
 verdicts contain `:+1:` (👍) in the review comment body. Before posting
