@@ -137,6 +137,8 @@ cur_main_sha=$(git rev-parse origin/main 2>/dev/null || echo "")
 prev_main_sha=""
 [ -f "$LAST_MAIN_MARKER" ] && prev_main_sha=$(cat "$LAST_MAIN_MARKER" 2>/dev/null | head -c 40)
 merged_voi_list=""
+merged_pr_list=""
+saw_merge=""
 if [ -n "$prev_main_sha" ] && [ "$prev_main_sha" != "$cur_main_sha" ]; then
   # Walk new commits oldest→newest; extract VOI-N from "Closes VOI-N" or
   # the conventional "(#PR)" squash-merge suffix.
@@ -150,7 +152,9 @@ if [ -n "$prev_main_sha" ] && [ "$prev_main_sha" != "$cur_main_sha" ]; then
       pr_num=$(echo "$subject" | grep -oE '\(#[0-9]+\)' | tr -d '(#)' | head -1)
       voi_num=$(echo "$subject" | grep -oE 'VOI-[0-9]+' | head -1)
       echo "  + $sha PR#${pr_num:-?} ${voi_num:-?}: $(echo "$subject" | cut -c1-60)"
+      saw_merge="yes"
       [ -n "$voi_num" ] && merged_voi_list="$merged_voi_list $voi_num"
+      [ -z "$voi_num" ] && [ -n "$pr_num" ] && merged_pr_list="$merged_pr_list #$pr_num"
     done <<< "$new_merges"
   fi
 fi
@@ -160,8 +164,9 @@ fi
 # would hide those merges on the backup tick and defeat the retry path
 # (the success-marker skip wouldn't fire either because Claude never
 # wrote it). Leave the marker on the old SHA so the next tick re-detects
-# the merges; advance it only on a quiet tick (no new merges this turn).
-if [ -z "$merged_voi_list" ]; then
+# the merges; advance it only on a quiet tick (no merges this turn —
+# `saw_merge` covers both VOI-tagged and PR-only merges, like META PRs).
+if [ -z "$saw_merge" ]; then
   echo "$cur_main_sha" > "$LAST_MAIN_MARKER"
 fi
 echo
@@ -546,10 +551,16 @@ fi
 echo
 echo "tick summary: ${actions_now} ACT-NOW, ${verify_owed} VERIFY, ${in_flight} NO-ACTION (in-flight)"
 # Bump ACT-NOW if anything merged this tick — director should enumerate
-# downstream-unblocked issues and spin up impls.
-if [ -n "$merged_voi_list" ]; then
+# downstream-unblocked issues and spin up impls. Both VOI-tagged merges
+# (phase packets) and PR-only merges (META PRs without VOI IDs) qualify.
+if [ -n "$saw_merge" ]; then
   actions_now=$((actions_now+1))
-  echo "→ ACT-NOW (newly merged):${merged_voi_list}"
+  if [ -n "$merged_voi_list" ]; then
+    echo "→ ACT-NOW (newly merged VOI):${merged_voi_list}"
+  fi
+  if [ -n "$merged_pr_list" ]; then
+    echo "→ ACT-NOW (newly merged PRs, no VOI tag):${merged_pr_list}"
+  fi
   echo "  - Live-verify each on primary per packet acceptance (Outcome over output)."
   echo "  - Read $COMMAND_CENTER + active phase issue + spec/PHASE_*.md DAG; any issue"
   echo "    whose deps just closed is now unblocked — dispatch impl(s) immediately,"
@@ -562,11 +573,12 @@ fi
 echo
 echo "→ Claude: write BOTH end-of-turn markers as your LAST action:"
 echo "    echo $(date +%s) > $MARKER"
-if [ -n "$merged_voi_list" ] && [ -n "$cur_main_sha" ]; then
+if [ -n "$saw_merge" ] && [ -n "$cur_main_sha" ]; then
   # Also advance LAST_MAIN_MARKER to the current origin/main SHA — we
   # deferred this advance up-top to keep the backup tick honest, but
   # if Claude is closing the turn cleanly they must persist the SHA
   # here so the NEXT normal tick doesn't re-report the same merges
-  # and prompt duplicate packet dispatch.
+  # and prompt duplicate packet dispatch. Both VOI-tagged and PR-only
+  # merges qualify (saw_merge covers both).
   echo "    echo $cur_main_sha > $LAST_MAIN_MARKER"
 fi
