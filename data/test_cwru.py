@@ -176,3 +176,27 @@ def test_save_split_embeds_schema_version(tmp_path: Path) -> None:
 
 def test_schema_version_is_2() -> None:
     assert _SCHEMA_VERSION == 2
+
+
+def test_stale_cache_without_raw_raises_runtimeerror(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Stale cache (no schema_version key) + no real raw → RuntimeError, not fixture fallback."""
+    import torch
+    from data import dataset as dataset_mod
+
+    fake_processed = tmp_path / "processed_cwru"
+    fake_processed.mkdir()
+    # Write a stale cache — no schema_version key, mimics old file-grouped v1 cache
+    torch.save(
+        {"x": torch.zeros(10, 2048), "y": torch.zeros(10, dtype=torch.int64)},
+        fake_processed / "train.pt",
+    )
+
+    fake_raw = tmp_path / "no_raw"      # does not exist
+    fake_fixture = tmp_path / "no_fixture"  # does not exist
+
+    monkeypatch.setattr(dataset_mod, "_PROCESSED_ROOT", fake_processed)
+    monkeypatch.setattr(dataset_mod, "_RAW_ROOT", fake_raw)
+    monkeypatch.setattr(dataset_mod, "_FIXTURE_ROOT", fake_fixture)
+
+    with pytest.raises(RuntimeError, match="Stale cache"):
+        dataset_mod.BearingFaultDataset(mode="cwru", split="train")
