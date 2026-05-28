@@ -265,6 +265,18 @@ Phase 4 packets (full training + headline ablation):
 
 Phase 4 P4.1 can be specced + dispatched in parallel with VOI-223; the orchestrator surface is fully disjoint from the budget-check script.
 
+### Phase 3 follow-up (2026-05-28): window-level split correction
+
+**The bug.** VOI-210's first 10 of 15 ablation runs on real CWRU all produced bit-identical `val_f1 = test_f1 = 0.500`. Diagnostic: `data/cwru.py::build_split(seed=0)` had been shipped (in VOI-205, PR #32) with file-grouped stratification — windows from the same `.mat` file kept together. With only 4 files per class and an 80/10/10 split on 16 total files, sklearn's `train_test_split` cannot satisfy the stratification constraint AND class coverage simultaneously; the val/test 50/50 of 3 holdout files falls back to non-stratified random (per the `can_stratify_hold` guard), and `seed=0` produces val={ORF, BF} only, test={Normal, IRF} only. Both eval splits cover only half the label space, so macro-F1 is capped at (1+1+0+0)/4 = 0.5 regardless of model quality.
+
+**The fix.** Restore window-level stratification per PLAN.md §1.2's original contract. `~915` total windows across 4 classes (~228/class) → 80/10/10 yields ~22-23 val and test samples per class, sufficient for stable per-seed macro-F1 + 5-seed bootstrap CI per §1.3. Added `MIN_PER_CLASS_IN_EVAL=20` runtime guard so future dataset shrinkage can't silently re-introduce the class-coverage gap. Live-verified by running `build_split(seed=0)` and confirming all 4 classes have ≥20 samples in both val and test.
+
+**Known weakness — within-recording leakage.** Window-level stratification puts windows from the same `.mat` recording into both train AND val, so they share the rig's structural transfer function (housing resonance, mount stiffness, exact accelerometer placement). A model could in principle learn to recognize the rig fingerprint rather than the fault signature, inflating val F1 vs true held-out generalization. PLAN.md §1.2 nevertheless chose window-level — the same-rig-different-load variation (motor loads 0/1/2/3 HP within each class) likely dominates the within-recording fingerprint anyway. Definitive answer requires cross-rig evaluation (train on CWRU, test on Paderborn or IMS) — out of scope for this project; flagged as TECH_REPORT future-work.
+
+**What this unblocks.** VOI-210 can be re-dispatched with confidence that val_f1 and test_f1 will reflect actual model quality. Expectation: sensors-only ≈ 0.7-0.9 (CWRU bearing-fault classification is a well-posed problem; PatchTST should learn it from 678 windows × 5 epochs); vision+text similar (frozen Qwen2-VL-2B + LoRA over class-conditional images + templated text should also separate the 4 classes); all-three should match or beat both (the headline thesis — fusion helps).
+
+**Codex-review process meta-finding.** The original VOI-205 PR #32 codex review approved the file-grouped implementation because the local `/code-review` checked it against the impl's spec (which said "file-grouped"), not against PLAN.md §1.2 (which said "by window"). This is the exact spec-drift failure mode CLAUDE.md §"Spec authoring — load-bearing discipline" warns about. Lesson saved to `understand-graph-fabrications.md`'s sibling memory.
+
 ## Phase 4 — _(scheduled — full training + headline ablation)_
 
 ## Phase 5 — _(scheduled — Gradio demo)_
