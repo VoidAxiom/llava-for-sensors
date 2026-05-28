@@ -4457,37 +4457,37 @@
       "weight": 0.7
     },
     {
-      "source": "file:data/test_cwru.py",
-      "target": "file:data/cwru.py",
-      "type": "tests",
+      "source": "file:data/cwru.py",
+      "target": "file:data/test_cwru.py",
+      "type": "tested_by",
       "direction": "forward",
       "weight": 0.95
     },
     {
-      "source": "file:data/test_dataset.py",
-      "target": "file:data/dataset.py",
-      "type": "tests",
+      "source": "file:data/dataset.py",
+      "target": "file:data/test_dataset.py",
+      "type": "tested_by",
       "direction": "forward",
       "weight": 0.95
     },
     {
-      "source": "file:data/test_images.py",
-      "target": "file:data/images.py",
-      "type": "tests",
+      "source": "file:data/images.py",
+      "target": "file:data/test_images.py",
+      "type": "tested_by",
       "direction": "forward",
       "weight": 0.95
     },
     {
-      "source": "file:data/test_notes.py",
-      "target": "file:data/notes.py",
-      "type": "tests",
+      "source": "file:data/notes.py",
+      "target": "file:data/test_notes.py",
+      "type": "tested_by",
       "direction": "forward",
       "weight": 0.95
     },
     {
-      "source": "file:demo/test_app.py",
-      "target": "file:demo/app.py",
-      "type": "tests",
+      "source": "file:demo/app.py",
+      "target": "file:demo/test_app.py",
+      "type": "tested_by",
       "direction": "forward",
       "weight": 0.95
     }

@@ -29,6 +29,16 @@ The headline figure is the load-bearing claim of this project. It is committed h
 - **Split:** stratified random 80/10/10 train/val/test by window, fixed `seed=0` for the SPLIT (the split itself is deterministic across all conditions; only training-time randomness varies across seeds).
 - **Stretch (Phase-7 optional):** cross-load split — train on motor loads 0/1/2 HP, test on 3 HP — to demonstrate generalization to unseen operating conditions. Reported as a secondary table in the tech report.
 
+### 1.2.1 Implementation correction (added 2026-05-28)
+
+The original `data/cwru.py::build_split` shipped in VOI-205 (PR #32) interpreted §1.2's "by window" specification as file-grouped (windows from the same `.mat` file stay in the same bucket, to prevent within-recording leakage from the rig's structural transfer function). This was a deliberate but **unauthorized** divergence from the §1.2 spec, which explicitly says "by window," not "by file."
+
+With only 4 `.mat` files per class in the minimum CWRU set (one per motor load 0/1/2/3 HP at 0.007″ diameter), a file-grouped stratified split of 16 files into 80/10/10 buckets cannot guarantee class coverage in val AND test simultaneously. `seed=0` happened to allocate val to classes {outer_race, ball} only and test to classes {normal, inner_race} only, producing a `macro-F1 = 0.5` ceiling that masked all model behavior across the VOI-210 ablation runs.
+
+The fix (VOI-205-fix-window-split, PR #40) reverts to the §1.2 contract: **stratified random 80/10/10 by window**. Window-level stratification of ~915 atoms across 4 classes (~228 per class) yields ~22-23 val + test samples per class, well above the macro-F1 / bootstrap-CI noise threshold from §1.3.
+
+The within-recording leakage concern that motivated file-grouping is real but accepted as a known weakness of this CWRU setup. Mitigation requires cross-rig evaluation (train on CWRU, test on Paderborn or IMS), which is out of scope for this project but discussed as future work in TECH_REPORT.md.
+
 ### 1.3 Seeds & statistics
 
 - **N = 5 seeds** per condition. Seeds: `{0, 1, 2, 3, 4}`. Each seed runs the full training loop end-to-end (model init + data shuffle + augmentation RNG).
