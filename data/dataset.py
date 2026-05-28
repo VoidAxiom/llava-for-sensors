@@ -10,7 +10,7 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 
-from data.cwru import build_split
+from data.cwru import _SCHEMA_VERSION, build_split
 from data.images import get_image_for_label
 from data.notes import synthesize_note
 from data.synthetic import SyntheticSample, generate
@@ -70,17 +70,34 @@ class BearingFaultDataset(Dataset):
         self._mode = mode
         if mode == "cwru":
             processed_path = _PROCESSED_ROOT / f"{split}.pt"
-            if not _force_raw and processed_path.exists():
-                data = torch.load(processed_path, weights_only=True)
-                self._x = data["x"].numpy()
-                self._y = data["y"].numpy()
+            cache_state: Literal["fresh", "stale", "missing"]
+            if _force_raw or not processed_path.exists():
+                cache_state = "missing"
             else:
+                _cached = torch.load(processed_path, weights_only=True)
+                if _cached.get("schema_version", 0) >= _SCHEMA_VERSION:
+                    self._x = _cached["x"].numpy()
+                    self._y = _cached["y"].numpy()
+                    cache_state = "fresh"
+                else:
+                    cache_state = "stale"
+            if cache_state == "stale":
+                if not _has_usable_cwru_raw(_RAW_ROOT):
+                    raise RuntimeError(
+                        f"Stale cache at {processed_path} (schema_version < {_SCHEMA_VERSION}) "
+                        f"but real CWRU data not found at {_RAW_ROOT}. Either: "
+                        f"(a) restore real CWRU files at {_RAW_ROOT} and re-run "
+                        f"`python -m data.cwru build-split` to regenerate the v{_SCHEMA_VERSION} cache, "
+                        f"or (b) delete {_PROCESSED_ROOT} entirely if you want to use fixture-mode CI fallback."
+                    )
+                all_splits = build_split(_RAW_ROOT, seed=0)
+                self._x, self._y = all_splits[split]
+            elif cache_state == "missing":
                 if _has_usable_cwru_raw(_RAW_ROOT):
                     all_splits = build_split(_RAW_ROOT, seed=0)
-                    self._x, self._y = all_splits[split]
                 else:
                     all_splits = build_split(_FIXTURE_ROOT, seed=0)
-                    self._x, self._y = all_splits[split]
+                self._x, self._y = all_splits[split]
         elif mode == "synthetic":
             seed = int(kwargs.get("seed", 0))
             n = int(kwargs.get("n", 1000))

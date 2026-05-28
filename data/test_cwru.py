@@ -7,6 +7,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 import scipy.io
+import torch
 
 from data.cwru import (
     CLASS_LABELS,
@@ -14,18 +15,28 @@ from data.cwru import (
     CLASS_NATIVE_RATE_HZ,
     SAMPLE_RATE_HZ,
     WINDOW_SIZE,
+    _SCHEMA_VERSION,
     build_split,
     load_class_windows,
     load_cwru_mat,
     preprocess_to_windows,
+    save_split,
 )
 
 FIXTURE_ROOT = Path(__file__).parent / "test_assets" / "cwru"
+_RAW_ROOT = Path(__file__).parent / "raw" / "cwru"
 
 
 @pytest.fixture
 def fixture_root() -> Path:
     return FIXTURE_ROOT
+
+
+@pytest.fixture
+def real_cwru_root() -> Path:
+    if not _RAW_ROOT.exists():
+        pytest.skip("Real CWRU data not available at data/raw/cwru/")
+    return _RAW_ROOT
 
 
 def test_load_cwru_mat_probes_key(tmp_path: Path) -> None:
@@ -99,16 +110,30 @@ def test_build_split_deterministic(fixture_root: Path) -> None:
 
 
 def test_build_split_proportions(fixture_root: Path) -> None:
-    """104 total windows, file-grouped split preserves rough proportions."""
+    """window-level split preserves rough proportions."""
     split = build_split(fixture_root, seed=0)
     y_train = split["train"][1]
     y_val = split["val"][1]
     y_test = split["test"][1]
     total = len(y_train) + len(y_val) + len(y_test)
-    assert total == 104
-    assert 70 <= len(y_train) <= 90, f"y_train size {len(y_train)} not in [70, 90]"
+    assert total > 0
+    assert 0.70 * total <= len(y_train) <= 0.90 * total
     assert len(y_val) >= 8
     assert len(y_test) >= 8
+
+
+def test_build_split_meets_minimum_per_class_in_eval_splits(real_cwru_root: Path) -> None:
+    """val and test must each have ≥20 samples per class for stable macro-F1."""
+    from collections import Counter
+    splits = build_split(real_cwru_root, seed=0)
+    MIN_PER_CLASS = 20  # matches data/cwru.py build_split runtime guard
+    for split_name in ("val", "test"):
+        counts = Counter(int(v) for v in splits[split_name][1])
+        for cls_label in (0, 1, 2, 3):
+            assert counts.get(cls_label, 0) >= MIN_PER_CLASS, (
+                f"{split_name}: class {cls_label} has {counts.get(cls_label, 0)} samples "
+                f"(min {MIN_PER_CLASS} required for stable macro-F1 per PLAN.md §1.3)"
+            )
 
 
 def test_class_labels_and_native_rates() -> None:
@@ -125,3 +150,53 @@ def test_class_labels_canonical() -> None:
     assert CLASS_NAMES == ("normal", "inner_race", "outer_race", "ball")
     assert WINDOW_SIZE == 2048
     assert SAMPLE_RATE_HZ == 12000
+
+
+def test_save_split_embeds_schema_version(tmp_path: Path) -> None:
+    split = {
+        "train": (
+            np.zeros((1, 2), dtype=np.float32),
+            np.array([0], dtype=np.int64),
+        ),
+        "val": (
+            np.ones((1, 2), dtype=np.float32),
+            np.array([1], dtype=np.int64),
+        ),
+        "test": (
+            np.full((1, 2), 2, dtype=np.float32),
+            np.array([2], dtype=np.int64),
+        ),
+    }
+
+    save_split(split, tmp_path)
+
+    data = torch.load(tmp_path / "train.pt", weights_only=True)
+    assert data["schema_version"] == 2
+
+
+def test_schema_version_is_2() -> None:
+    assert _SCHEMA_VERSION == 2
+
+
+def test_stale_cache_without_raw_raises_runtimeerror(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Stale cache (no schema_version key) + no real raw → RuntimeError, not fixture fallback."""
+    import torch
+    from data import dataset as dataset_mod
+
+    fake_processed = tmp_path / "processed_cwru"
+    fake_processed.mkdir()
+    # Write a stale cache — no schema_version key, mimics old file-grouped v1 cache
+    torch.save(
+        {"x": torch.zeros(10, 2048), "y": torch.zeros(10, dtype=torch.int64)},
+        fake_processed / "train.pt",
+    )
+
+    fake_raw = tmp_path / "no_raw"      # does not exist
+    fake_fixture = tmp_path / "no_fixture"  # does not exist
+
+    monkeypatch.setattr(dataset_mod, "_PROCESSED_ROOT", fake_processed)
+    monkeypatch.setattr(dataset_mod, "_RAW_ROOT", fake_raw)
+    monkeypatch.setattr(dataset_mod, "_FIXTURE_ROOT", fake_fixture)
+
+    with pytest.raises(RuntimeError, match="Stale cache"):
+        dataset_mod.BearingFaultDataset(mode="cwru", split="train")
