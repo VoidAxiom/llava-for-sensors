@@ -8,6 +8,7 @@ import pathlib
 import time
 
 import torch
+from torch.utils.data import DataLoader
 
 import train.loop as train_loop
 from data.dataset import BearingFaultDataset, ToyDataset
@@ -16,7 +17,7 @@ from eval.models import AllThreeModel, SensorsOnlyModel, VisionTextModel
 
 
 _CONDITIONS = ["sensors-only", "vision+text", "all-three"]
-_CSV_HEADER = ["condition", "seed", "final_val_f1", "wall_time_s", "peak_memory_bytes"]
+_CSV_HEADER = ["condition", "seed", "final_val_f1", "final_test_f1", "wall_time_s", "peak_memory_bytes"]
 train_one_run = train_loop.train_one_run
 
 
@@ -52,6 +53,7 @@ def run_ablation(
                     row["condition"],
                     row["seed"],
                     row["final_val_f1"],
+                    row["final_test_f1"],
                     row["wall_time_s"],
                     _csv_peak_memory(row["peak_memory_bytes"]),
                 ],
@@ -68,14 +70,17 @@ def run_single(
     samples_per_class: int = 250,
     device: str | None = None,
 ) -> dict:
+    resolved_device = _resolve_device(device)
     if mode == "synthetic":
         samples = generate(n=samples_per_class * N_CLASSES, seed=0)
         train_samples, val_samples = _stratified_split(samples)
         train_ds = ToyDataset(train_samples)
         val_ds = ToyDataset(val_samples)
+        test_ds = None
     elif mode == "cwru":
         train_ds = BearingFaultDataset(mode="cwru", split="train")
         val_ds = BearingFaultDataset(mode="cwru", split="val")
+        test_ds = BearingFaultDataset(mode="cwru", split="test")
     else:
         raise ValueError(f"mode must be 'synthetic' or 'cwru'; got {mode!r}")
 
@@ -89,13 +94,15 @@ def run_single(
         run_id=f"{condition}-seed{seed}",
         n_epochs=n_epochs,
         seed=seed,
-        device=device,
+        device=resolved_device,
     )
+    final_test_f1 = 0.0 if test_ds is None else _eval_macro_f1(model, test_ds, resolved_device)
 
     return {
         "condition": condition,
         "seed": seed,
         "final_val_f1": result.final_val_f1,
+        "final_test_f1": final_test_f1,
         "wall_time_s": time.time() - start,
         "peak_memory_bytes": result.peak_memory_bytes,
     }
@@ -115,6 +122,41 @@ def _build_model(condition: str) -> torch.nn.Module:
     if condition == "all-three":
         return AllThreeModel()
     raise ValueError(f"unknown condition: {condition}")
+
+
+def _resolve_device(device: str | None) -> torch.device:
+    if device is not None:
+        return torch.device(device)
+    if torch.backends.mps.is_available():
+        return torch.device("mps")
+    return torch.device("cpu")
+
+
+def _eval_macro_f1(
+    model: torch.nn.Module,
+    dataset: torch.utils.data.Dataset,
+    device: torch.device,
+) -> float:
+    loader = DataLoader(
+        dataset,
+        batch_size=2,
+        shuffle=False,
+        collate_fn=train_loop._collate_batch,
+    )
+    model.eval()
+    preds: list[int] = []
+    targets: list[int] = []
+    with torch.no_grad():
+        for sensor, image, text, label in loader:
+            sensor = sensor.to(device)
+            image = image.to(device)
+            label = label.to(device)
+            logits = model.forward(sensor, image, text)
+            batch_preds = torch.argmax(logits, dim=1).detach().cpu().tolist()
+            batch_targets = label.detach().cpu().tolist()
+            preds.extend(int(pred) for pred in batch_preds)
+            targets.extend(int(target) for target in batch_targets)
+    return train_loop._macro_f1(preds, targets)
 
 
 def _stratified_split(

@@ -60,6 +60,7 @@ def test_resume_skips_existing_rows(
     _write_existing_rows(out_csv)
     _patch_model_builder(monkeypatch)
     _patch_train_one_run(monkeypatch)
+    monkeypatch.setattr(ablation, "_eval_macro_f1", lambda model, dataset, device: 0.5)
 
     exit_code = orchestrator._main(["--seeds", "1", "--epochs", "1", "--out-csv", str(out_csv)])
 
@@ -87,6 +88,7 @@ def test_csv_header_is_extended_schema(
     out_csv = tmp_path / "fresh.csv"
     _patch_model_builder(monkeypatch)
     _patch_train_one_run(monkeypatch)
+    monkeypatch.setattr(ablation, "_eval_macro_f1", lambda model, dataset, device: 0.5)
 
     exit_code = orchestrator._main(["--seeds", "1", "--epochs", "1", "--out-csv", str(out_csv)])
 
@@ -94,7 +96,35 @@ def test_csv_header_is_extended_schema(
         header = next(csv.reader(csv_file))
 
     assert exit_code == 0
-    assert header == ["condition", "seed", "final_val_f1", "wall_time_s", "peak_memory_bytes"]
+    assert header == [
+        "condition",
+        "seed",
+        "final_val_f1",
+        "final_test_f1",
+        "wall_time_s",
+        "peak_memory_bytes",
+    ]
+
+
+def test_run_records_test_f1_alongside_val_f1(
+    tmp_path: pathlib.Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    out_csv = tmp_path / "with-test-f1.csv"
+    _patch_model_builder(monkeypatch)
+    _patch_train_one_run(monkeypatch)
+    monkeypatch.setattr(ablation, "_eval_macro_f1", lambda model, dataset, device: 0.75)
+
+    exit_code = orchestrator._main(["--seeds", "1", "--epochs", "1", "--out-csv", str(out_csv)])
+
+    with out_csv.open("r", encoding="utf-8", newline="") as csv_file:
+        rows = list(csv.DictReader(csv_file))
+
+    assert exit_code == 0
+    assert len(rows) == 3
+    for row in rows:
+        final_test_f1 = float(row["final_test_f1"])
+        assert 0.0 <= final_test_f1 <= 1.0
 
 
 def test_appends_one_row_per_run_atomically(
@@ -116,6 +146,7 @@ def test_appends_one_row_per_run_atomically(
         return _fake_train_result()
 
     monkeypatch.setattr(train_loop, "train_one_run", recording_train_one_run)
+    monkeypatch.setattr(ablation, "_eval_macro_f1", lambda model, dataset, device: 0.5)
 
     exit_code = orchestrator._main(["--seeds", "1", "--epochs", "1", "--out-csv", str(out_csv)])
 
@@ -160,9 +191,11 @@ def _fake_train_result() -> train_loop.TrainResult:
 def _write_existing_rows(csv_path: pathlib.Path) -> None:
     with csv_path.open("w", encoding="utf-8", newline="") as csv_file:
         writer = csv.writer(csv_file)
-        writer.writerow(["condition", "seed", "final_val_f1", "wall_time_s", "peak_memory_bytes"])
-        writer.writerow(["sensors-only", 0, 0.4, 1.0, ""])
-        writer.writerow(["vision+text", 0, 0.45, 1.1, ""])
+        writer.writerow(
+            ["condition", "seed", "final_val_f1", "final_test_f1", "wall_time_s", "peak_memory_bytes"],
+        )
+        writer.writerow(["sensors-only", 0, 0.4, 0.4, 1.0, ""])
+        writer.writerow(["vision+text", 0, 0.45, 0.4, 1.1, ""])
 
 
 def _csv_row_count(csv_path: pathlib.Path) -> int:

@@ -16,7 +16,7 @@ from eval.ablation import run_single  # noqa: E402
 
 
 _CONDITIONS = ("sensors-only", "vision+text", "all-three")
-_CSV_HEADER = ["condition", "seed", "final_val_f1", "wall_time_s", "peak_memory_bytes"]
+_CSV_HEADER = ["condition", "seed", "final_val_f1", "final_test_f1", "wall_time_s", "peak_memory_bytes"]
 
 
 def _main(argv: list[str] | None = None) -> int:
@@ -70,6 +70,7 @@ def _main(argv: list[str] | None = None) -> int:
                         result["condition"],
                         result["seed"],
                         result["final_val_f1"],
+                        result["final_test_f1"],
                         result["wall_time_s"],
                         _csv_peak_memory(result["peak_memory_bytes"]),
                     ],
@@ -90,6 +91,8 @@ def _read_existing_pairs(csv_path: pathlib.Path) -> set[tuple[str, int]]:
     pairs: set[tuple[str, int]] = set()
     with csv_path.open("r", encoding="utf-8", newline="") as csv_file:
         reader = csv.DictReader(csv_file)
+        if reader.fieldnames is None or "final_test_f1" not in reader.fieldnames:
+            return set()
         for row in reader:
             pairs.add((row["condition"], int(row["seed"])))
     return pairs
@@ -109,7 +112,8 @@ def _format_done(condition: str, seed: int, result: dict) -> str:
         peak_memory_text = f"{peak_memory}B"
     return (
         f"DONE condition={condition} seed={seed} "
-        f"f1={result['final_val_f1']} wall={result['wall_time_s']}s "
+        f"f1={result['final_val_f1']} test_f1={result['final_test_f1']} "
+        f"wall={result['wall_time_s']}s "
         f"peak_mem={peak_memory_text}"
     )
 

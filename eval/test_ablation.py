@@ -384,6 +384,22 @@ def test_run_single_cwru_mode_returns_peak_memory() -> None:
 
 @skip_unless_slow
 @pytest.mark.slow
+def test_run_single_cwru_returns_final_test_f1() -> None:
+    result = run_single(
+        condition="sensors-only",
+        seed=0,
+        mode="cwru",
+        n_epochs=1,
+        samples_per_class=2,
+    )
+
+    assert "final_test_f1" in result
+    assert isinstance(result["final_test_f1"], float)
+    assert 0.0 <= result["final_test_f1"] <= 1.0
+
+
+@skip_unless_slow
+@pytest.mark.slow
 def test_run_ablation_synthetic_back_compat(tmp_path: pathlib.Path) -> None:
     out_csv = run_ablation(
         n_seeds=1,
@@ -393,7 +409,7 @@ def test_run_ablation_synthetic_back_compat(tmp_path: pathlib.Path) -> None:
     )
 
     lines = out_csv.read_text(encoding="utf-8").splitlines()
-    assert lines[0] == "condition,seed,final_val_f1,wall_time_s,peak_memory_bytes"
+    assert lines[0] == "condition,seed,final_val_f1,final_test_f1,wall_time_s,peak_memory_bytes"
 
     with out_csv.open("r", encoding="utf-8", newline="") as csv_file:
         rows = list(csv.DictReader(csv_file))
