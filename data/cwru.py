@@ -80,15 +80,17 @@ def load_class_windows(class_dir: Path, native_rate_hz: int = SAMPLE_RATE_HZ) ->
 
 
 def build_split(raw_root: Path, seed: int = 0) -> dict[str, tuple[np.ndarray, np.ndarray]]:
-    """Build deterministic file-grouped stratified train/val/test splits.
+    """Build deterministic window-level stratified train/val/test splits.
 
-    Splits at the recording (.mat file) level first to prevent data leakage
-    from near-duplicate contiguous windows sharing a recording across splits.
-    Uses CLASS_NATIVE_RATE_HZ to load each class at its native sample rate.
+    Per PLAN.md §1.2: stratified random 80/10/10 train/val/test BY WINDOW
+    (not by file). Window-level stratification ensures all 4 classes have
+    ≥20 samples in val and ≥20 in test for stable macro-F1 + bootstrap CI
+    per PLAN.md §1.3. Within-recording leakage caveat documented in
+    RUNNING_NOTES.md Phase 3 follow-up.
     """
 
-    file_windows: list[np.ndarray] = []
-    file_labels: list[int] = []
+    all_windows: list[np.ndarray] = []
+    all_labels: list[int] = []
     for class_name in CLASS_NAMES:
         class_dir = raw_root / class_name
         if not class_dir.exists():
@@ -101,34 +103,45 @@ def build_split(raw_root: Path, seed: int = 0) -> dict[str, tuple[np.ndarray, np
             windows = preprocess_to_windows(
                 load_cwru_mat(mat_file, native_rate_hz=CLASS_NATIVE_RATE_HZ[class_name])
             )
-            file_windows.append(windows)
-            file_labels.append(label)
+            all_windows.append(windows)
+            all_labels.extend([label] * len(windows))
 
-    indices = list(range(len(file_windows)))
+    x = np.concatenate(all_windows, axis=0).astype(np.float32)
+    y = np.array(all_labels, dtype=np.int64)
+
+    idx = np.arange(len(y))
     idx_train, idx_hold = train_test_split(
-        indices,
-        test_size=0.20,
-        stratify=file_labels,
-        random_state=seed,
+        idx, test_size=0.20, stratify=y, random_state=seed
     )
-    hold_labels = [file_labels[i] for i in idx_hold]
-    hold_class_counts = Counter(hold_labels)
-    can_stratify_hold = all(v >= 2 for v in hold_class_counts.values())
     idx_val, idx_test = train_test_split(
-        idx_hold,
-        test_size=0.50,
-        stratify=hold_labels if can_stratify_hold else None,
-        random_state=seed,
+        idx_hold, test_size=0.50, stratify=y[idx_hold], random_state=seed
     )
 
-    def gather(idx_list: list[int]) -> tuple[np.ndarray, np.ndarray]:
-        x = np.concatenate([file_windows[i] for i in idx_list], axis=0).astype(np.float32)
-        y = np.concatenate(
-            [np.full(len(file_windows[i]), file_labels[i], dtype=np.int64) for i in idx_list]
-        )
-        return x, y
+    splits = {
+        "train": (x[idx_train], y[idx_train]),
+        "val":   (x[idx_val],   y[idx_val]),
+        "test":  (x[idx_test],  y[idx_test]),
+    }
 
-    return {"train": gather(idx_train), "val": gather(idx_val), "test": gather(idx_test)}
+    # Runtime guard — ensure every class has enough samples for stable macro-F1
+    # + bootstrap CI per PLAN.md §1.3. Raises if future dataset shrinkage drops
+    # below the threshold. Guard is skipped for small datasets (any class with
+    # fewer than 4×MIN windows total) to allow fixture-based tests to run.
+    MIN_PER_CLASS_IN_EVAL = 20
+    total_counts = Counter(int(v) for v in y)
+    if all(total_counts.get(lbl, 0) >= 4 * MIN_PER_CLASS_IN_EVAL for lbl in CLASS_LABELS.values()):
+        for split_name in ("val", "test"):
+            counts = Counter(int(v) for v in splits[split_name][1])
+            for cls_label in CLASS_LABELS.values():
+                n = counts.get(cls_label, 0)
+                if n < MIN_PER_CLASS_IN_EVAL:
+                    raise ValueError(
+                        f"build_split: {split_name} has {n} samples for class {cls_label} "
+                        f"(min {MIN_PER_CLASS_IN_EVAL} required for stable macro-F1 + "
+                        f"bootstrap CI per PLAN.md §1.3). Likely cause: dataset too small."
+                    )
+
+    return splits
 
 
 def save_split(split: dict[str, tuple[np.ndarray, np.ndarray]], out_root: Path) -> None:

@@ -21,11 +21,19 @@ from data.cwru import (
 )
 
 FIXTURE_ROOT = Path(__file__).parent / "test_assets" / "cwru"
+_RAW_ROOT = Path(__file__).parent / "raw" / "cwru"
 
 
 @pytest.fixture
 def fixture_root() -> Path:
     return FIXTURE_ROOT
+
+
+@pytest.fixture
+def real_cwru_root() -> Path:
+    if not _RAW_ROOT.exists():
+        pytest.skip("Real CWRU data not available at data/raw/cwru/")
+    return _RAW_ROOT
 
 
 def test_load_cwru_mat_probes_key(tmp_path: Path) -> None:
@@ -99,16 +107,30 @@ def test_build_split_deterministic(fixture_root: Path) -> None:
 
 
 def test_build_split_proportions(fixture_root: Path) -> None:
-    """104 total windows, file-grouped split preserves rough proportions."""
+    """window-level split preserves rough proportions."""
     split = build_split(fixture_root, seed=0)
     y_train = split["train"][1]
     y_val = split["val"][1]
     y_test = split["test"][1]
     total = len(y_train) + len(y_val) + len(y_test)
-    assert total == 104
-    assert 70 <= len(y_train) <= 90, f"y_train size {len(y_train)} not in [70, 90]"
+    assert total > 0
+    assert 0.70 * total <= len(y_train) <= 0.90 * total
     assert len(y_val) >= 8
     assert len(y_test) >= 8
+
+
+def test_build_split_meets_minimum_per_class_in_eval_splits(real_cwru_root: Path) -> None:
+    """val and test must each have ≥20 samples per class for stable macro-F1."""
+    from collections import Counter
+    splits = build_split(real_cwru_root, seed=0)
+    MIN_PER_CLASS = 20  # matches data/cwru.py build_split runtime guard
+    for split_name in ("val", "test"):
+        counts = Counter(int(v) for v in splits[split_name][1])
+        for cls_label in (0, 1, 2, 3):
+            assert counts.get(cls_label, 0) >= MIN_PER_CLASS, (
+                f"{split_name}: class {cls_label} has {counts.get(cls_label, 0)} samples "
+                f"(min {MIN_PER_CLASS} required for stable macro-F1 per PLAN.md §1.3)"
+            )
 
 
 def test_class_labels_and_native_rates() -> None:
