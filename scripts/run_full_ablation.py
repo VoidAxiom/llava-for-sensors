@@ -29,6 +29,7 @@ def _main(argv: list[str] | None = None) -> int:
 
     out_csv = pathlib.Path(args.out_csv)
     existing = _read_existing_pairs(out_csv)
+    _legacy_schema_detected: bool = out_csv.exists() and out_csv.stat().st_size > 0 and len(existing) == 0
 
     if args.dry_run:
         for condition in _CONDITIONS:
@@ -41,10 +42,13 @@ def _main(argv: list[str] | None = None) -> int:
 
     out_csv.parent.mkdir(parents=True, exist_ok=True)
     file_exists = out_csv.exists() and out_csv.stat().st_size > 0
-    mode = "a" if file_exists else "w"
+    legacy_stale = file_exists and _legacy_schema_detected
+    mode = "w" if (not file_exists or legacy_stale) else "a"
+    if legacy_stale:
+        print(f"WARNING: {out_csv} has legacy 5-column schema; overwriting.", file=sys.stderr)
     with out_csv.open(mode, encoding="utf-8", newline="") as csv_file:
         writer = csv.writer(csv_file)
-        if not file_exists:
+        if not file_exists or legacy_stale:
             writer.writerow(_CSV_HEADER)
             csv_file.flush()
 
