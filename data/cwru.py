@@ -32,6 +32,7 @@ CLASS_NATIVE_RATE_HZ: dict[str, int] = {
 }
 WINDOW_SIZE: int = 2048
 SAMPLE_RATE_HZ: int = 12000
+_SCHEMA_VERSION: int = 2
 
 
 def load_cwru_mat(path: Path, native_rate_hz: int = SAMPLE_RATE_HZ) -> np.ndarray:
@@ -149,7 +150,14 @@ def save_split(split: dict[str, tuple[np.ndarray, np.ndarray]], out_root: Path) 
 
     out_root.mkdir(parents=True, exist_ok=True)
     for name, (x, y) in split.items():
-        torch.save({"x": torch.from_numpy(x), "y": torch.from_numpy(y)}, out_root / f"{name}.pt")
+        torch.save(
+            {
+                "x": torch.from_numpy(x),
+                "y": torch.from_numpy(y),
+                "schema_version": _SCHEMA_VERSION,
+            },
+            out_root / f"{name}.pt",
+        )
 
 
 if __name__ == "__main__":

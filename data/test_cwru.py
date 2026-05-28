@@ -7,6 +7,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 import scipy.io
+import torch
 
 from data.cwru import (
     CLASS_LABELS,
@@ -14,10 +15,12 @@ from data.cwru import (
     CLASS_NATIVE_RATE_HZ,
     SAMPLE_RATE_HZ,
     WINDOW_SIZE,
+    _SCHEMA_VERSION,
     build_split,
     load_class_windows,
     load_cwru_mat,
     preprocess_to_windows,
+    save_split,
 )
 
 FIXTURE_ROOT = Path(__file__).parent / "test_assets" / "cwru"
@@ -147,3 +150,29 @@ def test_class_labels_canonical() -> None:
     assert CLASS_NAMES == ("normal", "inner_race", "outer_race", "ball")
     assert WINDOW_SIZE == 2048
     assert SAMPLE_RATE_HZ == 12000
+
+
+def test_save_split_embeds_schema_version(tmp_path: Path) -> None:
+    split = {
+        "train": (
+            np.zeros((1, 2), dtype=np.float32),
+            np.array([0], dtype=np.int64),
+        ),
+        "val": (
+            np.ones((1, 2), dtype=np.float32),
+            np.array([1], dtype=np.int64),
+        ),
+        "test": (
+            np.full((1, 2), 2, dtype=np.float32),
+            np.array([2], dtype=np.int64),
+        ),
+    }
+
+    save_split(split, tmp_path)
+
+    data = torch.load(tmp_path / "train.pt", weights_only=True)
+    assert data["schema_version"] == 2
+
+
+def test_schema_version_is_2() -> None:
+    assert _SCHEMA_VERSION == 2
