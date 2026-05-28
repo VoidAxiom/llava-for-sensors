@@ -310,7 +310,7 @@ def test_headline_gate_rejects_duplicate_seeds(tmp_path: pathlib.Path) -> None:
     }
     with csv_path.open("w", encoding="utf-8", newline="") as csv_file:
         writer = csv.writer(csv_file)
-        writer.writerow(["condition", "seed", "final_val_f1"])
+        writer.writerow(["condition", "seed", "final_test_f1"])
         for condition, values in values_by_condition.items():
             for seed, value in zip(seeds, values):
                 writer.writerow([condition, seed, value])
@@ -327,7 +327,7 @@ def test_headline_gate_rejects_duplicate_seed_ids_per_condition(
     csv_path = tmp_path / "dup_seeds.csv"
     with csv_path.open("w", encoding="utf-8", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow(["condition", "seed", "final_val_f1", "wall_time_s"])
+        writer.writerow(["condition", "seed", "final_test_f1", "wall_time_s"])
         for cond in conditions:
             for seed, val in zip([0, 0, 1, 2, 3], [0.5, 0.5, 0.6, 0.7, 0.8]):
                 writer.writerow([cond, seed, val, 0.1])
@@ -358,7 +358,7 @@ def _write_fake_csv(tmp_path: pathlib.Path, results: np.ndarray) -> pathlib.Path
     conditions = ["sensors-only", "vision+text", "all-three"]
     with csv_path.open("w", encoding="utf-8", newline="") as csv_file:
         writer = csv.writer(csv_file)
-        writer.writerow(["condition", "seed", "final_val_f1", "wall_time_s"])
+        writer.writerow(["condition", "seed", "final_test_f1", "wall_time_s"])
         for condition_index, condition in enumerate(conditions):
             for seed_index, value in enumerate(results[condition_index]):
                 writer.writerow([condition, seed_index, float(value), 0.1])
@@ -384,6 +384,22 @@ def test_run_single_cwru_mode_returns_peak_memory() -> None:
 
 @skip_unless_slow
 @pytest.mark.slow
+def test_run_single_cwru_returns_final_test_f1() -> None:
+    result = run_single(
+        condition="sensors-only",
+        seed=0,
+        mode="cwru",
+        n_epochs=1,
+        samples_per_class=2,
+    )
+
+    assert "final_test_f1" in result
+    assert isinstance(result["final_test_f1"], float)
+    assert 0.0 <= result["final_test_f1"] <= 1.0
+
+
+@skip_unless_slow
+@pytest.mark.slow
 def test_run_ablation_synthetic_back_compat(tmp_path: pathlib.Path) -> None:
     out_csv = run_ablation(
         n_seeds=1,
@@ -393,7 +409,7 @@ def test_run_ablation_synthetic_back_compat(tmp_path: pathlib.Path) -> None:
     )
 
     lines = out_csv.read_text(encoding="utf-8").splitlines()
-    assert lines[0] == "condition,seed,final_val_f1,wall_time_s,peak_memory_bytes"
+    assert lines[0] == "condition,seed,final_val_f1,final_test_f1,wall_time_s,peak_memory_bytes"
 
     with out_csv.open("r", encoding="utf-8", newline="") as csv_file:
         rows = list(csv.DictReader(csv_file))

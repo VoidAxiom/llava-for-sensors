@@ -75,7 +75,7 @@ def _read_results_csv(csv_path: Path) -> np.ndarray:
             if condition not in values_by_condition:
                 continue
             values_by_condition[condition].append(
-                (int(row["seed"]), float(row["final_val_f1"]))
+                (int(row["seed"]), float(row["final_test_f1"]))
             )
 
     seeds_per_condition: dict[str, list[int]] = {

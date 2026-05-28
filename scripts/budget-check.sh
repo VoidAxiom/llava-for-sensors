@@ -128,7 +128,7 @@ if [ ! -r "$CSV_PATH" ]; then
   exit 1
 fi
 
-EXPECTED_HEADER="condition,seed,final_val_f1,wall_time_s,peak_memory_bytes"
+EXPECTED_HEADER="condition,seed,final_val_f1,final_test_f1,wall_time_s,peak_memory_bytes"
 if ! IFS= read -r HEADER < "$CSV_PATH"; then
   echo "ERROR: CSV is empty: $CSV_PATH" >&2
   exit 1
@@ -166,13 +166,13 @@ NF == 0 {
 {
   gsub(/\r/, "", $0)
 
-  if (NF != 5) {
-    fail("ERROR: CSV row " NR " must have 5 fields")
+  if (NF != 6) {
+    fail("ERROR: CSV row " NR " must have 6 fields")
   }
 
   condition = $1
-  wall = $4
-  mem = $5
+  wall = $5
+  mem = $6
 
   if (!is_number(wall)) {
     fail("ERROR: CSV row " NR " has non-numeric wall_time_s")

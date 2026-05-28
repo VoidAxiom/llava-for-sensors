@@ -16,7 +16,8 @@ from eval.ablation import run_single  # noqa: E402
 
 
 _CONDITIONS = ("sensors-only", "vision+text", "all-three")
-_CSV_HEADER = ["condition", "seed", "final_val_f1", "wall_time_s", "peak_memory_bytes"]
+_CSV_HEADER = ["condition", "seed", "final_val_f1", "final_test_f1", "wall_time_s", "peak_memory_bytes"]
+_EXPECTED_HEADER = _CSV_HEADER  # alias for clarity
 
 
 def _main(argv: list[str] | None = None) -> int:
@@ -29,6 +30,7 @@ def _main(argv: list[str] | None = None) -> int:
 
     out_csv = pathlib.Path(args.out_csv)
     existing = _read_existing_pairs(out_csv)
+    _legacy_schema_detected: bool = _has_legacy_schema(out_csv)
 
     if args.dry_run:
         for condition in _CONDITIONS:
@@ -41,7 +43,14 @@ def _main(argv: list[str] | None = None) -> int:
 
     out_csv.parent.mkdir(parents=True, exist_ok=True)
     file_exists = out_csv.exists() and out_csv.stat().st_size > 0
-    mode = "a" if file_exists else "w"
+    if file_exists and _legacy_schema_detected:
+        print(
+            f"ERROR: existing CSV at {out_csv} has stale schema (header mismatch); "
+            "delete it or move it aside before re-running.",
+            file=sys.stderr,
+        )
+        return 1
+    mode = "w" if not file_exists else "a"
     with out_csv.open(mode, encoding="utf-8", newline="") as csv_file:
         writer = csv.writer(csv_file)
         if not file_exists:
@@ -70,6 +79,7 @@ def _main(argv: list[str] | None = None) -> int:
                         result["condition"],
                         result["seed"],
                         result["final_val_f1"],
+                        result["final_test_f1"],
                         result["wall_time_s"],
                         _csv_peak_memory(result["peak_memory_bytes"]),
                     ],
@@ -81,6 +91,19 @@ def _main(argv: list[str] | None = None) -> int:
     return 0
 
 
+def _has_legacy_schema(csv_path: pathlib.Path) -> bool:
+    """Return True if the CSV exists but its header does not match _EXPECTED_HEADER."""
+    if not csv_path.exists() or csv_path.stat().st_size == 0:
+        return False
+    with csv_path.open("r", encoding="utf-8", newline="") as csv_file:
+        reader = csv.reader(csv_file)
+        try:
+            header = next(reader)
+        except StopIteration:
+            return False
+    return header != _EXPECTED_HEADER
+
+
 def _read_existing_pairs(csv_path: pathlib.Path) -> set[tuple[str, int]]:
     if not csv_path.exists():
         return set()
@@ -90,6 +113,8 @@ def _read_existing_pairs(csv_path: pathlib.Path) -> set[tuple[str, int]]:
     pairs: set[tuple[str, int]] = set()
     with csv_path.open("r", encoding="utf-8", newline="") as csv_file:
         reader = csv.DictReader(csv_file)
+        if reader.fieldnames is None or "final_test_f1" not in reader.fieldnames:
+            return set()
         for row in reader:
             pairs.add((row["condition"], int(row["seed"])))
     return pairs
@@ -109,7 +134,8 @@ def _format_done(condition: str, seed: int, result: dict) -> str:
         peak_memory_text = f"{peak_memory}B"
     return (
         f"DONE condition={condition} seed={seed} "
-        f"f1={result['final_val_f1']} wall={result['wall_time_s']}s "
+        f"f1={result['final_val_f1']} test_f1={result['final_test_f1']} "
+        f"wall={result['wall_time_s']}s "
         f"peak_mem={peak_memory_text}"
     )
 
