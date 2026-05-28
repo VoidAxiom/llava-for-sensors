@@ -42,13 +42,17 @@ def _main(argv: list[str] | None = None) -> int:
 
     out_csv.parent.mkdir(parents=True, exist_ok=True)
     file_exists = out_csv.exists() and out_csv.stat().st_size > 0
-    legacy_stale = file_exists and _legacy_schema_detected
-    mode = "w" if (not file_exists or legacy_stale) else "a"
-    if legacy_stale:
-        print(f"WARNING: {out_csv} has legacy 5-column schema; overwriting.", file=sys.stderr)
+    if file_exists and _legacy_schema_detected:
+        print(
+            f"ERROR: existing CSV at {out_csv} has stale schema (header mismatch); "
+            "delete it or move it aside before re-running.",
+            file=sys.stderr,
+        )
+        return 1
+    mode = "w" if not file_exists else "a"
     with out_csv.open(mode, encoding="utf-8", newline="") as csv_file:
         writer = csv.writer(csv_file)
-        if not file_exists or legacy_stale:
+        if not file_exists:
             writer.writerow(_CSV_HEADER)
             csv_file.flush()
 
