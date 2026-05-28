@@ -17,6 +17,7 @@ from eval.ablation import run_single  # noqa: E402
 
 _CONDITIONS = ("sensors-only", "vision+text", "all-three")
 _CSV_HEADER = ["condition", "seed", "final_val_f1", "final_test_f1", "wall_time_s", "peak_memory_bytes"]
+_EXPECTED_HEADER = _CSV_HEADER  # alias for clarity
 
 
 def _main(argv: list[str] | None = None) -> int:
@@ -29,7 +30,7 @@ def _main(argv: list[str] | None = None) -> int:
 
     out_csv = pathlib.Path(args.out_csv)
     existing = _read_existing_pairs(out_csv)
-    _legacy_schema_detected: bool = out_csv.exists() and out_csv.stat().st_size > 0 and len(existing) == 0
+    _legacy_schema_detected: bool = _has_legacy_schema(out_csv)
 
     if args.dry_run:
         for condition in _CONDITIONS:
@@ -88,6 +89,19 @@ def _main(argv: list[str] | None = None) -> int:
                 print(_format_done(condition, seed, result))
 
     return 0
+
+
+def _has_legacy_schema(csv_path: pathlib.Path) -> bool:
+    """Return True if the CSV exists but its header does not match _EXPECTED_HEADER."""
+    if not csv_path.exists() or csv_path.stat().st_size == 0:
+        return False
+    with csv_path.open("r", encoding="utf-8", newline="") as csv_file:
+        reader = csv.reader(csv_file)
+        try:
+            header = next(reader)
+        except StopIteration:
+            return False
+    return header != _EXPECTED_HEADER
 
 
 def _read_existing_pairs(csv_path: pathlib.Path) -> set[tuple[str, int]]:

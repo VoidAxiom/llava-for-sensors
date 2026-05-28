@@ -73,10 +73,10 @@ def run_single(
     resolved_device = _resolve_device(device)
     if mode == "synthetic":
         samples = generate(n=samples_per_class * N_CLASSES, seed=0)
-        train_samples, val_samples = _stratified_split(samples)
+        train_samples, val_samples, test_samples = _stratified_split(samples)
         train_ds = ToyDataset(train_samples)
         val_ds = ToyDataset(val_samples)
-        test_ds = None
+        test_ds = ToyDataset(test_samples)
     elif mode == "cwru":
         train_ds = BearingFaultDataset(mode="cwru", split="train")
         val_ds = BearingFaultDataset(mode="cwru", split="val")
@@ -161,19 +161,22 @@ def _eval_macro_f1(
 
 def _stratified_split(
     samples: list[SyntheticSample],
-) -> tuple[list[SyntheticSample], list[SyntheticSample]]:
+) -> tuple[list[SyntheticSample], list[SyntheticSample], list[SyntheticSample]]:
     grouped: list[list[SyntheticSample]] = [[] for _ in range(N_CLASSES)]
     for sample in sorted(samples, key=lambda item: int(item["label"])):
         grouped[int(sample["label"])].append(sample)
 
     train_groups: list[list[SyntheticSample]] = []
     val_groups: list[list[SyntheticSample]] = []
+    test_groups: list[list[SyntheticSample]] = []
     for class_samples in grouped:
-        split_index = int(len(class_samples) * 0.8)
-        train_groups.append(class_samples[:split_index])
-        val_groups.append(class_samples[split_index:])
+        train_end = int(len(class_samples) * 0.8)
+        val_end = train_end + int((len(class_samples) - train_end) * 0.5)
+        train_groups.append(class_samples[:train_end])
+        val_groups.append(class_samples[train_end:val_end])
+        test_groups.append(class_samples[val_end:])
 
-    return _interleave(train_groups), _interleave(val_groups)
+    return _interleave(train_groups), _interleave(val_groups), _interleave(test_groups)
 
 
 def _interleave(groups: list[list[SyntheticSample]]) -> list[SyntheticSample]:
