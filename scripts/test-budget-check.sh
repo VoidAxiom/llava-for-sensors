@@ -53,10 +53,10 @@ contains_text() {
 
 CSV_GREEN="$TEST_TMP/green.csv"
 cat > "$CSV_GREEN" <<'CSV'
-condition,seed,final_val_f1,wall_time_s,peak_memory_bytes
-sensors-only,0,0.85,600,8589934592
-vision+text,0,0.87,700,8589934592
-all-three,0,0.90,800,8589934592
+condition,seed,final_val_f1,final_test_f1,wall_time_s,peak_memory_bytes
+sensors-only,0,0.85,0.5,600,8589934592
+vision+text,0,0.87,0.5,700,8589934592
+all-three,0,0.90,0.5,800,8589934592
 CSV
 
 set +e
@@ -71,10 +71,10 @@ fi
 
 CSV_YELLOW="$TEST_TMP/yellow.csv"
 cat > "$CSV_YELLOW" <<'CSV'
-condition,seed,final_val_f1,wall_time_s,peak_memory_bytes
-sensors-only,0,0.85,900,8589934592
-vision+text,0,0.87,1000,8589934592
-all-three,0,0.90,1100,8589934592
+condition,seed,final_val_f1,final_test_f1,wall_time_s,peak_memory_bytes
+sensors-only,0,0.85,0.5,900,8589934592
+vision+text,0,0.87,0.5,1000,8589934592
+all-three,0,0.90,0.5,1100,8589934592
 CSV
 
 set +e
@@ -90,10 +90,10 @@ fi
 
 CSV_RED_WALL="$TEST_TMP/red-wall.csv"
 cat > "$CSV_RED_WALL" <<'CSV'
-condition,seed,final_val_f1,wall_time_s,peak_memory_bytes
-sensors-only,0,0.85,1500,8589934592
-vision+text,0,0.87,1500,8589934592
-all-three,0,0.90,1500,8589934592
+condition,seed,final_val_f1,final_test_f1,wall_time_s,peak_memory_bytes
+sensors-only,0,0.85,0.5,1500,8589934592
+vision+text,0,0.87,0.5,1500,8589934592
+all-three,0,0.90,0.5,1500,8589934592
 CSV
 
 set +e
@@ -108,10 +108,10 @@ fi
 
 CSV_RED_MEM="$TEST_TMP/red-memory.csv"
 cat > "$CSV_RED_MEM" <<'CSV'
-condition,seed,final_val_f1,wall_time_s,peak_memory_bytes
-sensors-only,0,0.85,600,53687091200
-vision+text,0,0.87,700,53687091200
-all-three,0,0.90,800,53687091200
+condition,seed,final_val_f1,final_test_f1,wall_time_s,peak_memory_bytes
+sensors-only,0,0.85,0.5,600,53687091200
+vision+text,0,0.87,0.5,700,53687091200
+all-three,0,0.90,0.5,800,53687091200
 CSV
 
 set +e
@@ -141,8 +141,8 @@ fi
 
 CSV_INCOMPLETE="$TEST_TMP/incomplete.csv"
 cat > "$CSV_INCOMPLETE" <<'CSV'
-condition,seed,final_val_f1,wall_time_s,peak_memory_bytes
-sensors-only,0,0.85,600,8589934592
+condition,seed,final_val_f1,final_test_f1,wall_time_s,peak_memory_bytes
+sensors-only,0,0.85,0.5,600,8589934592
 CSV
 
 set +e
